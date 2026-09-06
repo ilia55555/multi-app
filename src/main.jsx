@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowLeft, Check, CircleHelp, Clapperboard, CloudDownload, Download, Film, Gauge, Grid2X2, Home, Link2, Menu, MoreHorizontal, Pause, Play, Plus, Radio, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Wifi, WifiOff, X } from 'lucide-react';
+import { ArrowLeft, Check, CircleHelp, Clapperboard, Download, Film, Gauge, Grid2X2, Home, Link2, Menu, Play, Plus, Radio, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Wifi, WifiOff, X } from 'lucide-react';
 import './styles.css';
 
 const apps = [
