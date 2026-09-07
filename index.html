@@ -1,13 +1,42 @@
 <!doctype html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#080a0f" />
-    <title>جعبه ابزار من</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090a0f">
+  <meta name="description" content="مرکز دسترسی به اپلیکیشن‌های شخصی">
+  <link rel="manifest" id="app-manifest">
+  <link rel="stylesheet" href="styles.css">
+  <title>جعبه ابزار من</title>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-icon">▦</span><span><b>جعبه ابزار</b><small>مرکز اپلیکیشن‌های من</small></span></a>
+    <nav><small>فضای کار</small><a class="active" href="index.html">⌂ <span>خانه</span></a><a href="apps/streambox/index.html">▶ <span>استریم باکس</span></a></nav>
+    <div class="side-note"><b>فضا برای ایده‌های بیشتر</b><p>هر اپلیکیشن در پوشهٔ مستقل خودش قرار می‌گیرد.</p><small>نسخه ۱.۱</small></div>
+  </aside>
+  <main>
+    <header>
+      <div class="search"><span>⌕</span><input id="search" type="search" placeholder="جستجو بین اپلیکیشن‌ها..." aria-label="جستجوی اپلیکیشن"></div>
+      <button id="installButton" class="install-button" hidden><span>⇩</span> نصب اپلیکیشن</button>
+      <div class="profile"><span><b>کاربر مهمان</b><small>فضای شخصی شما</small></span><i>م</i></div>
+    </header>
+    <div class="page">
+      <section class="welcome"><div><span class="eyebrow">✦ همه چیز، یک‌جا</span><h1>سلام، خوش آمدید 👋</h1><p>اپلیکیشن مورد نظرتان را انتخاب کنید و بی‌وقفه شروع به کار کنید.</p></div><div class="counter"><b>۱</b><span>اپلیکیشن فعال</span></div></section>
+      <div class="section-title"><div><h2>اپلیکیشن‌های من</h2><p>ابزارهایی که برای شما ساخته شده‌اند</p></div></div>
+      <section class="apps" id="apps">
+        <article class="app-card" data-search="استریم باکس پخش فیلم ویدیو">
+          <span class="badge">فعال</span><div class="app-icon">▶</div><h3>استریم باکس</h3><p>پخش همزمان فیلم هنگام دریافت</p>
+          <div class="tags"><span>● پخش زنده</span><span>⌁ ادامه هوشمند</span></div>
+          <a href="apps/streambox/index.html">ورود به اپلیکیشن <span>←</span></a>
+        </article>
+        <article class="empty-card"><div>＋</div><h3>اپلیکیشن بعدی</h3><p>فضای آماده برای ایدهٔ بعدی شما</p></article>
+        <article class="empty-card"><div>＋</div><h3>اپلیکیشن بعدی</h3><p>فضای آماده برای ایدهٔ بعدی شما</p></article>
+        <article class="empty-card"><div>＋</div><h3>اپلیکیشن بعدی</h3><p>فضای آماده برای ایدهٔ بعدی شما</p></article>
+      </section>
+      <section class="safe-note"><span>✓</span><div><b>ساختار ساده و امن</b><p>هر اپلیکیشن فقط از HTML، CSS و JavaScript ساخته شده و در پوشهٔ مستقل خودش اجرا می‌شود.</p></div></section>
+    </div>
+  </main>
+  <script src="app.js" defer></script>
+</body>
 </html>
