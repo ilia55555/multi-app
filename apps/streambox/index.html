@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090a0f">
+  <link rel="stylesheet" href="styles.css">
+  <title>استریم باکس</title>
+</head>
+<body>
+  <header><a href="../../index.html">→ بازگشت به همه اپ‌ها</a><b>جعبه ابزار</b></header>
+  <main>
+    <section class="title"><div class="icon">▶</div><div><small>اپلیکیشن شماره ۱</small><h1>استریم باکس</h1><p>تماشا را شروع کنید؛ مرورگر بخش‌های بعدی فیلم را همزمان دریافت می‌کند.</p></div></section>
+    <div class="layout">
+      <section class="player-panel">
+        <div class="player" id="player"><div class="placeholder" id="placeholder"><span>▶</span><h2>فیلم شما اینجا پخش می‌شود</h2><p>لینک مستقیم فایل ویدیو را وارد کنید.</p></div><video id="video" controls preload="auto" hidden></video><div class="buffering" id="buffering" hidden>◌ در حال دریافت ادامه فیلم…</div></div>
+        <div class="status"><span>✓</span><div><b>ادامه هوشمند پخش</b><small>آخرین نقطهٔ تماشا روی همین دستگاه ذخیره می‌شود.</small></div><i id="connection">⌁ آماده اتصال</i></div>
+      </section>
+      <section class="controls">
+        <h2>لینک فیلم</h2><p>آدرس مستقیم فایل ویدیویی را وارد کنید</p><label for="url">آدرس دانلود مستقیم</label>
+        <div class="url-box"><span>⌁</span><input id="url" dir="ltr" type="url" placeholder="https://example.com/movie.mp4"><button id="clear" aria-label="پاک کردن">×</button></div>
+        <p class="error" id="error" hidden></p><button class="play" id="play">▶ شروع پخش فیلم</button>
+        <div class="actions" id="actions" hidden><button id="retry">↻ تلاش دوباره</button><a id="download" download>⇩ دانلود جداگانه</a></div>
+        <div class="guide"><h3>چطور کار می‌کند؟</h3><p><span>۱</span><b>لینک مستقیم را وارد کنید</b></p><p><span>۲</span><b>همزمان با دریافت تماشا کنید</b></p><p><span>۳</span><b>پس از قطعی از همان نقطه ادامه دهید</b></p></div>
+        <div class="notice">بهترین سازگاری: MP4 (H.264)، WebM و سرور دارای HTTP Range</div>
+      </section>
+    </div>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>
