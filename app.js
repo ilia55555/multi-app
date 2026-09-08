@@ -20,11 +20,24 @@ const manifest = {
 document.querySelector('#app-manifest').href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
 
 const search = document.querySelector('#search');
+const resultCount = document.querySelector('#resultCount');
+const emptyResults = document.querySelector('#emptyResults');
 search.addEventListener('input', () => {
   const value = search.value.trim().toLowerCase();
+  let visibleCount = 0;
   document.querySelectorAll('[data-search]').forEach(card => {
     card.hidden = !card.dataset.search.toLowerCase().includes(value);
+    if (!card.hidden) visibleCount += 1;
   });
+  resultCount.textContent = value ? `${visibleCount.toLocaleString('fa-IR')} نتیجه پیدا شد` : '۶ ابزار برای استفاده آماده است';
+  emptyResults.hidden = visibleCount !== 0;
+});
+
+window.addEventListener('keydown', event => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    search.focus();
+  }
 });
 
 const installButton = document.querySelector('#installButton');

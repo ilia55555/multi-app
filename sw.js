@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v1';
+const CACHE_NAME = 'multi-app-hub-v2';
 const APP_FILES = [
   './',
   './index.html',
@@ -6,7 +6,12 @@ const APP_FILES = [
   './app.js',
   './apps/streambox/index.html',
   './apps/streambox/styles.css',
-  './apps/streambox/app.js'
+  './apps/streambox/app.js',
+  './LiveWebStudio-Tuner/index.html',
+  './secretchat/index.html',
+  './naghshe-Tuner/index.html',
+  './Generator-Color-Palette--Tuner/full.html',
+  './Element-Samples-Tuner/index.html'
 ];
 
 self.addEventListener('install', event => {
