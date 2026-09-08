@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111827" />
+  <title>Live Web Studio</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="studio-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">&lt;/&gt;</div>
+        <div>
+          <h1>Live Web Studio</h1>
+          <p>فایل‌ها را وارد کن، پایین ویرایش کن و بالا زنده ببین.</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions compact-actions" aria-label="اقدام‌های پروژه">
+        <button id="layoutEditorBtn" class="button ghost icon-only has-tooltip" type="button" aria-label="چیدمان پنل‌ها" data-tooltip="چیدمان پنل‌ها">
+          <span class="material-symbols-rounded button-icon" aria-hidden="true">dashboard_customize</span>
+          <span class="visually-hidden">چیدمان پنل‌ها</span>
+        </button>
+        <button id="githubPanelOpenBtn" class="button github icon-only has-tooltip github-panel-state" type="button" aria-label="تنظیمات GitHub" data-tooltip="تنظیمات GitHub">
+          <svg class="button-icon github-logo-icon" aria-hidden="true" viewBox="0 -0.5 25 25" focusable="false"><path d="m12.301 0h.093c2.242 0 4.34.613 6.137 1.68l-.055-.031c1.871 1.094 3.386 2.609 4.449 4.422l.031.058c1.04 1.769 1.654 3.896 1.654 6.166 0 5.406-3.483 10-8.327 11.658l-.087.026c-.063.02-.135.031-.209.031-.162 0-.312-.054-.433-.144l.002.001c-.128-.115-.208-.281-.208-.466 0-.005 0-.01 0-.014v.001q0-.048.008-1.226t.008-2.154c.007-.075.011-.161.011-.249 0-.792-.323-1.508-.844-2.025.618-.061 1.176-.163 1.718-.305l-.076.017c.573-.16 1.073-.373 1.537-.642l-.031.017c.508-.28.938-.636 1.292-1.058l.006-.007c.372-.476.663-1.036.84-1.645l.009-.035c.209-.683.329-1.468.329-2.281 0-.045 0-.091-.001-.136v.007c0-.022.001-.047.001-.072 0-1.248-.482-2.383-1.269-3.23l.003.003c.168-.44.265-.948.265-1.479 0-.649-.145-1.263-.404-1.814l.011.026c-.115-.022-.246-.035-.381-.035-.334 0-.649.078-.929.216l.012-.005c-.568.21-1.054.448-1.512.726l.038-.022-.609.384c-.922-.264-1.981-.416-3.075-.416s-2.153.152-3.157.436l.081-.02q-.256-.176-.681-.433c-.373-.214-.814-.421-1.272-.595l-.066-.022c-.293-.154-.64-.244-1.009-.244-.124 0-.246.01-.364.03l.013-.002c-.248.524-.393 1.139-.393 1.788 0 .531.097 1.04.275 1.509l-.01-.029c-.785.844-1.266 1.979-1.266 3.227 0 .025 0 .051.001.076v-.004c-.001.039-.001.084-.001.13 0 .809.12 1.591.344 2.327l-.015-.057c.189.643.476 1.202.85 1.693l-.009-.013c.354.435.782.793 1.267 1.062l.022.011c.432.252.933.465 1.46.614l.046.011c.466.125 1.024.227 1.595.284l.046.004c-.431.428-.718 1-.784 1.638l-.001.012c-.207.101-.448.183-.699.236l-.021.004c-.256.051-.549.08-.85.08-.022 0-.044 0-.066 0h.003c-.394-.008-.756-.136-1.055-.348l.006.004c-.371-.259-.671-.595-.881-.986l-.007-.015c-.198-.336-.459-.614-.768-.827l-.009-.006c-.225-.169-.49-.301-.776-.38l-.016-.004-.320-.048c-.023-.002-.05-.003-.077-.003-.14 0-.273.028-.394.077l.007-.003q-.128.072-.08.184c.039.086.087.16.145.225l-.001-.001c.061.072.13.135.205.19l.003.002.112.08c.283.148.516.354.693.603l.004.006c.191.237.359.505.494.792l.01.024.16.368c.135.402.38.738.7.981l.005.004c.3.234.662.402 1.057.478l.016.002c.33.064.714.104 1.106.112h.007c.045.002.097.002.15.002.261 0 .517-.021.767-.062l-.027.004.368-.064q0 .609.008 1.418t.008.873v.014c0 .185-.08.351-.208.466h-.001c-.119.089-.268.143-.431.143-.075 0-.147-.011-.214-.032l.005.001c-4.929-1.689-8.409-6.283-8.409-11.69 0-2.268.612-4.393 1.681-6.219l-.032.058c1.094-1.871 2.609-3.386 4.422-4.449l.058-.031c1.739-1.034 3.835-1.645 6.073-1.645h.098-.005zm-7.64 17.666q.048-.112-.112-.192-.16-.048-.208.032-.048.112.112.192.144.096.208-.032zm.497.545q.112-.08-.032-.256-.160-.144-.256-.048-.112.08.032.256.159.157.256.047zm.48.72q.144-.112 0-.304-.128-.208-.272-.096-.144.08 0 .288t.272.112zm.672.673q.128-.128-.064-.304-.192-.192-.32-.048-.144.128.064.304.192.192.32.044zm.913.4q.048-.176-.208-.256-.24-.064-.304.112t.208.24q.24.097.304-.096zm1.009.08q0-.208-.272-.176-.256 0-.256.176 0 .208.272.176.256.001.256-.175zm.929-.16q-.032-.176-.288-.144-.256.048-.224.24t.288.128.225-.224z"/></svg>
+          <span class="visually-hidden">تنظیمات GitHub</span>
+        </button>
+        <div class="upload-menu-wrap">
+          <button id="uploadMenuBtn" class="button primary icon-only has-tooltip" type="button" aria-label="آپلود پروژه" data-tooltip="آپلود" aria-haspopup="menu" aria-expanded="false">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">upload</span>
+            <span class="visually-hidden">آپلود پروژه</span>
+          </button>
+          <div id="uploadMenu" class="upload-menu" role="menu" hidden>
+            <button class="upload-menu-item" type="button" role="menuitem" data-upload-action="files">
+              <span class="material-symbols-rounded inline-icon" aria-hidden="true">upload_file</span>
+              <span>آپلود فایل‌ها</span>
+            </button>
+            <button class="upload-menu-item" type="button" role="menuitem" data-upload-action="folder">
+              <span class="material-symbols-rounded inline-icon" aria-hidden="true">drive_folder_upload</span>
+              <span>آپلود پوشه</span>
+            </button>
+          </div>
+          <input id="projectFiles" type="file" multiple hidden />
+          <input id="projectFolder" type="file" webkitdirectory directory multiple hidden />
+        </div>
+      </div>
+
+    </header>
+
+    <div id="layoutScrollArea" class="layout-scroll-area" aria-label="فضای قابل اسکرول چیدمان">
+      <div id="layoutStage" class="layout-stage" data-layout-template="big-top">
+    <section class="preview-section" aria-label="پیش‌نمایش زنده">
+      <div class="section-toolbar">
+        <div class="section-title">
+          <span class="status-dot" id="previewDot" aria-hidden="true"></span>
+          <strong>نمایشگر زنده</strong>
+          <span id="previewStatus" class="muted">آماده</span>
+          <label class="toggle-control preview-live-control" title="اگر خاموش باشد فقط دکمه بروزرسانی، Preview را تغییر می‌دهد">
+            <input id="autoPreviewToggle" type="checkbox" checked />
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span>اجرای زنده</span>
+          </label>
+          <button id="applyPreviewBtn" class="button primary compact icon-only has-tooltip" type="button" aria-label="بروزرسانی پیش‌نمایش" data-tooltip="بروزرسانی">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">refresh</span>
+            <span class="visually-hidden">بروزرسانی</span>
+          </button>
+        </div>
+        <div class="preview-actions compact-actions" aria-label="کنترل‌های نمایشگر">
+          <button id="desktopBtn" class="device-btn icon-only has-tooltip active" type="button" data-width="100%" aria-label="نمای دسکتاپ" data-tooltip="نمای دسکتاپ">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">desktop_windows</span>
+            <span class="visually-hidden">دسکتاپ</span>
+          </button>
+          <button id="tabletBtn" class="device-btn icon-only has-tooltip" type="button" data-width="820px" aria-label="نمای تبلت" data-tooltip="نمای تبلت">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">tablet_mac</span>
+            <span class="visually-hidden">تبلت</span>
+          </button>
+          <button id="mobileBtn" class="device-btn icon-only has-tooltip" type="button" data-width="390px" aria-label="نمای موبایل" data-tooltip="نمای موبایل">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">phone_iphone</span>
+            <span class="visually-hidden">موبایل</span>
+          </button>
+          <button id="inspectToggleBtn" class="button ghost compact icon-only has-tooltip" type="button" aria-pressed="false" aria-label="انتخاب عنصر" data-tooltip="انتخاب عنصر">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">ads_click</span>
+            <span class="visually-hidden">انتخاب عنصر</span>
+          </button>
+          <button id="openPreviewBtn" class="button ghost compact icon-only has-tooltip" type="button" aria-label="باز کردن جدا" data-tooltip="باز کردن جدا">
+            <span class="material-symbols-rounded button-icon" aria-hidden="true">open_in_new</span>
+            <span class="visually-hidden">باز کردن جدا</span>
+          </button>
+        </div>
+      </div>
+      <div class="preview-viewport">
+        <iframe id="previewFrame" title="پیش‌نمایش زنده" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+      </div>
+      <div id="errorPanel" class="error-panel" hidden></div>
+    </section>
+
+    <div id="previewResizer" class="pane-resizer pane-resizer-horizontal" role="separator" aria-label="تغییر اندازه نمایشگر و ویرایشگر" aria-orientation="horizontal" tabindex="0"></div>
+
+    <section id="developerSection" class="developer-section" aria-label="بخش توسعه‌دهنده">
+      <div id="workspace" class="workspace">
+        <aside class="file-sidebar">
+          <div class="file-sidebar-head">
+            <span class="file-sidebar-title">فایل‌های پروژه <span id="fileCount" class="count-badge">0</span></span>
+            <div class="file-head-actions">
+              <button id="githubImportBtn" class="icon-button has-tooltip" type="button" aria-label="دریافت ریپو از GitHub" data-tooltip="دریافت از GitHub">
+                <span class="material-symbols-rounded inline-icon" aria-hidden="true">code</span>
+              </button>
+              <button id="downloadProjectBtn" class="icon-button has-tooltip" type="button" aria-label="دانلود پروژه ZIP" data-tooltip="دانلود ZIP">
+                <span class="material-symbols-rounded inline-icon" aria-hidden="true">folder_zip</span>
+              </button>
+              <button id="fileSelectionModeBtn" class="icon-button selection-mode-button" type="button" aria-pressed="false" title="فعال کردن انتخاب چندفایل" aria-label="فعال کردن انتخاب چندفایل">
+                <span class="material-symbols-rounded inline-icon" aria-hidden="true">select_check_box</span>
+              </button>
+              <div class="file-create-menu-wrap">
+                <button id="addFileBtn" class="icon-button" type="button" title="ساخت فایل یا فولدر" aria-haspopup="menu" aria-expanded="false">+</button>
+                <div id="createMenu" class="file-create-menu" role="menu" hidden>
+                  <button class="create-menu-item" type="button" role="menuitem" data-create-action="file">
+                    <span class="material-symbols-rounded inline-icon" aria-hidden="true">note_add</span>
+                    <span>فایل جدید</span>
+                  </button>
+                  <button class="create-menu-item" type="button" role="menuitem" data-create-action="folder">
+                    <span class="material-symbols-rounded inline-icon" aria-hidden="true">create_new_folder</span>
+                    <span>فولدر جدید</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="selectionToolbar" class="selection-toolbar" hidden>
+            <span id="selectedCount" class="selection-count">0 انتخاب</span>
+            <select id="moveDestinationSelect" aria-label="پوشه مقصد فایل‌های انتخاب‌شده"></select>
+            <button id="moveSelectedBtn" class="selection-move-btn" type="button">انتقال</button>
+            <button id="clearSelectionBtn" class="selection-clear-btn" type="button" title="لغو انتخاب">×</button>
+          </div>
+          <div id="fileList" class="file-list" role="tree" aria-label="فایل‌ها و فولدرهای پروژه"></div>
+        </aside>
+
+        <div id="sidebarResizer" class="pane-resizer pane-resizer-vertical" role="separator" aria-label="تغییر عرض پنل فایل‌ها" aria-orientation="vertical" tabindex="0"></div>
+
+        <div id="editorPanel" class="editor-panel">
+          <div class="editor-tabs" id="editorTabs" role="tablist" aria-label="تب فایل‌ها"></div>
+          <div class="editor-toolbar">
+            <span id="activeFileLabel">فایلی انتخاب نشده</span>
+            <div class="editor-toolbar-actions">
+              <button id="githubConnectBtn" class="icon-button has-tooltip" type="button" aria-label="GitHub / Pull Request" data-tooltip="GitHub / Pull Request">
+                <svg class="inline-icon octicon" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"/></svg>
+              </button>
+              <button id="debugBtn" class="icon-button has-tooltip" type="button" aria-label="دیباگ" data-tooltip="دیباگ">
+                <span class="material-symbols-rounded inline-icon" aria-hidden="true">bug_report</span>
+              </button>
+              <button id="sampleElementBtn" class="sample-element-open has-tooltip" type="button" aria-label="افزودن المان نمونه" data-tooltip="افزودن المان نمونه">+المان</button>
+              <span id="lineInfo">خط 1، ستون 1</span>
+              <button id="editorFullscreenBtn" class="icon-button has-tooltip" type="button" aria-label="تمام‌صفحه کردن بخش کد" data-tooltip="تمام صفحه کد">
+                <span class="material-symbols-rounded inline-icon" aria-hidden="true">fullscreen</span>
+              </button>
+            </div>
+          </div>
+          <div class="inspector-bar" id="inspectorBar" hidden>
+            <span class="inspector-label">عنصر انتخاب‌شده: <b id="selectedElementLabel">—</b></span>
+            <div class="inspector-actions">
+              <button class="editor-action" type="button" data-jump-source="html">HTML</button>
+              <button class="editor-action" type="button" data-jump-source="css">CSS</button>
+              <button class="editor-action" type="button" data-jump-source="js">JS</button>
+              <button class="editor-action" type="button" data-jump-source="json">JSON</button>
+              <button class="editor-action" type="button" data-open-builder-from-selection>ورود به مودال المان</button>
+              <button id="extractSelectionBtn" class="editor-action active-action" type="button">استخراج به فایل</button>
+            </div>
+            <div id="relatedSources" class="related-sources" aria-live="polite"></div>
+          </div>
+          <div class="code-editor-shell">
+            <div class="editor-gutter" aria-hidden="true">
+              <div id="lineMarkers" class="line-markers"></div>
+              <div id="lineNumbers" class="line-numbers"></div>
+            </div>
+            <div class="editor-stage">
+              <pre id="codeHighlight" class="code-highlight" aria-hidden="true"><code></code></pre>
+              <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="ویرایشگر کد"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="consolePanel" class="console-panel" aria-label="کنسول اجرا">
+      <div class="console-head">
+        <div class="console-title">
+          <span class="material-symbols-rounded inline-icon" aria-hidden="true">terminal</span>
+          <strong>کنسول</strong>
+        </div>
+        <button id="clearConsoleBtn" class="button ghost compact has-tooltip" type="button" data-tooltip="پاک کردن کنسول">پاک کردن</button>
+      </div>
+      <div id="consoleOutput" class="console-output" role="log" aria-live="polite" aria-label="خروجی کنسول Preview">
+        <div class="console-empty">لاگ‌ها و خطاهای اجرای Preview اینجا نمایش داده می‌شود.</div>
+      </div>
+    </section>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="sampleElementDialog" class="sample-element-dialog" aria-labelledby="sampleElementTitle">
+    <form id="sampleElementForm" class="sample-element-card" method="dialog">
+      <header class="sample-element-head">
+        <div>
+          <p class="dialog-eyebrow">ELEMENT BUILDER</p>
+          <h2 id="sampleElementTitle">افزودن المان از نمونه‌ها</h2>
+          <p>المان را از کتابخانه داخلی انتخاب کن، بعد HTML / CSS / JS را با دکمه‌های افزودن مرحله‌به‌مرحله بساز.</p>
+        </div>
+        <button id="sampleElementCloseBtn" class="icon-button" type="button" aria-label="بستن">×</button>
+      </header>
+
+      <div class="sample-element-layout">
+        <section class="sample-element-picker" aria-label="انتخاب المان نمونه">
+          <label class="dialog-field">
+            <span>انتخاب از نمونه‌ها</span>
+            <select id="sampleElementSelect"></select>
+          </label>
+          <div class="sample-preview-box">
+            <iframe id="sampleElementPreviewFrame" title="پیش‌نمایش المان انتخاب‌شده"></iframe>
+          </div>
+        </section>
+
+        <section class="sample-element-settings" aria-label="تنظیمات المان">
+          <details class="builder-section" open>
+            <summary>HTML <button class="builder-plus" type="button" data-builder-add="attribute" aria-label="افزودن ویژگی HTML">افزودن ویژگی</button></summary>
+            <div class="builder-grid">
+              <label><span>تگ</span><input id="builderTagInput" value="div" dir="ltr" /></label>
+              <label><span>نام نمایشی</span><input id="builderNameInput" placeholder="مثلاً کارت محصول" /></label>
+              <label><span>ID</span><input id="builderIdInput" placeholder="heroCard" dir="ltr" /></label>
+              <label><span>Class</span><input id="builderClassInput" placeholder="hero-card primary" dir="ltr" /></label>
+              <label class="wide"><span>متن/محتوای جایگزین</span><textarea id="builderTextInput" rows="3" placeholder="اگر خالی باشد HTML نمونه استفاده می‌شود."></textarea></label>
+              <label><span>ویژگی جدید</span><input id="builderAttrNameInput" placeholder="data-role" dir="ltr" /></label>
+              <label><span>مقدار ویژگی</span><input id="builderAttrValueInput" placeholder="card" dir="ltr" /></label>
+            </div>
+            <div id="builderAttributeList" class="builder-pill-list"></div>
+          </details>
+
+          <details class="builder-section" open>
+            <summary>CSS <button class="builder-plus" type="button" data-builder-add="style" aria-label="افزودن استایل">افزودن استایل</button></summary>
+            <div class="builder-grid">
+              <label><span>خاصیت</span><select id="builderStylePropSelect">
+                <option value="color">رنگ متن</option>
+                <option value="background">پس‌زمینه</option>
+                <option value="background-image">گرادیان/تصویر پس‌زمینه</option>
+                <option value="border">خط دور</option>
+                <option value="border-color">رنگ خط دور</option>
+                <option value="border-radius">گردی گوشه</option>
+                <option value="box-shadow">سایه</option>
+                <option value="filter">فیلتر</option>
+                <option value="backdrop-filter">فیلتر پشت‌زمینه</option>
+                <option value="opacity">شفافیت</option>
+                <option value="padding">فاصله داخلی</option>
+                <option value="margin">فاصله خارجی</option>
+                <option value="width">عرض</option>
+                <option value="max-width">حداکثر عرض</option>
+                <option value="min-height">حداقل ارتفاع</option>
+                <option value="display">نوع نمایش</option>
+                <option value="gap">فاصله آیتم‌ها</option>
+                <option value="align-items">چینش عمودی</option>
+                <option value="justify-content">چینش افقی</option>
+                <option value="font-size">اندازه فونت</option>
+                <option value="font-weight">وزن فونت</option>
+                <option value="line-height">ارتفاع خط</option>
+                <option value="letter-spacing">فاصله حروف</option>
+                <option value="text-align">چینش متن</option>
+                <option value="transition">ترنزیشن</option>
+                <option value="transform">تبدیل/Transform</option>
+                <option value="animation">انیمیشن</option>
+                <option value="cursor">نوع نشانگر</option>
+                <option value="position">موقعیت</option>
+                <option value="overflow">رفتار overflow</option>
+              </select></label>
+              <label><span>مقدار</span><input id="builderStyleValueInput" value="#ffffff" dir="ltr" /></label>
+              <label><span>انیمیشن آماده</span><select id="builderAnimationSelect">
+                <option value="">بدون انیمیشن</option>
+                <option value="fade-up">Fade Up</option>
+                <option value="fade-in">Fade In</option>
+                <option value="slide-right">Slide Right</option>
+                <option value="slide-left">Slide Left</option>
+                <option value="zoom-in">Zoom In</option>
+                <option value="pulse">Pulse</option>
+                <option value="float">Float</option>
+                <option value="shake">Shake</option>
+                <option value="glow">Glow</option>
+                <option value="spin">Spin</option>
+                <option value="bounce">Bounce</option>
+              </select></label>
+              <label class="wide"><span>پریست کنواس / باکس / سایه / گلو</span><select id="builderStylePresetSelect">
+                <option value="">بدون پریست</option>
+                <option value="canvas-dark">کنواس تیره عمیق</option>
+                <option value="canvas-soft">کنواس نرم روشن</option>
+                <option value="canvas-grid">کنواس شبکه‌ای</option>
+                <option value="canvas-dots">کنواس نقطه‌ای</option>
+                <option value="canvas-radial">کنواس رادیال</option>
+                <option value="canvas-aurora">کنواس Aurora</option>
+                <option value="canvas-noise">کنواس Noise</option>
+                <option value="canvas-vignette">کنواس Vignette</option>
+                <option value="box-glass">باکس شیشه‌ای</option>
+                <option value="box-nested">باکس تو در تو</option>
+                <option value="box-card">کارت تمیز</option>
+                <option value="box-soft">باکس Soft UI</option>
+                <option value="box-brutal">باکس Brutal</option>
+                <option value="box-outline">باکس Outline</option>
+                <option value="box-inset">باکس Inset</option>
+                <option value="box-layered">باکس لایه‌ای</option>
+                <option value="box-floating">باکس شناور</option>
+                <option value="box-sticky">باکس Sticky</option>
+                <option value="box-ratio">باکس نسبت 16/9</option>
+                <option value="box-center">باکس مرکزچین</option>
+                <option value="shadow-soft">سایه نرم</option>
+                <option value="shadow-deep">سایه عمیق</option>
+                <option value="shadow-hard">سایه تیز</option>
+                <option value="shadow-layered">سایه چندلایه</option>
+                <option value="shadow-inset">سایه داخلی</option>
+                <option value="shadow-card">سایه کارت</option>
+                <option value="shadow-top">سایه بالا</option>
+                <option value="shadow-bottom">سایه پایین</option>
+                <option value="shadow-color-blue">سایه آبی</option>
+                <option value="shadow-color-pink">سایه صورتی</option>
+                <option value="glow-blue">گلو آبی</option>
+                <option value="glow-cyan">گلو فیروزه‌ای</option>
+                <option value="glow-violet">گلو بنفش</option>
+                <option value="glow-green">گلو سبز</option>
+                <option value="glow-gold">گلو طلایی</option>
+                <option value="glow-red">گلو قرمز</option>
+                <option value="glow-border">گلو دورخط</option>
+                <option value="glow-text">گلو متن</option>
+                <option value="glow-hover">گلو با hover</option>
+                <option value="glow-pulse">گلو پالسی</option>
+                <option value="border-gradient">بوردر گرادیانی</option>
+                <option value="border-dashed">بوردر خط‌چین</option>
+                <option value="border-double">بوردر دوتایی</option>
+                <option value="radius-xl">گوشه خیلی گرد</option>
+                <option value="radius-pill">کپسولی</option>
+                <option value="blur-bg">پس‌زمینه Blur</option>
+                <option value="blend-screen">Blend Screen</option>
+                <option value="clip-diamond">برش لوزی</option>
+                <option value="clip-ticket">برش Ticket</option>
+                <option value="perspective-card">پرسپکتیو کارت</option>
+                <option value="layout-grid">چیدمان Grid</option>
+                <option value="layout-stack">چیدمان Stack</option>
+                <option value="layout-cluster">چیدمان Cluster</option>
+                <option value="layout-sidebar">چیدمان Sidebar</option>
+                <option value="layout-scroll-snap">اسکرول Snap</option>
+                <option value="state-active">حالت Active</option>
+                <option value="state-loading">حالت Loading</option>
+                <option value="state-disabled">حالت Disabled</option>
+                <option value="state-selected">حالت Selected</option>
+                <option value="state-focus-ring">Focus Ring</option>
+              </select></label>
+            </div>
+            <div id="builderStyleList" class="builder-pill-list"></div>
+          </details>
+
+          <details class="builder-section" open>
+            <summary>JS <button class="builder-plus" type="button" data-builder-add="logic" aria-label="افزودن منطق">افزودن منطق</button></summary>
+            <div class="builder-grid">
+              <label class="wide"><span>منطق آماده</span><select id="builderLogicSelect">
+                <option value="click-alert">کلیک: نمایش پیام</option>
+                <option value="toggle-class">کلیک: تغییر کلاس active</option>
+                <option value="counter">شمارنده کلیک</option>
+                <option value="dismiss">بستن/حذف المان</option>
+                <option value="copy-text">کپی متن المان</option>
+                <option value="toggle-hidden">نمایش/مخفی‌کردن المان</option>
+                <option value="toggle-expanded">تغییر aria-expanded</option>
+                <option value="toggle-disabled">غیرفعال/فعال کردن کنترل‌ها</option>
+                <option value="add-loading">حالت Loading موقت</option>
+                <option value="confirm-action">تأیید قبل از اجرا</option>
+                <option value="random-color">رنگ تصادفی</option>
+                <option value="increment-number">افزایش عدد داخل متن</option>
+                <option value="decrement-number">کاهش عدد داخل متن</option>
+                <option value="form-validate">اعتبارسنجی فرم</option>
+                <option value="tabs-basic">تب‌های ساده</option>
+                <option value="accordion-basic">آکاردئون ساده</option>
+                <option value="dropdown-basic">منوی کشویی</option>
+                <option value="modal-open">باز کردن مودال داخلی</option>
+                <option value="toast-message">نمایش Toast داخلی</option>
+                <option value="local-save">ذخیره متن در localStorage</option>
+                <option value="scroll-into-view">اسکرول به المان</option>
+                <option value="focus-first-input">Focus روی اولین input</option>
+              </select></label>
+              <label class="wide"><span>اتصال به selector هدف (اختیاری)</span><input id="builderTargetSelectorInput" placeholder="#modal یا .box-child" dir="ltr" /></label>
+            </div>
+            <div id="builderLogicList" class="builder-pill-list"></div>
+          </details>
+        </section>
+      </div>
+
+      <div class="sample-element-output">
+        <label><span>HTML تولیدی</span><textarea id="builderHtmlOutput" rows="4" readonly dir="ltr"></textarea></label>
+        <label><span>CSS تولیدی</span><textarea id="builderCssOutput" rows="4" readonly dir="ltr"></textarea></label>
+        <label><span>JS تولیدی</span><textarea id="builderJsOutput" rows="4" readonly dir="ltr"></textarea></label>
+      </div>
+
+      <footer class="dialog-actions">
+        <button id="sampleElementCancelBtn" class="button ghost" type="button">انصراف</button>
+        <button id="sampleElementInsertBtn" class="button primary" type="button">افزودن به پروژه</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="githubPanelDialog" class="layout-dialog github-panel-dialog" aria-labelledby="githubPanelTitle" aria-describedby="githubPanelDescription">
+    <form method="dialog" class="layout-dialog-card github-panel-card">
+      <section class="github-header-panel" aria-label="تنظیمات مشترک GitHub">
+        <div class="layout-dialog-heading github-panel-heading">
+          <div class="dialog-icon" aria-hidden="true">GH</div>
+          <div>
+            <p class="dialog-eyebrow">GITHUB CONNECTION</p>
+            <h2 id="githubPanelTitle">تنظیمات اتصال GitHub</h2>
+            <p id="githubPanelDescription">ریپو، برنچ و توکن را یک‌بار وارد کن تا دریافت ریپو و Pull Request از همین تنظیمات استفاده کنند.</p>
+          </div>
+        </div>
+        <label class="github-header-field">
+          <span>ریپو</span>
+          <input id="githubPanelRepository" type="text" autocomplete="off" placeholder="owner/repository" dir="ltr" spellcheck="false" />
+        </label>
+        <label class="github-header-field">
+          <span>برنچ</span>
+          <input id="githubPanelRef" type="text" autocomplete="off" placeholder="main" dir="ltr" spellcheck="false" />
+        </label>
+        <label class="github-header-field github-header-token">
+          <span>Token</span>
+          <input id="githubPanelToken" type="password" autocomplete="new-password" placeholder="github_pat_…" dir="ltr" spellcheck="false" />
+        </label>
+        <div class="github-panel-actions">
+          <button id="githubPanelCloseBtn" class="button ghost compact" type="button">بستن</button>
+          <button id="githubPanelSaveBtn" class="button github compact" type="button">ذخیره</button>
+        </div>
+        <span id="githubPanelStatus" class="github-header-status" role="status" aria-live="polite">تنظیم نشده</span>
+      </section>
+    </form>
+  </dialog>
+
+  <dialog id="githubImportDialog" class="github-dialog github-import-dialog" aria-labelledby="githubImportDialogTitle" aria-describedby="githubImportDialogDescription">
+    <form id="githubImportForm" class="github-dialog-card" novalidate>
+      <div class="github-dialog-heading">
+        <div class="github-mark" aria-hidden="true">GH</div>
+        <div>
+          <p class="dialog-eyebrow">GITHUB IMPORT</p>
+          <h2 id="githubImportDialogTitle">باز کردن پروژه از GitHub</h2>
+          <p id="githubImportDialogDescription">لینک ریپو را وارد کن تا ساختار پوشه‌ها و همه فایل‌های Commit‌شده از برنچ انتخابی داخل استودیو باز شوند.</p>
+        </div>
+      </div>
+
+      <div class="github-security-note">
+        ریپوی Public بدون توکن باز می‌شود. برای ریپوی Private، Fine-grained token با دسترسی <b>Contents: Read</b> یا <b>Read and write</b> لازم است؛ توکن فقط در حافظه‌ی همین تب نگه داشته می‌شود.
+      </div>
+
+      <input id="githubImportRepository" type="hidden" />
+      <input id="githubImportToken" type="hidden" />
+      <input id="githubImportRef" type="hidden" />
+
+      <div class="github-shared-settings-note">
+        دریافت ریپو از تنظیمات مشترک GitHub در هدر استفاده می‌کند؛ ریپو، برنچ و توکن را همان‌جا یک‌بار ذخیره کن.
+      </div>
+
+      <div class="github-import-note">
+        فایل‌های زیرپوشه، فونت، تصویر و فایل‌های باینری هم دریافت می‌شوند. پوشه‌های <code>.git</code> و <code>node_modules</code> وارد نمی‌شوند.
+      </div>
+
+      <div id="githubImportStatus" class="github-status" role="status" aria-live="polite" hidden></div>
+
+      <div class="dialog-actions github-dialog-actions">
+        <button id="githubImportCancelBtn" class="button ghost" type="button">بستن</button>
+        <button id="githubImportSubmitBtn" class="button github-primary" type="submit">دریافت و باز کردن پروژه</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="githubDialog" class="github-dialog" aria-labelledby="githubDialogTitle" aria-describedby="githubDialogDescription">
+    <form id="githubForm" class="github-dialog-card" novalidate>
+      <div class="github-dialog-heading">
+        <div class="github-mark" aria-hidden="true">GH</div>
+        <div>
+          <p class="dialog-eyebrow">GITHUB SYNC</p>
+          <h2 id="githubDialogTitle">ارسال تغییرات و ساخت Pull Request</h2>
+          <p id="githubDialogDescription">فایل‌های فعلی، از جمله فونت و تصویر، روی یک برنچ جدا Commit می‌شوند و سپس Pull Request ساخته یا به‌روزرسانی می‌شود.</p>
+        </div>
+      </div>
+
+      <div class="github-security-note">
+        توکن فقط در حافظه‌ی همین تب نگه داشته می‌شود؛ در ZIP پروژه یا فایل‌های آن ذخیره نمی‌شود.
+      </div>
+
+      <input id="githubToken" type="hidden" />
+      <input id="githubRepository" type="hidden" />
+      <input id="githubBaseBranch" type="hidden" />
+
+      <div class="github-shared-settings-note">
+        اتصال GitHub از پنل هدر خوانده می‌شود؛ این بخش فقط تنظیمات Pull Request مثل برنچ تغییرات، پیام Commit، عنوان و توضیحات را می‌گیرد.
+      </div>
+
+      <div class="github-form-grid">
+        <label class="github-field">
+          <span>برنچ تغییرات (Head)</span>
+          <input id="githubHeadBranch" type="text" required autocomplete="off" dir="ltr" spellcheck="false" />
+        </label>
+
+        <label class="github-field github-field-full">
+          <span>پیام Commit</span>
+          <input id="githubCommitMessage" type="text" required maxlength="240" autocomplete="off" />
+        </label>
+
+        <label class="github-field github-field-full">
+          <span>عنوان Pull Request</span>
+          <input id="githubPrTitle" type="text" required maxlength="240" autocomplete="off" />
+        </label>
+
+        <label class="github-field github-field-full">
+          <span>توضیح Pull Request <em>اختیاری</em></span>
+          <textarea id="githubPrBody" rows="4" maxlength="10000" placeholder="تغییرات این نسخه را توضیح بده…"></textarea>
+        </label>
+      </div>
+
+      <label class="github-draft-option">
+        <input id="githubDraft" type="checkbox" />
+        <span>Pull Request را به‌صورت Draft بساز</span>
+      </label>
+
+      <div id="githubStatus" class="github-status" role="status" aria-live="polite" hidden></div>
+      <a id="githubPrLink" class="github-pr-link" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
+
+      <div class="dialog-actions github-dialog-actions">
+        <button id="githubCancelBtn" class="button ghost" type="button">بستن</button>
+        <button id="githubVerifyBtn" class="button secondary" type="button" hidden>بررسی اتصال</button>
+        <button id="githubSubmitBtn" class="button github-primary" type="submit">ساخت برنچ، Commit و Pull Request</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="layoutDialog" class="layout-dialog snap-layout-dialog" aria-labelledby="layoutDialogTitle" aria-describedby="layoutDialogDescription">
+    <form method="dialog" class="layout-dialog-card snap-layout-dialog-card">
+      <div class="layout-dialog-heading">
+        <div class="dialog-icon" aria-hidden="true">▦</div>
+        <div>
+          <p class="dialog-eyebrow">SNAP WORKSPACE LAYOUT</p>
+          <h2 id="layoutDialogTitle">چیدمان باکس‌های محیط کار</h2>
+          <p id="layoutDialogDescription">اول شکل باکس‌ها را انتخاب کن. سپس «فایل‌ها»، «ادیتور»، «نمایشگر» و «کنسول» را با Drag داخل جایگاه‌ها بینداز. روی موبایل، ابتدا یک پنل را لمس کن و بعد جایگاه مقصد را لمس کن.</p>
+        </div>
+      </div>
+
+      <div class="snap-layout-guide">
+        <span class="snap-guide-dot" aria-hidden="true"></span>
+        باکس بزرگ با خط آبی مشخص است؛ هر کدام از چهار پنل را می‌توانی داخل آن قرار بدهی.
+      </div>
+
+      <section class="snap-template-section" aria-labelledby="snapTemplateHeading">
+        <div class="snap-section-heading">
+          <strong id="snapTemplateHeading">شکل باکس‌ها</strong>
+          <span>یک ساختار انتخاب کن</span>
+        </div>
+        <div id="layoutTemplateGrid" class="layout-template-grid" role="list" aria-label="انتخاب شکل چیدمان"></div>
+      </section>
+
+      <section class="snap-assignment-section" aria-labelledby="snapAssignmentHeading">
+        <div class="snap-section-heading">
+          <strong id="snapAssignmentHeading">قرار دادن پنل‌ها</strong>
+          <span>بکش، رها کن یا لمس کن</span>
+        </div>
+        <div id="layoutPanelPalette" class="layout-panel-palette" aria-label="پنل‌های قابل جابه‌جایی"></div>
+        <div id="layoutBoard" class="layout-board" aria-label="بوم چیدمان باکس‌ها"></div>
+      </section>
+
+      <div class="snap-layout-note">نمونه کاربردی: برای «فایل‌ها سمت چپ، ادیتور بالا و نمایشگر پایین»، شکل <b>باکس بزرگ سمت چپ</b> را انتخاب کن و فایل‌ها را داخل باکس بزرگ، ادیتور را در باکس بالای راست و نمایشگر را در باکس پایین راست قرار بده.</div>
+
+      <label class="snap-scroll-option" for="layoutHorizontalScrollToggle">
+        <span>اسکرول افقی آزاد</span>
+        <small>وقتی روشن باشد، ریسایزرهای عرضی تا هر اندازه که خواستی باز می‌شوند و فضای کار از پایین اسکرول افقی می‌گیرد.</small>
+        <span class="snap-switch">
+          <input id="layoutHorizontalScrollToggle" type="checkbox" />
+          <span class="snap-switch-track" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <div class="dialog-actions layout-dialog-actions">
+        <button id="layoutResetBtn" class="button secondary" type="button">بازنشانی</button>
+        <button id="layoutCloseBtn" class="button primary" type="submit">اعمال چیدمان</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="replaceProjectDialog" class="replace-dialog" aria-labelledby="replaceProjectTitle" aria-describedby="replaceProjectText">
+    <form method="dialog" class="replace-dialog-card">
+      <div class="dialog-icon" aria-hidden="true">ZIP</div>
+      <div>
+        <p class="dialog-eyebrow">پروژه‌ی باز</p>
+        <h2 id="replaceProjectTitle">پروژه‌ی فعلی جایگزین شود؟</h2>
+        <p id="replaceProjectText">پروژه‌ی فعلی با فایل جدید جایگزین می‌شود و از حافظه‌ی برنامه حذف خواهد شد.</p>
+      </div>
+      <div class="dialog-actions">
+        <button id="replaceCancelBtn" class="button ghost" type="button">انصراف</button>
+        <button id="replaceWithoutDownloadBtn" class="button secondary" type="button">حذف و جایگزینی</button>
+        <button id="downloadAndReplaceBtn" class="button primary" type="button">دانلود ZIP و جایگزینی</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="fileDialog" class="replace-dialog file-dialog" aria-labelledby="fileDialogTitle">
+    <form id="fileForm" class="replace-dialog-card" novalidate>
+      <div class="dialog-icon" aria-hidden="true">FILE</div>
+      <div>
+        <p class="dialog-eyebrow">FILE MANAGEMENT</p>
+        <h2 id="fileDialogTitle">افزودن فایل</h2>
+        <p id="fileDialogText">نام فایل و در صورت نیاز مسیر پوشه را وارد کن.</p>
+      </div>
+      <label id="fileTypeField" class="dialog-field">
+        <span>نوع فایل</span>
+        <select id="fileTypeSelect">
+          <option value="html">HTML (.html)</option>
+          <option value="css">CSS (.css)</option>
+          <option value="js">JavaScript (.js)</option>
+          <option value="json">JSON (.json)</option>
+          <option value="other">سایر — فرمت را خودت بنویس</option>
+        </select>
+      </label>
+      <label class="dialog-field">
+        <span id="fileNameFieldLabel">مسیر و نام فایل</span>
+        <input id="fileNameInput" type="text" required autocomplete="off" dir="ltr" spellcheck="false" placeholder="components/button.js" />
+      </label>
+      <div id="fileDialogStatus" class="github-status" hidden></div>
+      <div class="dialog-actions">
+        <button id="fileDialogCancelBtn" class="button ghost" type="button">انصراف</button>
+        <button id="fileDialogSubmitBtn" class="button primary" type="submit">ثبت فایل</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="extractDialog" class="replace-dialog file-dialog" aria-labelledby="extractDialogTitle">
+    <form id="extractForm" class="replace-dialog-card" novalidate>
+      <div class="dialog-icon" aria-hidden="true">OUT</div>
+      <div>
+        <p class="dialog-eyebrow">EXTRACT COMPONENT</p>
+        <h2 id="extractDialogTitle">استخراج عنصر به فایل</h2>
+        <p id="extractDialogText">یک قالب آماده با کد انتخاب‌شده ایجاد می‌شود؛ فایل اصلی تغییر نمی‌کند.</p>
+      </div>
+      <label class="dialog-field">
+        <span>نوع فایل خروجی</span>
+        <select id="extractTypeSelect">
+          <option value="html">HTML component</option>
+          <option value="css">CSS styles</option>
+          <option value="js">JavaScript behavior</option>
+        </select>
+      </label>
+      <label class="dialog-field">
+        <span>مسیر فایل جدید</span>
+        <input id="extractFileNameInput" type="text" required autocomplete="off" dir="ltr" spellcheck="false" />
+      </label>
+      <div id="extractDialogStatus" class="github-status" hidden></div>
+      <div class="dialog-actions">
+        <button id="extractDialogCancelBtn" class="button ghost" type="button">انصراف</button>
+        <button id="extractDialogSubmitBtn" class="button primary" type="submit">ساخت فایل</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- فقط هنگام کشیدن فایل فعال می‌شود؛ عمداً هیچ ظاهر یا متن قابل‌نمایشی ندارد. -->
+  <div id="dragDropShield" class="drag-drop-shield" aria-hidden="true"></div>
+  <div id="globalTooltip" class="floating-tooltip" role="tooltip" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+  <script src="sample-elements.js"></script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>استودیو پالت رنگ (HTML)</title>
+  <style>
+    :root{--bg:#f6f7fb;--panel:#ffffff;--ink:#1f2937;--muted:#6b7280;--brand:#10b981;--border:#e5e7eb}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Sans",sans-serif}
+    h1{font-size:22px;margin:0 0 4px}
+    .container{max-width:1100px;margin:24px auto;padding:0 16px}
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 3px 16px rgba(0,0,0,.06)}
+    .pad{padding:16px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="text"], select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;outline:none}
+    input[type="range"]{width:100%}
+    button{cursor:pointer;border:1px solid var(--border);background:#fff;border-radius:12px;padding:8px 12px}
+    button.brand{background:var(--brand);color:#fff;border-color:var(--brand)}
+    button.ghost{background:#f3f4f6}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 18px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .card{overflow:hidden}
+    .swatch{height:130px}
+    .meta{display:flex;align-items:center;gap:10px}
+    .chip{font-size:12px;border-radius:8px;padding:2px 6px;display:inline-block}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .muted{color:var(--muted)}
+    .center{display:flex;align-items:center;justify-content:space-between}
+    .row-controls{display:flex;gap:8px}
+    .checkbox{width:16px;height:16px}
+    .footer{opacity:.7;text-align:center;margin:22px 0 8px;font-size:12px}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+    .modal{max-width:560px;width:100%;background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.2)}
+    .modal-header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600}
+    .modal-body{padding:16px}
+    .modal-actions{padding:14px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+    /* HSL editor (شبیه Paint: نوار Hue + مربع Saturation/Lightness) */
+    .picker{display:grid;gap:12px}
+    .picker .preview{display:flex;align-items:center;gap:10px}
+    .preview-box{width:40px;height:40px;border-radius:10px;border:1px solid var(--border)}
+    .slider{appearance:none;height:10px;border-radius:999px;background:linear-gradient(90deg, red, #ff0, lime, cyan, blue, magenta, red);outline:none}
+    .slider::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+    .sv{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);height:200px;cursor:crosshair}
+    .sv .pointer{position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);transform:translate(-7px,-7px)}
+
+    /* Responsive */
+    @media (max-width: 900px){ .grid-cards{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width: 600px){ .grid-cards{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>استودیو پالت رنگ</h1>
+      <div class="muted">تولید، ویرایش (شبیه Paint) و کپی دسته‌ای نام/کد رنگ‌ها — نسخه HTML خالص</div>
+    </header>
+
+    <!-- Controls -->
+    <div class="row" style="margin-top:14px">
+      <div class="panel pad" style="grid-column: span 4">
+        <label>رنگ پایه</label>
+        <div class="center" style="gap:10px">
+          <input id="baseColor" type="color" value="#A7D391" style="width:64px;height:40px;border-radius:10px" />
+          <input id="baseHex" type="text" value="#A7D391" />
+        </div>
+      </div>
+      <div class="panel pad" style="grid-column: span 4">
+        <label>حالت پالت</label>
+        <select id="mode">
+          <option value="analogous">مشابه</option>
+          <option value="complementary">مکمل</option>
+          <option value="shades">سیر تا باز</option>
+          <option value="contrast">تضاد بالا</option>
+        </select>
+      </div>
+      <div class="panel pad" style="grid-column: span 4">
+        <label>تعداد رنگ‌ها: <span id="countLbl">6</span></label>
+        <input id="count" type="range" min="3" max="12" step="1" value="6" />
+        <div class="toolbar">
+          <button id="btnAdd" class="brand">+ افزودن</button>
+          <button id="btnRemoveLast" class="ghost">- حذف آخرین</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="toolbar">
+      <button id="btnCopyHex" class="brand">کپی HEX (انتخاب/همه)</button>
+      <button id="btnCopyNames" class="ghost">کپی نام‌ها (انتخاب/همه)</button>
+    </div>
+
+    <!-- Palette Grid -->
+    <div id="grid" class="grid grid-cards" style="grid-template-columns:repeat(3,1fr);gap:12px"></div>
+
+    <div class="footer">نکته: اگر هیچ موردی انتخاب نشود، دکمه‌های کپی، همهٔ رنگ‌ها را کپی می‌کنند.</div>
+  </div>
+
+  <!-- Modal: Color Editor -->
+  <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">ویرایش رنگ</div>
+      <div class="modal-body">
+        <div class="picker">
+          <div class="preview">
+            <div class="preview-box" id="previewBox"></div>
+            <code class="mono" id="previewHex">#000000</code>
+          </div>
+          <div>
+            <label>هیو (Hue)</label>
+            <input id="hue" type="range" min="0" max="360" step="1" class="slider" />
+          </div>
+          <div>
+            <label>اشباع/روشنایی</label>
+            <div id="sv" class="sv">
+              <div id="svPointer" class="pointer" style="left:0;top:0"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btnClose">بستن</button>
+        <button id="btnSave" class="brand">ذخیره</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ========================= Utils =========================
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+function hexToRgb(hex){const c=hex.replace('#','').trim();const b=parseInt(c.length===3?c.split('').map(x=>x+x).join(''):c,16);return{r:(b>>16)&255,g:(b>>8)&255,b:b&255}}
+function rgbToHex({r,g,b}){const h=n=>n.toString(16).padStart(2,'0');return(`#${h(r)}${h(g)}${h(b)}`).toUpperCase()}
+function rgbToHsl({r,g,b}){r/=255;g/=255;b/=255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4}h*=60}return{h,s,l}}
+function hslToRgb({h,s,l}){const C=(1-Math.abs(2*l-1))*s,X=C*(1-Math.abs(((h/60)%2)-1)),m=l-C/2;let r1=0,g1=0,b1=0;if(0<=h&&h<60)[r1,g1,b1]=[C,X,0];else if(60<=h&&h<120)[r1,g1,b1]=[X,C,0];else if(120<=h&&h<180)[r1,g1,b1]=[0,C,X];else if(180<=h&&h<240)[r1,g1,b1]=[0,X,C];else if(240<=h&&h<300)[r1,g1,b1]=[X,0,C];else[r1,g1,b1]=[C,0,X];return{r:Math.round((r1+m)*255),g:Math.round((g1+m)*255),b:Math.round((b1+m)*255)}}
+function relativeLuminance({r,g,b}){const s=[r,g,b].map(v=>v/255).map(v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4));return 0.2126*s[0]+0.7152*s[1]+0.0722*s[2]}
+function readableText(hex){return relativeLuminance(hexToRgb(hex))>0.55?'#111111':'#FFFFFF'}
+const rotateHue=(h,deg)=>(h+deg+360)%360
+
+// Names
+const CSS_NAMES=[["Black","#000000"],["White","#FFFFFF"],["Gray","#808080"],["Silver","#C0C0C0"],["Red","#FF0000"],["Maroon","#800000"],["Yellow","#FFFF00"],["Olive","#808000"],["Lime","#00FF00"],["Green","#008000"],["Aqua","#00FFFF"],["Teal","#008080"],["Blue","#0000FF"],["Navy","#000080"],["Fuchsia","#FF00FF"],["Purple","#800080"],["Orange","#FFA500"],["Brown","#A52A2A"],["Pink","#FFC0CB"],["Gold","#FFD700"]]
+function nearestCssName(hex){const {r,g,b}=hexToRgb(hex);let best={name:'Custom',d:Infinity};for(const [name,h]of CSS_NAMES){const {r:R,g:G,b:B}=hexToRgb(h);const d=(R-r)**2+(G-g)**2+(B-b)**2;if(d<best.d)best={name,d}}return best.name}
+
+// Generators
+function genComplementary(baseHex,n=6){const base=rgbToHsl(hexToRgb(baseHex));const comps=[0,180];const out=[];for(let i=0;i<n;i++){const band=comps[i%2];const step=Math.floor(i/2);const h=rotateHue(base.h,band+(step%2?15:-15)*step);const s=clamp(base.s*(i%3===0?1:0.9));const l=clamp(base.l*(1+(i-n/2)*0.06));out.push(rgbToHex(hslToRgb({h,s,l})))}return out}
+function genAnalogous(baseHex,n=6,spread=30){const base=rgbToHsl(hexToRgb(baseHex));const out=[];const half=Math.floor(n/2);for(let i=-half;i<=half;i++){if(out.length>=n)break;const h=rotateHue(base.h,i*spread/half);const s=clamp(base.s*(1-Math.abs(i)/(half+1)*0.2));const l=clamp(base.l*(1+(i/(half+1))*0.2));out.push(rgbToHex(hslToRgb({h,s,l})))}return out}
+function genShadesTints(baseHex,n=6){const base=rgbToHsl(hexToRgb(baseHex));const out=[];for(let i=0;i<n;i++){const t=i/(n-1);const l=clamp(0.1+t*0.8);const s=clamp(base.s*(0.9+(t-0.5)*0.2));out.push(rgbToHex(hslToRgb({h:base.h,s,l})))}return out}
+function genHighContrast(baseHex,n=6){const base=rgbToHsl(hexToRgb(baseHex));const out=[];const jump=360/n;for(let i=0;i<n;i++){const h=rotateHue(base.h,i*jump);const s=0.6+0.35*(i%2);const l=i%2?0.25:0.75;out.push(rgbToHex(hslToRgb({h,s,l})))}return out}
+const GENERATORS={complementary:{label:'مکمل',fn:genComplementary},analogous:{label:'مشابه',fn:genAnalogous},shades:{label:'سیر تا باز',fn:genShadesTints},contrast:{label:'تضاد بالا',fn:genHighContrast}}
+
+// State
+const state={base:'#A7D391',mode:'analogous',count:6,colors:[],selected:{},editingIndex:null}
+
+// Elements
+const elBaseColor=document.getElementById('baseColor')
+const elBaseHex=document.getElementById('baseHex')
+const elMode=document.getElementById('mode')
+const elCount=document.getElementById('count')
+const elCountLbl=document.getElementById('countLbl')
+const elGrid=document.getElementById('grid')
+const elBtnAdd=document.getElementById('btnAdd')
+const elBtnRemoveLast=document.getElementById('btnRemoveLast')
+const elBtnCopyHex=document.getElementById('btnCopyHex')
+const elBtnCopyNames=document.getElementById('btnCopyNames')
+
+// Modal elements
+const modal=document.getElementById('modal')
+const hue=document.getElementById('hue')
+const sv=document.getElementById('sv')
+const svPointer=document.getElementById('svPointer')
+const previewBox=document.getElementById('previewBox')
+const previewHex=document.getElementById('previewHex')
+const btnClose=document.getElementById('btnClose')
+const btnSave=document.getElementById('btnSave')
+
+// Init
+function regen(){
+  const gen=GENERATORS[state.mode].fn
+  state.colors = gen(state.base, state.count).map(hex=>({hex,name:nearestCssName(hex)}))
+  state.selected={}
+  render()
+}
+function render(){
+  elCountLbl.textContent=state.count
+  elBaseColor.value=state.base
+  elBaseHex.value=state.base
+  elGrid.innerHTML=''
+  state.colors.forEach((c,idx)=>{
+    const card=document.createElement('div'); card.className='panel card'
+    card.innerHTML=`
+      <div class="pad center">
+        <div class="meta">
+          <input type="checkbox" class="checkbox" ${state.selected[idx]?'checked':''} data-idx="${idx}"/>
+          <span class="muted">#${idx+1}</span>
+        </div>
+        <div class="row-controls">
+          <button class="ghost" data-action="edit" data-idx="${idx}">ویرایش</button>
+          <button data-action="remove" data-idx="${idx}">حذف</button>
+        </div>
+      </div>
+      <div class="swatch" style="background:${c.hex}"></div>
+      <div class="pad" style="display:flex;align-items:center;gap:10px">
+        <div class="preview-box" style="background:${c.hex}"></div>
+        <div style="flex:1">
+          <div class="chip" style="background:${c.hex};color:${readableText(c.hex)}">${c.name}</div>
+          <input type="text" value="${c.hex}" data-idx="${idx}" data-action="hex" style="margin-top:6px;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:10px" class="mono"/>
+        </div>
+        <input type="color" value="${c.hex}" data-idx="${idx}" data-action="picker" style="width:56px;height:40px;border-radius:10px" />
+      </div>`
+    elGrid.appendChild(card)
+  })
+}
+
+// Copy helpers
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt) }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta) }
+}
+function copyHexes(){
+  const list = Object.keys(state.selected).length
+    ? state.colors.filter((_,i)=>state.selected[i]).map(c=>c.hex)
+    : state.colors.map(c=>c.hex)
+  copyText(list.join('\n'))
+}
+function copyNames(){
+  const list = Object.keys(state.selected).length
+    ? state.colors.filter((_,i)=>state.selected[i]).map(c=>c.name)
+    : state.colors.map(c=>c.name)
+  copyText(list.join('\n'))
+}
+
+// Events: top controls
+elBaseColor.addEventListener('input',e=>{ state.base=e.target.value.toUpperCase(); regen() })
+elBaseHex.addEventListener('input',e=>{ state.base=e.target.value.toUpperCase(); regen() })
+elMode.addEventListener('change',e=>{ state.mode=e.target.value; regen() })
+elCount.addEventListener('input',e=>{ state.count=+e.target.value; regen() })
+elBtnAdd.addEventListener('click',()=>{
+  const last=(state.colors[state.colors.length-1]?.hex)||state.base
+  const hsl=rgbToHsl(hexToRgb(last)); const h=rotateHue(hsl.h,18)
+  const hex=rgbToHex(hslToRgb({h,s:hsl.s,l:hsl.l}))
+  state.colors.push({hex,name:nearestCssName(hex)})
+  render()
+})
+elBtnRemoveLast.addEventListener('click',()=>{ state.colors.pop(); render() })
+elBtnCopyHex.addEventListener('click',copyHexes)
+elBtnCopyNames.addEventListener('click',copyNames)
+
+// Events: grid (delegation)
+elGrid.addEventListener('change',e=>{
+  const idx=+e.target.getAttribute('data-idx')
+  const act=e.target.getAttribute('data-action')
+  if(e.target.type==='checkbox'){
+    state.selected[idx]=e.target.checked
+  } else if(act==='hex'){
+    const val=e.target.value.trim().toUpperCase()
+    state.colors[idx]={hex:val,name:nearestCssName(val)}
+  } else if(act==='picker'){
+    const val=e.target.value.toUpperCase()
+    state.colors[idx]={hex:val,name:nearestCssName(val)}
+  }
+  render()
+})
+
+elGrid.addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn) return
+  const idx=+btn.getAttribute('data-idx')
+  const act=btn.getAttribute('data-action')
+  if(act==='remove'){
+    state.colors.splice(idx,1); render(); return
+  }
+  if(act==='edit'){
+    openEditor(idx); return
+  }
+})
+
+// ========================= Modal Color Editor =========================
+let svState={s:1,l:.5}
+function openEditor(idx){
+  state.editingIndex=idx
+  const hsl = rgbToHsl(hexToRgb(state.colors[idx].hex))
+  hue.value = Math.round(hsl.h)
+  svState={s:hsl.s,l:hsl.l}
+  updateSVBackground()
+  updateSVPointer()
+  updatePreview()
+  modal.style.display='flex'
+}
+function closeEditor(){ modal.style.display='none'; state.editingIndex=null }
+btnClose.addEventListener('click', closeEditor)
+btnSave.addEventListener('click', ()=>{
+  const hex = rgbToHex(hslToRgb({h:+hue.value,s:svState.s,l:svState.l}))
+  const idx=state.editingIndex
+  state.colors[idx]={hex,name:nearestCssName(hex)}
+  render(); closeEditor()
+})
+
+hue.addEventListener('input',()=>{ updateSVBackground(); updatePreview() })
+
+function updateSVBackground(){
+  const h=+hue.value
+  const rgb= hslToRgb({h,s:1,l:.5})
+  const base=`rgb(${rgb.r},${rgb.g},${rgb.b})`
+  sv.style.background = `linear-gradient(to right, #fff, ${base}), linear-gradient(to top, #000, transparent)`
+}
+function updateSVPointer(){
+  const rect=sv.getBoundingClientRect()
+  svPointer.style.left = (svState.s*rect.width)+ 'px'
+  svPointer.style.top = ((1-svState.l)*rect.height)+ 'px'
+}
+function updatePreview(){
+  const hex = rgbToHex(hslToRgb({h:+hue.value,s:svState.s,l:svState.l}))
+  previewBox.style.background=hex
+  previewHex.textContent=hex
+}
+
+sv.addEventListener('mousedown',startDrag)
+function startDrag(e){
+  move(e); document.addEventListener('mousemove',move); document.addEventListener('mouseup',stopDrag)
+}
+function move(e){
+  const rect=sv.getBoundingClientRect();
+  const x=clamp((e.clientX-rect.left)/rect.width,0,1)
+  const y=clamp((e.clientY-rect.top)/rect.height,0,1)
+  svState.s = x; svState.l = 1 - y
+  updateSVPointer(); updatePreview()
+}
+function stopDrag(){ document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',stopDrag) }
+
+// ========================= Self tests =========================
+(function tests(){
+  console.assert(rgbToHex(hexToRgb('#FF0000'))==='#FF0000','hex<->rgb fail red')
+  console.assert(rgbToHex(hexToRgb('#00FF00'))==='#00FF00','hex<->rgb fail green')
+  console.assert(rgbToHex(hexToRgb('#0000FF'))==='#0000FF','hex<->rgb fail blue')
+  console.assert(readableText('#FFFFFF')==='#111111' && readableText('#000000')==='#FFFFFF','readableText extremes')
+})()
+
+// First render
+regen()
+</script>
+</body>
+</html>

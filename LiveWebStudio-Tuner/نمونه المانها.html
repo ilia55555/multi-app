@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>نمونه کامل المان‌های HTML و کامپوننت‌های UI</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2d;
+      --panel-2: #18233b;
+      --panel-3: #24314b;
+      --text: #f3f7ff;
+      --muted: #a7b4cc;
+      --line: rgba(216, 232, 255, .14);
+      --brand: #61d1ff;
+      --brand-strong: #1998d1;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --danger: #fb7185;
+      --violet: #c084fc;
+      --radius: 16px;
+      --shadow: 0 18px 55px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(41, 131, 208, .32), transparent 34rem),
+        radial-gradient(circle at 100% 18%, rgba(146, 79, 210, .18), transparent 30rem),
+        var(--bg);
+      font-family: Tahoma, Vazirmatn, Arial, sans-serif;
+      line-height: 1.75;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .48; cursor: not-allowed; }
+    a { color: var(--brand); }
+    code, kbd, pre { direction: ltr; font-family: Consolas, monospace; }
+    code { color: #d7f5ff; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 30;
+      padding: 16px max(18px, calc((100% - 1400px)/2));
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      background: rgba(11,16,32,.86);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+    .brand { margin-left: auto; }
+    .brand strong { display: block; font-size: 18px; }
+    .brand span { display: block; font-size: 12px; color: var(--muted); }
+    .search-box { position: relative; min-width: min(340px, 100%); flex: 1 1 340px; }
+    .search-box input { width: 100%; padding-right: 42px; }
+    .search-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .topbar .count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+    main { width: min(1400px, calc(100% - 30px)); margin: 30px auto 90px; }
+    .hero { padding: 28px; border: 1px solid var(--line); background: rgba(18,26,45,.75); border-radius: 24px; box-shadow: var(--shadow); }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(25px, 4vw, 42px); }
+    .hero p { margin: 0; color: var(--muted); max-width: 950px; }
+    .hero-note { margin-top: 16px; display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid rgba(97,209,255,.3); color: #c6f2ff; background: rgba(97,209,255,.1); border-radius: 999px; font-size: 13px; }
+
+    .section-title { margin: 38px 0 14px; padding: 13px 16px; font-size: 20px; border-right: 4px solid var(--brand); background: rgba(18,26,45,.62); border-radius: 12px; }
+    .section-title small { display: block; margin-top: 2px; font-size: 13px; font-weight: normal; color: var(--muted); }
+
+    .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .element-card { grid-column: span 4; min-width: 0; background: rgba(18,26,45,.88); border: 1px solid var(--line); border-radius: var(--radius); overflow: visible; box-shadow: 0 8px 28px rgba(0,0,0,.16); }
+    .element-card.wide { grid-column: span 8; }
+    .element-card.full { grid-column: 1 / -1; }
+    .element-card.hidden-card { display: none; }
+    .element-head { padding: 13px 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.025); border-radius: var(--radius) var(--radius) 0 0; }
+    .element-head h3 { margin: 0; font-size: 16px; }
+    .tag-name { direction: ltr; white-space: nowrap; color: #b9ebff; background: #0a2232; border: 1px solid rgba(97,209,255,.25); border-radius: 7px; padding: 2px 8px; font-family: Consolas, monospace; font-size: 12px; }
+    .component-name { white-space: nowrap; color: #e3d1ff; background: #261a3a; border: 1px solid rgba(192,132,252,.24); border-radius: 7px; padding: 2px 8px; font-size: 12px; }
+    .element-body { padding: 18px; min-height: 150px; display: flex; flex-direction: column; justify-content: center; gap: 13px; }
+    .element-body p { margin: 0; color: var(--muted); font-size: 13px; }
+    .muted { color: var(--muted); }
+    .stack { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .stack.column { align-items: stretch; flex-direction: column; }
+    .spacer { flex: 1; }
+
+    .btn { border: 1px solid transparent; border-radius: 11px; padding: 9px 14px; color: white; background: var(--brand-strong); box-shadow: 0 5px 14px rgba(25,152,209,.2); transition: transform .16s ease, filter .16s ease, background .16s ease; }
+    .btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid rgba(97,209,255,.55); outline-offset: 3px; }
+    .btn.secondary { background: #26334d; border-color: rgba(255,255,255,.13); box-shadow: none; }
+    .btn.ghost { background: transparent; color: #d4edff; border-color: rgba(97,209,255,.36); box-shadow: none; }
+    .btn.success { background: #15803d; }
+    .btn.warning { background: #b45309; }
+    .btn.danger { background: #be123c; }
+    .btn.small { padding: 5px 10px; font-size: 12px; border-radius: 9px; }
+    .btn.large { padding: 12px 18px; font-size: 16px; }
+    .icon-btn { width: 40px; height: 40px; display: inline-grid; place-items: center; padding: 0; border-radius: 50%; }
+    .button-group { display: inline-flex; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .button-group .btn { border-radius: 0; border: 0; box-shadow: none; border-left: 1px solid var(--line); }
+    .button-group .btn:last-child { border-left: 0; }
+    .toggle-btn.is-active { color: white; background: var(--brand-strong); }
+
+    .badge, .chip, .tag { display: inline-flex; align-items: center; gap: 6px; line-height: 1.3; border-radius: 999px; font-size: 12px; }
+    .badge { min-width: 22px; justify-content: center; padding: 3px 8px; color: white; background: #dc2626; }
+    .badge.success { background: #16a34a; }
+    .badge.warning { color: #241700; background: var(--warning); }
+    .chip, .tag { padding: 6px 10px; color: #caedff; background: rgba(97,209,255,.11); border: 1px solid rgba(97,209,255,.25); }
+    .tag { border-radius: 7px; color: #f0dbff; background: rgba(192,132,252,.1); border-color: rgba(192,132,252,.23); }
+    .chip button { border: 0; padding: 0 2px; background: transparent; color: inherit; font-size: 16px; line-height: 1; }
+
+    .alert { border-radius: 12px; padding: 12px 14px; border-right: 4px solid; display: flex; gap: 10px; align-items: start; }
+    .alert .alert-close { border: 0; background: transparent; color: inherit; margin-right: auto; font-size: 18px; padding: 0 5px; }
+    .alert.info { border-color: var(--brand); color: #d1f1ff; background: rgba(97,209,255,.12); }
+    .alert.success { border-color: var(--success); color: #d7ffe4; background: rgba(74,222,128,.11); }
+    .alert.warning { border-color: var(--warning); color: #ffeac1; background: rgba(251,191,36,.12); }
+    .alert.danger { border-color: var(--danger); color: #ffd6de; background: rgba(251,113,133,.12); }
+    .banner { padding: 14px; border-radius: 12px; border: 1px solid rgba(192,132,252,.35); background: linear-gradient(115deg, rgba(192,132,252,.18), rgba(97,209,255,.12)); }
+
+    .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(74,222,128,.12); }
+    .avatar { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-weight: bold; color: #082033; background: linear-gradient(135deg, #81e6ff, #bda5ff); border: 2px solid var(--panel); }
+    .avatar.large { width: 68px; height: 68px; font-size: 22px; }
+    .avatar-group { display: flex; flex-direction: row-reverse; padding: 0 8px; }
+    .avatar-group .avatar { margin-right: -9px; }
+
+    .card-ui { border: 1px solid var(--line); background: #16213a; border-radius: 14px; overflow: hidden; }
+    .card-banner { height: 82px; background: linear-gradient(120deg, #076799, #6651bb); }
+    .card-content { padding: 14px; }
+    .card-content h4 { margin: 0 0 4px; }
+    .card-content p { margin: 0; color: var(--muted); font-size: 13px; }
+    .card-footer { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); }
+    .profile-row { display: flex; align-items: center; gap: 12px; }
+
+    .floating-root { position: relative; display: inline-flex; }
+    .floating-menu, .popover {
+      display: none; position: absolute; z-index: 70; min-width: 210px; top: calc(100% + 8px); right: 0;
+      color: var(--text); background: #18243d; border: 1px solid rgba(216,232,255,.2); border-radius: 12px; box-shadow: 0 18px 45px rgba(0,0,0,.45); overflow: hidden;
+    }
+    .floating-root.is-open .floating-menu, .floating-root.is-open .popover { display: block; animation: popup .14s ease both; }
+    @keyframes popup { from { opacity: 0; transform: translateY(-5px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .floating-menu button, .floating-menu a { width: 100%; display: block; padding: 10px 13px; text-align: right; color: var(--text); text-decoration: none; background: transparent; border: 0; }
+    .floating-menu button:hover, .floating-menu a:hover { background: rgba(97,209,255,.12); }
+    .menu-separator { height: 1px; background: var(--line); margin: 5px 0; }
+    .popover { width: min(290px, calc(100vw - 45px)); padding: 13px; }
+    .popover strong { display: block; margin-bottom: 3px; }
+    .popover p { margin: 0; color: var(--muted); font-size: 13px; }
+    .tooltip-wrap { position: relative; display: inline-flex; }
+    .tooltip-wrap[data-tooltip]::after { content: attr(data-tooltip); position: absolute; pointer-events: none; bottom: calc(100% + 10px); right: 50%; transform: translateX(50%) translateY(5px); opacity: 0; white-space: nowrap; padding: 5px 9px; border-radius: 7px; font-size: 12px; color: white; background: #020617; border: 1px solid rgba(255,255,255,.15); transition: .16s; }
+    .tooltip-wrap:hover::after, .tooltip-wrap:focus-within::after { opacity: 1; transform: translateX(50%) translateY(0); }
+
+    .overlay { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(2,6,23,.72); backdrop-filter: blur(4px); }
+    .overlay.is-open { display: flex; }
+    .modal { width: min(500px, 100%); max-height: calc(100vh - 36px); overflow: auto; background: #17223a; border: 1px solid rgba(216,232,255,.2); border-radius: 18px; box-shadow: var(--shadow); animation: modalIn .18s ease; }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .modal-header, .modal-footer { padding: 15px 17px; display: flex; align-items: center; gap: 10px; }
+    .modal-header { border-bottom: 1px solid var(--line); }
+    .modal-header h3 { margin: 0; }
+    .modal-body { padding: 17px; color: var(--muted); }
+    .modal-footer { justify-content: flex-start; border-top: 1px solid var(--line); }
+    .close-btn { margin-right: auto; border: 0; color: var(--muted); background: transparent; font-size: 24px; line-height: 1; }
+
+    .drawer-overlay { position: fixed; inset: 0; z-index: 90; display: none; background: rgba(2,6,23,.62); }
+    .drawer-overlay.is-open { display: block; }
+    .drawer { position: absolute; top: 0; right: 0; width: min(360px, 88vw); height: 100%; padding: 18px; background: #17223a; border-left: 1px solid var(--line); box-shadow: -12px 0 34px rgba(0,0,0,.36); transform: translateX(105%); transition: transform .22s ease; }
+    .drawer-overlay.is-open .drawer { transform: translateX(0); }
+    .drawer-nav { margin-top: 18px; display: grid; gap: 6px; }
+    .drawer-nav a { padding: 9px 11px; text-decoration: none; color: #d8e7ff; border-radius: 9px; }
+    .drawer-nav a:hover { background: rgba(97,209,255,.12); }
+    body.no-scroll { overflow: hidden; }
+
+    .tabs { border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px; }
+    .tab-btn { padding: 8px 12px; color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent; }
+    .tab-btn.is-active { color: #dff6ff; border-color: var(--brand); }
+    .tab-panel { display: none; padding-top: 13px; color: var(--muted); }
+    .tab-panel.is-active { display: block; }
+    details { border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; background: rgba(255,255,255,.025); }
+    details + details { margin-top: 8px; }
+    summary { cursor: pointer; color: #dff6ff; }
+    details p { margin: 9px 0 2px; }
+    .breadcrumb { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; font-size: 13px; }
+    .breadcrumb a { text-decoration: none; }
+    .breadcrumb span { color: var(--muted); }
+    .pagination { display: flex; gap: 6px; direction: ltr; }
+    .page { min-width: 35px; height: 35px; display: grid; place-items: center; padding: 0 8px; color: #d5eaff; border: 1px solid var(--line); border-radius: 9px; background: #1c2944; }
+    .page.active { background: var(--brand-strong); border-color: var(--brand-strong); color: white; }
+    .stepper { display: flex; gap: 4px; align-items: center; overflow: auto; padding-bottom: 3px; }
+    .step { min-width: 96px; text-align: center; color: var(--muted); font-size: 12px; }
+    .step::before { content: attr(data-num); display: grid; place-items: center; margin: 0 auto 6px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: #1b2944; }
+    .step.done::before, .step.current::before { background: var(--brand-strong); border-color: var(--brand); color: white; }
+    .step-line { width: 38px; height: 1px; background: var(--line); flex: 0 0 38px; }
+
+    .field { display: grid; gap: 6px; width: 100%; }
+    .field label { color: #dce9ff; font-size: 13px; }
+    input, select, textarea { width: 100%; color: var(--text); border: 1px solid rgba(216,232,255,.19); border-radius: 10px; background: #0d172b; padding: 9px 11px; }
+    input::placeholder, textarea::placeholder { color: #71809b; }
+    textarea { min-height: 90px; resize: vertical; }
+    select option { background: #101a2e; }
+    input[type="color"] { padding: 3px; min-height: 42px; }
+    input[type="range"] { padding: 0; accent-color: var(--brand); }
+    input[type="file"] { padding: 7px; }
+    .input-group { display: flex; width: 100%; }
+    .input-group input { border-radius: 0 10px 10px 0; }
+    .input-group .addon { display: grid; place-items: center; padding: 0 12px; color: var(--muted); white-space: nowrap; background: #202d48; border: 1px solid rgba(216,232,255,.19); border-right: 0; border-radius: 10px 0 0 10px; }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-left: 46px; }
+    .password-toggle { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); padding: 5px 8px; color: var(--muted); background: transparent; border: 0; font-size: 12px; }
+    .helper { color: var(--muted); font-size: 12px; }
+    .field-error { color: #ff9db0; font-size: 12px; }
+    fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 11px; }
+    legend { padding: 0 6px; color: #cfeeff; }
+    .choice { display: inline-flex; align-items: center; gap: 7px; color: #d8e6fb; font-size: 13px; }
+    .choice input { width: auto; accent-color: var(--brand); }
+    .switch { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; color: #d8e6fb; font-size: 13px; }
+    .switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .switch-track { position: relative; width: 44px; height: 24px; border-radius: 999px; background: #40506a; transition: .18s; }
+    .switch-track::after { content: ''; position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: white; transition: .18s; }
+    .switch input:checked + .switch-track { background: var(--brand-strong); }
+    .switch input:checked + .switch-track::after { transform: translateX(-20px); }
+    .switch input:focus-visible + .switch-track { outline: 3px solid rgba(97,209,255,.55); outline-offset: 3px; }
+    .drop-zone { padding: 22px 14px; text-align: center; border: 2px dashed rgba(97,209,255,.38); border-radius: 12px; color: #ccefff; background: rgba(97,209,255,.06); transition: .16s; cursor: pointer; }
+    .drop-zone.dragging { transform: scale(1.01); border-color: var(--brand); background: rgba(97,209,255,.14); }
+    .drop-zone small { display: block; color: var(--muted); }
+    .range-output { min-width: 40px; text-align: center; color: #d7f4ff; background: #17364b; border-radius: 7px; padding: 3px 7px; }
+    .counter-line { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .form-demo.was-validated input:invalid { border-color: var(--danger); }
+
+    .data-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 11px; }
+    table { width: 100%; min-width: 530px; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: right; }
+    tr:last-child td { border-bottom: 0; }
+    th { color: #d8efff; background: #182640; }
+    th button { padding: 0; border: 0; color: inherit; background: transparent; }
+    tbody tr:hover { background: rgba(97,209,255,.05); }
+    .list-group { border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .list-item { padding: 11px 13px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+    .list-item:last-child { border-bottom: 0; }
+    .list-item:hover { background: rgba(97,209,255,.06); }
+    .list-item small { color: var(--muted); }
+    .timeline { position: relative; margin-right: 7px; padding-right: 22px; border-right: 2px solid rgba(97,209,255,.35); }
+    .timeline-item { position: relative; padding: 0 0 18px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-item::before { content: ''; position: absolute; right: -29px; top: 8px; width: 12px; height: 12px; border: 3px solid #111a2d; border-radius: 50%; background: var(--brand); }
+    .timeline-item h5 { margin: 0; }
+    .timeline-item p { margin: 3px 0 0; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat { padding: 12px; text-align: center; border: 1px solid var(--line); border-radius: 11px; background: #17233b; }
+    .stat strong { display: block; font-size: 22px; color: #dff5ff; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .rating { display: flex; gap: 4px; direction: ltr; }
+    .star { padding: 0; color: #53617b; background: transparent; border: 0; font-size: 27px; line-height: 1; }
+    .star.selected { color: var(--warning); }
+
+    .progress { height: 11px; overflow: hidden; border-radius: 999px; background: #26344f; }
+    .progress > span { display: block; height: 100%; width: var(--value, 40%); background: linear-gradient(90deg, var(--brand-strong), #7ee3ff); }
+    .meter { height: 12px; appearance: none; width: 100%; }
+    meter::-webkit-meter-bar { background: #26344f; border-radius: 999px; }
+    meter::-webkit-meter-optimum-value { background: var(--success); border-radius: 999px; }
+    .spinner { width: 34px; height: 34px; border: 4px solid rgba(97,209,255,.18); border-left-color: var(--brand); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .skeleton { overflow: hidden; position: relative; border-radius: 7px; background: #26334d; }
+    .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent); animation: shimmer 1.3s infinite; }
+    @keyframes shimmer { to { transform: translateX(-100%); } }
+    .skeleton.line { height: 12px; }
+    .skeleton.line.short { width: 58%; }
+    .skeleton.avatar-skel { width: 42px; height: 42px; border-radius: 50%; flex: 0 0 auto; }
+    .empty-state { text-align: center; padding: 12px; }
+    .empty-state .empty-icon { font-size: 38px; }
+    .empty-state h4 { margin: 4px 0; }
+    .empty-state p { margin-bottom: 12px; }
+
+    .carousel { position: relative; overflow: hidden; border-radius: 13px; border: 1px solid var(--line); }
+    .carousel-track { display: flex; direction: ltr; transition: transform .28s ease; }
+    .slide { flex: 0 0 100%; min-height: 165px; display: grid; align-content: center; justify-items: center; padding: 20px; text-align: center; }
+    .slide:nth-child(1) { background: linear-gradient(135deg, #134d73, #182f69); }
+    .slide:nth-child(2) { background: linear-gradient(135deg, #3c276f, #176180); }
+    .slide:nth-child(3) { background: linear-gradient(135deg, #3d4b14, #176158); }
+    .slide strong { font-size: 23px; }
+    .carousel-controls { position: absolute; inset: auto 10px 10px; display: flex; justify-content: space-between; direction: ltr; }
+    .carousel-controls .btn { padding: 4px 10px; }
+    .carousel-dots { position: absolute; bottom: 11px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+    .carousel-dot { width: 8px; height: 8px; border: 0; border-radius: 50%; background: rgba(255,255,255,.42); padding: 0; }
+    .carousel-dot.active { background: white; }
+    figure { margin: 0; border: 1px solid var(--line); padding: 10px; border-radius: 12px; }
+    .placeholder-image { min-height: 120px; display: grid; place-items: center; font-size: 40px; border-radius: 8px; background: linear-gradient(135deg, #1b5473, #765db1); }
+    figcaption { padding-top: 8px; color: var(--muted); font-size: 12px; }
+    .quote { margin: 0; border-right: 4px solid var(--violet); padding: 6px 13px; color: #efe6ff; background: rgba(192,132,252,.08); }
+    .quote footer { margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .definition-list { margin: 0; display: grid; grid-template-columns: 92px 1fr; gap: 8px 12px; }
+    .definition-list dt { color: #d7f2ff; font-weight: bold; }
+    .definition-list dd { margin: 0; color: var(--muted); }
+    pre { margin: 0; overflow: auto; padding: 12px; color: #d8f5ff; background: #081321; border: 1px solid var(--line); border-radius: 11px; font-size: 12px; }
+    kbd { padding: 2px 6px; color: #fff; background: #33405a; border: 1px solid #63718a; border-bottom-width: 3px; border-radius: 5px; font-size: 11px; }
+    .context-box { position: relative; min-height: 110px; display: grid; place-items: center; color: var(--muted); text-align: center; border: 2px dashed rgba(192,132,252,.4); border-radius: 12px; background: rgba(192,132,252,.05); user-select: none; }
+    .context-menu { display: none; position: fixed; z-index: 120; min-width: 170px; padding: 5px; background: #18243d; border: 1px solid rgba(216,232,255,.2); border-radius: 10px; box-shadow: var(--shadow); }
+    .context-menu.is-open { display: block; }
+    .context-menu button { width: 100%; padding: 8px 10px; text-align: right; color: var(--text); background: transparent; border: 0; border-radius: 7px; }
+    .context-menu button:hover { background: rgba(97,209,255,.12); }
+
+    #toast-area { position: fixed; left: 18px; bottom: 18px; z-index: 130; display: grid; gap: 9px; width: min(340px, calc(100vw - 36px)); }
+    .toast { padding: 11px 13px; display: flex; align-items: center; gap: 8px; color: #ecfbff; background: #18304a; border: 1px solid rgba(97,209,255,.4); border-radius: 11px; box-shadow: var(--shadow); animation: toastIn .2s ease both; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .toast .toast-x { margin-right: auto; padding: 0; color: inherit; background: transparent; border: 0; }
+    .live-status { color: var(--muted); font-size: 12px; min-height: 1.6em; }
+    .empty-search { display: none; margin-top: 22px; padding: 20px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+
+    @media (max-width: 1000px) { .element-card, .element-card.wide { grid-column: span 6; } }
+    @media (max-width: 650px) {
+      main { width: min(100% - 20px, 1400px); margin-top: 18px; }
+      .topbar { padding: 11px 12px; }
+      .brand { width: 100%; }
+      .search-box { min-width: 0; }
+      .element-card, .element-card.wide { grid-column: 1 / -1; }
+      .hero { padding: 20px; }
+      .stat-grid { grid-template-columns: 1fr; }
+      .step-line { width: 18px; flex-basis: 18px; }
+      .step { min-width: 78px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>نمایشگاه المان‌های HTML و UI</strong>
+      <span>هر کارت: نام تگ یا کامپوننت در بالا + نمونه واقعی در پایین</span>
+    </div>
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input id="element-search" type="search" placeholder="جست‌وجوی المان؛ مثلا button، modal، فرم، جدول..." autocomplete="off" />
+    </div>
+    <div id="visible-count" class="count">در حال نمایش همه نمونه‌ها</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>نمونه‌ی واقعی، نه فقط اسم تگ‌ها</h1>
+      <p>همه‌ی نمونه‌های تعاملی این فایل آفلاین و با HTML، CSS و JavaScript خالص اجرا می‌شوند. برای نمونه، Dropdown، Popover، Modal، Drawer، Toast، Tabs، فرم‌ها و جدول مرتب‌سازی‌شونده واقعاً کار می‌کنند.</p>
+      <span class="hero-note">● برای دیدن توضیح روی دکمه‌ها، نشانگر ماوس را روی آن‌ها نگه دار.</span>
+    </section>
+
+    <h2 class="section-title">۱) دکمه‌ها و کنترل‌های کلی <small>Actions, buttons, chips and status</small></h2>
+    <section class="grid" data-section>
+      <article class="element-card" data-search="button دکمه primary secondary ghost disabled">
+        <header class="element-head"><h3>دکمه‌ها</h3><code class="tag-name">&lt;button&gt;</code></header>
+        <div class="element-body"><div class="stack"><button class="btn">دکمه اصلی</button><button class="btn secondary">ثانویه</button><button class="btn ghost">خطی</button><button class="btn danger">حذف</button><button class="btn" disabled>غیرفعال</button></div><p>با حالت‌های مختلف دکمه.</p></div>
+      </article>
+
+      <article class="element-card" data-search="button icon button group toggle split دکمه آیکون گروه">
+        <header class="element-head"><h3>دکمه آیکونی و گروه دکمه</h3><code class="tag-name">&lt;button&gt;</code></header>
+        <div class="element-body"><div class="stack"><button class="btn icon-btn" aria-label="اعلان‌ها">🔔</button><div class="button-group"><button class="btn secondary small">چپ</button><button class="btn secondary small">وسط</button><button class="btn secondary small">راست</button></div></div><div class="button-group" data-toggle-group><button class="btn secondary small toggle-btn is-active">روز</button><button class="btn secondary small toggle-btn">هفته</button><button class="btn secondary small toggle-btn">ماه</button></div></div>
+      </article>
+
+      <article class="element-card" data-search="link anchor لینک a">
+        <header class="element-head"><h3>لینک</h3><code class="tag-name">&lt;a&gt;</code></header>
+        <div class="element-body"><p>یک لینک واقعی با <code>href</code>:</p><div class="stack"><a href="#forms">برو به بخش فرم‌ها ←</a><a href="#" class="btn ghost" onclick="event.preventDefault(); showToast('لینک دکمه‌ای کلیک شد')">لینک شبیه دکمه</a></div></div>
+      </article>
+
+      <article class="element-card" data-search="badge chip tag برچسب بج نشان">
+        <header class="element-head"><h3>Badge، Chip و Tag</h3><span class="component-name">UI component</span></header>
+        <div class="element-body"><div class="stack"><span class="badge">5</span><span class="badge success">✓</span><span class="badge warning">جدید</span><span class="chip removable-chip">جاوااسکریپت <button aria-label="حذف">×</button></span><span class="tag">نسخه 2.0</span></div><p>روی × چیپ بزن تا حذف شود.</p></div>
+      </article>
+
+      <article class="element-card" data-search="avatar profile status آواتار پروفایل">
+        <header class="element-head"><h3>Avatar و وضعیت آنلاین</h3><span class="component-name">Profile UI</span></header>
+        <div class="element-body"><div class="profile-row"><div class="avatar large">ع</div><div><strong>علی رضایی</strong><div class="muted"><span class="status-dot"></span> آنلاین</div></div></div><div class="avatar-group"><span class="avatar">س</span><span class="avatar">م</span><span class="avatar">ن</span><span class="avatar">+8</span></div></div>
+      </article>
+
+      <article class="element-card" data-search="alert banner notification هشدار اطلاع رسانی">
+        <header class="element-head"><h3>هشدار و بنر</h3><span class="component-name">Alert / Banner</span></header>
+        <div class="element-body"><div class="alert info dismissible"><span>ⓘ</span><span>این یک پیام اطلاعاتی است.</span><button class="alert-close" aria-label="بستن">×</button></div><div class="banner">🎉 تخفیف ویژه تا پایان هفته فعال است.</div></div>
+      </article>
+    </section>
+
+    <h2 class="section-title">۲) منوها، Popover و پنجره‌های روی صفحه <small>همه با JavaScript سفارشی؛ بدون نیاز به قابلیت خاص مرورگر</small></h2>
+    <section class="grid" data-section>
+      <article class="element-card" data-search="dropdown menu منو کشویی">
+        <header class="element-head"><h3>منوی کشویی</h3><span class="component-name">Dropdown Menu</span></header>
+        <div class="element-body"><div class="floating-root" data-floating><button class="btn" type="button" aria-expanded="false" data-floating-toggle>عملیات ▾</button><div class="floating-menu" role="menu"><button type="button" role="menuitem" data-toast="فایل باز شد">📂 باز کردن</button><button type="button" role="menuitem" data-toast="یک نسخه ذخیره شد">💾 ذخیره</button><div class="menu-separator"></div><button type="button" role="menuitem" data-toast="مورد حذف شد">🗑 حذف</button></div></div><p>کلیک کن؛ بیرون از منو یا کلید Escape هم آن را می‌بندد.</p></div>
+      </article>
+
+      <article class="element-card" data-search="popover popup pop over پنجره کوچک">
+        <header class="element-head"><h3>Popover</h3><span class="component-name">Popover</span></header>
+        <div class="element-body"><div class="floating-root" data-floating><button class="btn success" type="button" aria-expanded="false" data-floating-toggle>نمایش Popover</button><div class="popover" role="dialog" aria-label="اطلاعات"><strong>این یک Popover است</strong><p>یک باکس کوچک است که کنار یا زیر کنترل باز می‌شود. مثل Dropdown، با کلیک بیرون بسته می‌شود.</p><button class="btn small ghost" type="button" data-floating-close>بستن</button></div></div><p>این نمونه با کد خود فایل کار می‌کند، بنابراین مشکل سازگاری API مرورگر ندارد.</p></div>
+      </article>
+
+      <article class="element-card" data-search="tooltip راهنما تولتیپ hover">
+        <header class="element-head"><h3>Tooltip</h3><span class="component-name">Tooltip</span></header>
+        <div class="element-body"><div class="stack"><span class="tooltip-wrap" data-tooltip="این متن راهنماست"><button class="btn ghost">ماوس را نگه دار</button></span><span class="tooltip-wrap" data-tooltip="یک توضیح کوتاه"><button class="btn icon-btn secondary" aria-label="اطلاعات">?</button></span></div><p>Tooltip با hover و focus نمایش داده می‌شود.</p></div>
+      </article>
+
+      <article class="element-card" data-search="modal dialog مودال دیالوگ">
+        <header class="element-head"><h3>Modal / Dialog</h3><span class="component-name">Modal</span></header>
+        <div class="element-body"><button class="btn" type="button" data-open-overlay="example-modal">باز کردن مودال</button><p>برای نمایش کارهای مهم مثل تأیید حذف یا ورود.</p></div>
+      </article>
+
+      <article class="element-card" data-search="drawer sidebar offcanvas سایدبار کشویی">
+        <header class="element-head"><h3>Drawer / Sidebar</h3><span class="component-name">Drawer</span></header>
+        <div class="element-body"><button class="btn secondary" type="button" data-open-drawer>باز کردن منوی کناری</button><p>یک پنل از کنار صفحه وارد می‌شود.</p></div>
+      </article>
+
+      <article class="element-card" data-search="toast snackbar اعلان کوچک">
+        <header class="element-head"><h3>Toast / Snackbar</h3><span class="component-name">Toast</span></header>
+        <div class="element-body"><div class="stack"><button class="btn" type="button" data-show-toast="فایل با موفقیت ذخیره شد">نمایش Toast</button><button class="btn warning" type="button" data-show-toast="اتصال اینترنت بررسی شود">Toast هشدار</button></div><p>اعلان پایین صفحه ظاهر می‌شود و خودکار می‌رود.</p></div>
+      </article>
+
+      <article class="element-card" data-search="context menu راست کلیک منوی زمینه">
+        <header class="element-head"><h3>Context Menu</h3><span class="component-name">Right Click Menu</span></header>
+        <div class="element-body"><div class="context-box" id="context-target">اینجا راست‌کلیک کن<br><small>یا روی دکمه‌ی زیر بزن</small></div><button class="btn small ghost" type="button" id="open-context-button">نمایش منوی نمونه</button></div>
+      </article>
+    </section>
+
+    <h2 class="section-title">۳) مسیریابی و سازمان‌دهی محتوا <small>Tabs, accordion, pagination, breadcrumb and stepper</small></h2>
+    <section class="grid" data-section>
+      <article class="element-card wide" data-search="tabs تب ها tab navigation">
+        <header class="element-head"><h3>تب‌ها</h3><span class="component-name">Tabs</span></header>
+        <div class="element-body"><div class="tabs" data-tabs><button class="tab-btn is-active" data-tab="tab-one">مشخصات</button><button class="tab-btn" data-tab="tab-two">فعالیت‌ها</button><button class="tab-btn" data-tab="tab-three">تنظیمات</button></div><div id="tab-one" class="tab-panel is-active">اطلاعات کاربر در این تب نمایش داده می‌شود.</div><div id="tab-two" class="tab-panel">آخرین فعالیت: امروز ساعت ۱۰:۴۵ وارد شد.</div><div id="tab-three" class="tab-panel">تنظیمات عمومی در این بخش قرار می‌گیرد.</div></div>
+      </article>
+
+      <article class="element-card" data-search="accordion details summary آکاردئون">
+        <header class="element-head"><h3>آکاردئون</h3><code class="tag-name">&lt;details&gt;</code></header>
+        <div class="element-body"><details open><summary>سؤال اول</summary><p>این بخش به‌صورت پیش‌فرض باز است.</p></details><details><summary>سؤال دوم</summary><p>با کلیک روی summary باز و بسته می‌شود.</p></details><details><summary>سؤال سوم</summary><p>بدون JavaScript هم کار می‌کند.</p></details></div>
+      </article>
+
+      <article class="element-card" data-search="breadcrumb مسیر راهنما">
+        <header class="element-head"><h3>Breadcrumb</h3><span class="component-name">Breadcrumb</span></header>
+        <div class="element-body"><nav class="breadcrumb" aria-label="مسیر صفحه"><a href="#">خانه</a><span>‹</span><a href="#">محصولات</a><span>‹</span><span>جزئیات محصول</span></nav><p>برای نشان دادن مسیر فعلی کاربر.</p></div>
+      </article>
+
+      <article class="element-card" data-search="pagination صفحه بندی">
+        <header class="element-head"><h3>صفحه‌بندی</h3><span class="component-name">Pagination</span></header>
+        <div class="element-body"><div class="pagination" data-pagination><button class="page">‹</button><button class="page active">1</button><button class="page">2</button><button class="page">3</button><button class="page">…</button><button class="page">9</button><button class="page">›</button></div><p class="live-status">روی شماره صفحه کلیک کن.</p></div>
+      </article>
+
+      <article class="element-card wide" data-search="stepper steps مراحل">
+        <header class="element-head"><h3>Step / Stepper</h3><span class="component-name">Stepper</span></header>
+        <div class="element-body"><div class="stepper"><div class="step done" data-num="✓">سبد خرید</div><span class="step-line"></span><div class="step current" data-num="2">آدرس</div><span class="step-line"></span><div class="step" data-num="3">پرداخت</div><span class="step-line"></span><div class="step" data-num="4">پایان</div></div></div>
+      </article>
+    </section>
+
+    <h2 id="forms" class="section-title">۴) فرم و ورودی‌ها <small>Text, select, date, checkbox, range, upload and validation</small></h2>
+    <section class="grid" data-section>
+      <article class="element-card" data-search="input text email password ورودی متن ایمیل رمز">
+        <header class="element-head"><h3>Text, Email و Password</h3><code class="tag-name">&lt;input&gt;</code></header>
+        <div class="element-body"><div class="field"><label for="name-demo">نام</label><input id="name-demo" type="text" placeholder="مثلاً علی رضایی" /></div><div class="field"><label for="email-demo">ایمیل</label><input id="email-demo" type="email" placeholder="name@example.com" /></div><div class="field"><label for="pass-demo">رمز عبور</label><div class="password-wrap"><input id="pass-demo" type="password" value="12345678" /><button class="password-toggle" type="button" data-password-toggle="#pass-demo">نمایش</button></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="input group addon prefix ورودی گروهی">
+        <header class="element-head"><h3>Input Group</h3><span class="component-name">Input Group</span></header>
+        <div class="element-body"><div class="field"><label for="site-demo">آدرس وب‌سایت</label><div class="input-group"><input id="site-demo" type="text" placeholder="my-site" /><span class="addon">.com</span></div></div><div class="field"><label for="money-demo">مبلغ</label><div class="input-group"><input id="money-demo" type="number" value="250000" /><span class="addon">تومان</span></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="select datalist option لیست انتخاب">
+        <header class="element-head"><h3>Select و Datalist</h3><code class="tag-name">&lt;select&gt;</code></header>
+        <div class="element-body"><div class="field"><label for="city-select">انتخاب شهر</label><select id="city-select"><option>تهران</option><option>اصفهان</option><option>شیراز</option><option>تبریز</option></select></div><div class="field"><label for="browser-list">مرورگر مورد علاقه</label><input id="browser-list" list="browsers" placeholder="شروع به تایپ کن" /><datalist id="browsers"><option value="Chrome"></option><option value="Firefox"></option><option value="Edge"></option><option value="Safari"></option></datalist></div></div>
+      </article>
+
+      <article class="element-card" data-search="textarea character counter متن چند خطی">
+        <header class="element-head"><h3>Textarea و شمارنده</h3><code class="tag-name">&lt;textarea&gt;</code></header>
+        <div class="element-body"><div class="field"><label for="message-demo">پیام</label><textarea id="message-demo" maxlength="160" placeholder="پیام خود را بنویس..."></textarea><div class="counter-line"><span>حداکثر ۱۶۰ کاراکتر</span><span><b id="char-count">0</b>/160</span></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="checkbox radio switch toggle checkbox چک باکس رادیو سوئیچ">
+        <header class="element-head"><h3>Checkbox، Radio و Switch</h3><code class="tag-name">&lt;input&gt;</code></header>
+        <div class="element-body"><fieldset><legend>روش ارسال</legend><div class="stack"><label class="choice"><input type="radio" name="delivery" checked /> پست</label><label class="choice"><input type="radio" name="delivery" /> پیک</label></div></fieldset><label class="choice"><input type="checkbox" checked /> قوانین را می‌پذیرم</label><label class="switch"><input type="checkbox" checked /><span class="switch-track"></span> دریافت اعلان‌ها</label></div>
+      </article>
+
+      <article class="element-card" data-search="date time color range date picker رنگ اسلایدر">
+        <header class="element-head"><h3>Date، Time، Color و Range</h3><code class="tag-name">&lt;input&gt;</code></header>
+        <div class="element-body"><div class="stack"><div class="field"><label for="date-demo">تاریخ</label><input id="date-demo" type="date" /></div><div class="field"><label for="time-demo">ساعت</label><input id="time-demo" type="time" /></div></div><div class="stack"><div class="field"><label for="color-demo">رنگ</label><input id="color-demo" type="color" value="#61d1ff" /></div><div class="field"><label for="range-demo">شدت</label><div class="stack"><input id="range-demo" type="range" min="0" max="100" value="45" /><output id="range-output" class="range-output">45</output></div></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="file upload drag drop بارگذاری فایل درگ دراپ">
+        <header class="element-head"><h3>File Upload / Drag & Drop</h3><code class="tag-name">&lt;input type=file&gt;</code></header>
+        <div class="element-body"><input id="file-input-demo" type="file" hidden multiple /><label for="file-input-demo" class="drop-zone" data-drop-zone>📁 فایل را اینجا رها کن یا کلیک کن<small id="file-status">هنوز فایلی انتخاب نشده</small></label></div>
+      </article>
+
+      <article class="element-card wide" data-search="form validation required form فرم اعتبار سنجی">
+        <header class="element-head"><h3>Form Validation</h3><code class="tag-name">&lt;form&gt;</code></header>
+        <div class="element-body"><form class="form-demo" id="validation-form" novalidate><div class="grid" style="gap:10px"><div class="field" style="grid-column:span 6"><label for="valid-name">نام (اجباری)</label><input id="valid-name" required minlength="3" placeholder="حداقل ۳ حرف" /><span class="field-error">نام معتبر وارد کن.</span></div><div class="field" style="grid-column:span 6"><label for="valid-email">ایمیل (اجباری)</label><input id="valid-email" required type="email" placeholder="name@example.com" /><span class="field-error">ایمیل معتبر وارد کن.</span></div></div><div class="stack"><button class="btn" type="submit">بررسی فرم</button><span class="live-status" id="form-result"></span></div></form></div>
+      </article>
+    </section>
+
+    <h2 class="section-title">۵) محتوا، داده و بازخورد <small>Cards, tables, lists, rating, progress and loading</small></h2>
+    <section class="grid" data-section>
+      <article class="element-card" data-search="card کارت پروفایل">
+        <header class="element-head"><h3>Card</h3><span class="component-name">Card</span></header>
+        <div class="element-body"><article class="card-ui"><div class="card-banner"></div><div class="card-content"><h4>عنوان کارت</h4><p>کارت برای دسته‌بندی اطلاعات یا محصول استفاده می‌شود.</p></div><footer class="card-footer"><button class="btn small">مشاهده</button><button class="btn small secondary">ذخیره</button></footer></article></div>
+      </article>
+
+      <article class="element-card" data-search="stat statistics آمار">
+        <header class="element-head"><h3>Stat Cards</h3><span class="component-name">Statistics</span></header>
+        <div class="element-body"><div class="stat-grid"><div class="stat"><strong>۱۲۸</strong><span>سفارش</span></div><div class="stat"><strong>۹.۸M</strong><span>فروش</span></div><div class="stat"><strong>۹۴٪</strong><span>رضایت</span></div></div></div>
+      </article>
+
+      <article class="element-card wide" data-search="table sort جدول مرتب سازی">
+        <header class="element-head"><h3>جدول با مرتب‌سازی</h3><code class="tag-name">&lt;table&gt;</code></header>
+        <div class="element-body"><div class="data-table-wrap"><table id="sort-table"><thead><tr><th><button data-sort-col="0">نام ↕</button></th><th><button data-sort-col="1" data-sort-type="number">تعداد ↕</button></th><th>وضعیت</th></tr></thead><tbody><tr><td>کیبورد</td><td>12</td><td><span class="badge success">فعال</span></td></tr><tr><td>موس</td><td>7</td><td><span class="badge warning">کم</span></td></tr><tr><td>مانیتور</td><td>24</td><td><span class="badge success">فعال</span></td></tr></tbody></table></div><p>روی عنوان ستون «نام» یا «تعداد» کلیک کن.</p></div>
+      </article>
+
+      <article class="element-card" data-search="list list group لیست">
+        <header class="element-head"><h3>List Group</h3><span class="component-name">List</span></header>
+        <div class="element-body"><div class="list-group"><div class="list-item"><span class="avatar">م</span><div><strong>پیام جدید</strong><small>۲ دقیقه پیش</small></div><span class="spacer"></span><span class="badge">2</span></div><div class="list-item"><span>📌</span><div><strong>کارهای امروز</strong><small>۳ مورد باقی مانده</small></div></div><div class="list-item"><span>✓</span><div><strong>پرداخت کامل شد</strong><small>دیروز</small></div></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="timeline خط زمان">
+        <header class="element-head"><h3>Timeline</h3><span class="component-name">Timeline</span></header>
+        <div class="element-body"><div class="timeline"><div class="timeline-item"><h5>سفارش ثبت شد</h5><p>امروز، ۱۰:۳۰</p></div><div class="timeline-item"><h5>بسته‌بندی شد</h5><p>امروز، ۱۲:۱۵</p></div><div class="timeline-item"><h5>تحویل پست شد</h5><p>در انتظار</p></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="rating star امتیاز ستاره">
+        <header class="element-head"><h3>Rating</h3><span class="component-name">Star Rating</span></header>
+        <div class="element-body"><div class="rating" id="rating-demo" aria-label="امتیاز دهی"><button class="star" data-rate="1" aria-label="1 ستاره">★</button><button class="star" data-rate="2" aria-label="2 ستاره">★</button><button class="star" data-rate="3" aria-label="3 ستاره">★</button><button class="star" data-rate="4" aria-label="4 ستاره">★</button><button class="star" data-rate="5" aria-label="5 ستاره">★</button></div><p id="rating-text">هنوز امتیازی ثبت نشده.</p></div>
+      </article>
+
+      <article class="element-card" data-search="progress meter spinner loading skeleton پیشرفت بارگذاری">
+        <header class="element-head"><h3>Progress، Meter و Loading</h3><code class="tag-name">&lt;progress&gt;</code></header>
+        <div class="element-body"><div><div class="stack"><span>دانلود</span><span class="spacer"></span><span>۷۲٪</span></div><div class="progress" aria-label="پیشرفت 72 درصد"><span style="--value:72%"></span></div></div><div><span class="muted">سلامت حساب:</span><meter class="meter" min="0" max="100" value="82">82%</meter></div><div class="stack"><span class="spinner" aria-label="درحال بارگذاری"></span><div style="flex:1"><div class="skeleton line"></div><div class="skeleton line short" style="margin-top:8px"></div></div></div></div>
+      </article>
+
+      <article class="element-card" data-search="empty state حالت خالی">
+        <header class="element-head"><h3>Empty State</h3><span class="component-name">Empty State</span></header>
+        <div class="element-body"><div class="empty-state"><div class="empty-icon">🗂️</div><h4>هنوز پروژه‌ای نداری</h4><p>اولین پروژه‌ات را بساز تا اینجا نمایش داده شود.</p><button class="btn small" data-show-toast="پروژه جدید ساخته شد (نمونه)">ساخت پروژه</button></div></div>
+      </article>
+    </section>
+
+    <h2 class="section-title">۶) عناصر معنایی و رسانه‌ای HTML <small>Semantic elements, figure, quote, code, definition and native controls</small></h2>
+    <section class="grid" data-section>
+      <article class="element-card" data-search="figure figcaption image تصویر کپشن">
+        <header class="element-head"><h3>تصویر و توضیح</h3><code class="tag-name">&lt;figure&gt;</code></header>
+        <div class="element-body"><figure><div class="placeholder-image" role="img" aria-label="تصویر نمونه">🏔️</div><figcaption>توضیحی که زیر تصویر با <code>&lt;figcaption&gt;</code> آمده است.</figcaption></figure></div>
+      </article>
+
+      <article class="element-card" data-search="blockquote quote نقل قول">
+        <header class="element-head"><h3>نقل‌قول</h3><code class="tag-name">&lt;blockquote&gt;</code></header>
+        <div class="element-body"><blockquote class="quote">طراحی خوب فقط زیبا نیست؛ باید استفاده از محصول را آسان‌تر کند.<footer>— نمونه‌ی نقل‌قول</footer></blockquote><p>برای نقل‌قول‌های بلند به‌کار می‌رود.</p></div>
+      </article>
+
+      <article class="element-card" data-search="definition list dl dt dd تعریف">
+        <header class="element-head"><h3>لیست تعریفی</h3><code class="tag-name">&lt;dl&gt;</code></header>
+        <div class="element-body"><dl class="definition-list"><dt>HTML</dt><dd>ساختار صفحه‌ی وب</dd><dt>CSS</dt><dd>ظاهر و چیدمان</dd><dt>JS</dt><dd>رفتار و تعامل</dd></dl></div>
+      </article>
+
+      <article class="element-card" data-search="code pre kbd code block کد کیبورد">
+        <header class="element-head"><h3>کد و کلید کیبورد</h3><code class="tag-name">&lt;pre&gt; / &lt;kbd&gt;</code></header>
+        <div class="element-body"><pre>&lt;button&gt;ذخیره&lt;/button&gt;</pre><p>برای ذخیره سریع: <kbd>Ctrl</kbd> + <kbd>S</kbd></p></div>
+      </article>
+
+      <article class="element-card" data-search="mark highlight متن برجسته">
+        <header class="element-head"><h3>متن برجسته</h3><code class="tag-name">&lt;mark&gt;</code></header>
+        <div class="element-body"><p>این بخش برای <mark>هایلایت کردن متن مهم</mark> است. همچنین می‌توان از <strong>strong</strong> و <em>em</em> استفاده کرد.</p></div>
+      </article>
+
+      <article class="element-card" data-search="counter number stepper شمارنده عددی">
+        <header class="element-head"><h3>Number Stepper</h3><code class="tag-name">&lt;input type=number&gt;</code></header>
+        <div class="element-body"><div class="stack"><button class="btn secondary" id="decrease-counter" type="button">−</button><output id="number-output" class="range-output">1</output><button class="btn secondary" id="increase-counter" type="button">+</button></div><p>یک نمونه برای تعداد کالا، نفر یا مبلغ.</p></div>
+      </article>
+
+      <article class="element-card wide" data-search="carousel gallery اسلایدر گالری">
+        <header class="element-head"><h3>Carousel / Slider</h3><span class="component-name">Carousel</span></header>
+        <div class="element-body"><div class="carousel" id="carousel-demo"><div class="carousel-track"><div class="slide"><strong>اسلاید اول</strong><span>یک معرفی کوتاه برای بخش اول</span></div><div class="slide"><strong>اسلاید دوم</strong><span>محتوا می‌تواند عکس، متن یا محصول باشد</span></div><div class="slide"><strong>اسلاید سوم</strong><span>با دکمه‌ها بین اسلایدها حرکت کن</span></div></div><div class="carousel-controls"><button class="btn secondary" type="button" data-carousel="next">‹</button><button class="btn secondary" type="button" data-carousel="prev">›</button></div><div class="carousel-dots"><button class="carousel-dot active" data-slide="0" aria-label="اسلاید 1"></button><button class="carousel-dot" data-slide="1" aria-label="اسلاید 2"></button><button class="carousel-dot" data-slide="2" aria-label="اسلاید 3"></button></div></div></div>
+      </article>
+    </section>
+
+    <div id="empty-search" class="empty-search">نمونه‌ای مطابق این جست‌وجو پیدا نشد.</div>
+  </main>
+
+  <div id="toast-area" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="example-modal" class="overlay" aria-hidden="true" data-overlay>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-header"><h3 id="modal-title">تأیید عملیات</h3><button class="close-btn" type="button" data-close-overlay aria-label="بستن">×</button></header>
+      <div class="modal-body">این یک پنجره‌ی مودال است. تا وقتی آن را ببندی، تمرکز کاربر روی همین کار می‌ماند.</div>
+      <footer class="modal-footer"><button class="btn" type="button" data-close-overlay data-show-toast="عملیات تأیید شد">تأیید</button><button class="btn secondary" type="button" data-close-overlay>انصراف</button></footer>
+    </section>
+  </div>
+
+  <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true">
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="منوی کناری">
+      <div class="stack"><strong>منوی کناری</strong><button class="close-btn" id="close-drawer" type="button" aria-label="بستن">×</button></div>
+      <nav class="drawer-nav"><a href="#" data-drawer-link>🏠 خانه</a><a href="#forms" data-drawer-link>📝 فرم‌ها</a><a href="#" data-drawer-link>⚙ تنظیمات</a><a href="#" data-drawer-link>🚪 خروج</a></nav>
+    </aside>
+  </div>
+
+  <div id="context-menu" class="context-menu" role="menu"><button type="button" data-toast="کپی شد">📋 کپی</button><button type="button" data-toast="ویرایش انتخاب شد">✏ ویرایش</button><button type="button" data-toast="حذف انتخاب شد">🗑 حذف</button></div>
+
+  <script>
+    'use strict';
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    function showToast(message) {
+      const area = $('#toast-area');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<span>✓</span><span>${escapeHtml(message)}</span><button class="toast-x" aria-label="بستن">×</button>`;
+      area.appendChild(toast);
+      const remove = () => { toast.remove(); };
+      $('.toast-x', toast).addEventListener('click', remove);
+      setTimeout(remove, 3600);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#039;', '"':'&quot;' }[char]));
+    }
+
+    // Dropdown و Popover: یک منطق مشترک برای باز/بسته شدن صحیح
+    function closeFloating(except = null) {
+      $$('[data-floating].is-open').forEach(root => {
+        if (root !== except) {
+          root.classList.remove('is-open');
+          const toggle = $('[data-floating-toggle]', root);
+          if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    $$('[data-floating-toggle]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        const root = button.closest('[data-floating]');
+        const willOpen = !root.classList.contains('is-open');
+        closeFloating(root);
+        root.classList.toggle('is-open', willOpen);
+        button.setAttribute('aria-expanded', String(willOpen));
+      });
+    });
+
+    $$('[data-floating-close]').forEach(button => button.addEventListener('click', () => closeFloating()));
+    document.addEventListener('click', event => { if (!event.target.closest('[data-floating]')) closeFloating(); });
+
+    // بستن alert
+    $$('.alert-close').forEach(button => button.addEventListener('click', () => button.closest('.alert').remove()));
+    $$('.removable-chip button').forEach(button => button.addEventListener('click', () => button.closest('.removable-chip').remove()));
+
+    // Toggle group
+    $$('[data-toggle-group]').forEach(group => {
+      $$('.toggle-btn', group).forEach(button => button.addEventListener('click', () => {
+        $$('.toggle-btn', group).forEach(item => item.classList.remove('is-active'));
+        button.classList.add('is-active');
+      }));
+    });
+
+    // Modal
+    let lastFocused = null;
+    function openOverlay(id) {
+      const overlay = document.getElementById(id);
+      if (!overlay) return;
+      lastFocused = document.activeElement;
+      overlay.classList.add('is-open');
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('no-scroll');
+      setTimeout(() => $('button, [href], input, select, textarea', overlay)?.focus(), 0);
+    }
+    function closeOverlay(overlay) {
+      if (!overlay) return;
+      overlay.classList.remove('is-open');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('no-scroll');
+      if (lastFocused?.focus) lastFocused.focus();
+    }
+    $$('[data-open-overlay]').forEach(button => button.addEventListener('click', () => openOverlay(button.dataset.openOverlay)));
+    $$('[data-close-overlay]').forEach(button => button.addEventListener('click', () => closeOverlay(button.closest('[data-overlay]'))));
+    $$('[data-overlay]').forEach(overlay => overlay.addEventListener('click', event => { if (event.target === overlay) closeOverlay(overlay); }));
+
+    // Drawer
+    const drawerOverlay = $('#drawer-overlay');
+    function openDrawer() { lastFocused = document.activeElement; drawerOverlay.classList.add('is-open'); drawerOverlay.setAttribute('aria-hidden','false'); document.body.classList.add('no-scroll'); setTimeout(() => $('#close-drawer').focus(), 0); }
+    function closeDrawer() { drawerOverlay.classList.remove('is-open'); drawerOverlay.setAttribute('aria-hidden','true'); document.body.classList.remove('no-scroll'); if (lastFocused?.focus) lastFocused.focus(); }
+    $$('[data-open-drawer]').forEach(button => button.addEventListener('click', openDrawer));
+    $('#close-drawer').addEventListener('click', closeDrawer);
+    drawerOverlay.addEventListener('click', event => { if (event.target === drawerOverlay) closeDrawer(); });
+    $$('[data-drawer-link]').forEach(link => link.addEventListener('click', () => closeDrawer()));
+
+    // Tabs
+    $$('[data-tabs]').forEach(tabList => {
+      $$('.tab-btn', tabList).forEach(button => button.addEventListener('click', () => {
+        const target = button.dataset.tab;
+        $$('.tab-btn', tabList).forEach(item => item.classList.toggle('is-active', item === button));
+        $$('.tab-panel').forEach(panel => panel.classList.toggle('is-active', panel.id === target));
+      }));
+    });
+
+    // Pagination
+    $$('[data-pagination] .page').forEach(page => page.addEventListener('click', () => {
+      const group = page.closest('[data-pagination]');
+      if (/^\d+$/.test(page.textContent.trim())) {
+        $$('.page', group).forEach(item => item.classList.remove('active'));
+        page.classList.add('active');
+        group.parentElement.querySelector('.live-status').textContent = `صفحه ${page.textContent.trim()} انتخاب شد.`;
+      }
+    }));
+
+    // Password
+    $$('[data-password-toggle]').forEach(button => button.addEventListener('click', () => {
+      const input = $(button.dataset.passwordToggle);
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      button.textContent = isPassword ? 'پنهان' : 'نمایش';
+    }));
+
+    // Character counter and range output
+    const messageInput = $('#message-demo');
+    messageInput.addEventListener('input', () => $('#char-count').textContent = messageInput.value.length);
+    const range = $('#range-demo');
+    range.addEventListener('input', () => $('#range-output').textContent = range.value);
+
+    // File upload / drag & drop
+    const fileInput = $('#file-input-demo');
+    const dropZone = $('[data-drop-zone]');
+    const fileStatus = $('#file-status');
+    function showFiles(files) {
+      const list = [...files];
+      fileStatus.textContent = list.length ? `${list.length} فایل انتخاب شد: ${list.slice(0,2).map(file => file.name).join('، ')}${list.length > 2 ? '...' : ''}` : 'هنوز فایلی انتخاب نشده';
+    }
+    fileInput.addEventListener('change', () => showFiles(fileInput.files));
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('dragging'); }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('dragging'); }));
+    dropZone.addEventListener('drop', event => { const files = event.dataTransfer.files; showFiles(files); });
+
+    // Form validation
+    $('#validation-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      form.classList.add('was-validated');
+      const output = $('#form-result');
+      if (form.checkValidity()) { output.textContent = '✓ فرم درست است و آماده ارسال شد.'; showToast('فرم با موفقیت بررسی شد'); }
+      else { output.textContent = 'لطفاً فیلدهای قرمز را درست کن.'; form.querySelector(':invalid')?.focus(); }
+    });
+
+    // Sort table
+    $$('[data-sort-col]').forEach(button => {
+      let ascending = true;
+      button.addEventListener('click', () => {
+        const table = button.closest('table');
+        const index = Number(button.dataset.sortCol);
+        const type = button.dataset.sortType || 'text';
+        const rows = [...$('tbody', table).rows];
+        rows.sort((a, b) => {
+          const aText = a.cells[index].textContent.trim();
+          const bText = b.cells[index].textContent.trim();
+          const result = type === 'number' ? Number(aText) - Number(bText) : aText.localeCompare(bText, 'fa');
+          return ascending ? result : -result;
+        });
+        ascending = !ascending;
+        rows.forEach(row => $('tbody', table).appendChild(row));
+      });
+    });
+
+    // Rating
+    $$('#rating-demo .star').forEach(button => button.addEventListener('click', () => {
+      const rating = Number(button.dataset.rate);
+      $$('#rating-demo .star').forEach(star => star.classList.toggle('selected', Number(star.dataset.rate) <= rating));
+      $('#rating-text').textContent = `امتیاز ثبت‌شده: ${rating} از ۵`;
+    }));
+
+    // Number stepper
+    let numberValue = 1;
+    $('#decrease-counter').addEventListener('click', () => { numberValue = Math.max(0, numberValue - 1); $('#number-output').textContent = numberValue; });
+    $('#increase-counter').addEventListener('click', () => { numberValue += 1; $('#number-output').textContent = numberValue; });
+
+    // Carousel
+    const carousel = $('#carousel-demo');
+    const track = $('.carousel-track', carousel);
+    const dots = $$('.carousel-dot', carousel);
+    let slideIndex = 0;
+    function goToSlide(index) {
+      slideIndex = (index + dots.length) % dots.length;
+      track.style.transform = `translateX(-${slideIndex * 100}%)`;
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === slideIndex));
+    }
+    $('[data-carousel="next"]', carousel).addEventListener('click', () => goToSlide(slideIndex + 1));
+    $('[data-carousel="prev"]', carousel).addEventListener('click', () => goToSlide(slideIndex - 1));
+    dots.forEach(dot => dot.addEventListener('click', () => goToSlide(Number(dot.dataset.slide))));
+
+    // Context menu
+    const contextTarget = $('#context-target');
+    const contextMenu = $('#context-menu');
+    function openContextMenu(x, y) {
+      const maxX = window.innerWidth - 185;
+      const maxY = window.innerHeight - 155;
+      contextMenu.style.left = `${Math.max(8, Math.min(x, maxX))}px`;
+      contextMenu.style.top = `${Math.max(8, Math.min(y, maxY))}px`;
+      contextMenu.classList.add('is-open');
+    }
+    contextTarget.addEventListener('contextmenu', event => { event.preventDefault(); openContextMenu(event.clientX, event.clientY); });
+    $('#open-context-button').addEventListener('click', event => { const rect = event.currentTarget.getBoundingClientRect(); openContextMenu(rect.left, rect.bottom + 6); });
+    document.addEventListener('click', event => { if (!event.target.closest('#context-menu') && event.target !== $('#open-context-button')) contextMenu.classList.remove('is-open'); });
+    $$('#context-menu [data-toast]').forEach(button => button.addEventListener('click', () => { showToast(button.dataset.toast); contextMenu.classList.remove('is-open'); }));
+
+    // Toast buttons and dropdown actions
+    $$('[data-show-toast], [data-toast]').forEach(button => {
+      if (button.closest('#context-menu')) return;
+      button.addEventListener('click', () => showToast(button.dataset.showToast || button.dataset.toast));
+    });
+
+    // Search the examples
+    const search = $('#element-search');
+    const cards = $$('.element-card[data-search]');
+    const count = $('#visible-count');
+    const noResults = $('#empty-search');
+    function filterCards() {
+      const term = search.value.trim().toLowerCase();
+      let shown = 0;
+      cards.forEach(card => {
+        const haystack = `${card.dataset.search} ${card.textContent}`.toLowerCase();
+        const visible = !term || haystack.includes(term);
+        card.classList.toggle('hidden-card', !visible);
+        if (visible) shown += 1;
+      });
+      count.textContent = term ? `${shown} نمونه پیدا شد` : 'در حال نمایش همه نمونه‌ها';
+      noResults.style.display = shown ? 'none' : 'block';
+    }
+    search.addEventListener('input', filterCards);
+
+    // Escape closes all floating layers
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeFloating();
+        contextMenu.classList.remove('is-open');
+        const activeOverlay = $('[data-overlay].is-open');
+        if (activeOverlay) closeOverlay(activeOverlay);
+        if (drawerOverlay.classList.contains('is-open')) closeDrawer();
+      }
+    });
+  </script>
+</body>
+</html>
