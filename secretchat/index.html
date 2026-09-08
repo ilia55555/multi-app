@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SecretChat</title>
+  <meta name="theme-color" content="#050714" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src blob:" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="SecretChat" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/secretchat.svg" />
+  <link rel="apple-touch-icon" href="icons/secretchat.svg" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="file-transfer.css" />
+
+</head>
+<body>
+  <div class="toast" id="appToast" role="status" aria-live="polite"></div>
+  <input id="outputFileImport" type="file" accept=".txt,.html,.htm,.js,.css,.json,.zip,text/plain,text/html,text/css,text/javascript,application/json,application/zip,application/x-zip-compressed" hidden />
+  <main class="shell">
+    <header>
+      <h1>SecretChat</h1>
+      <div class="header-actions">
+        <button class="ghost icon-btn" type="button" id="languageButton" aria-label="change language">en</button>
+        <button class="ghost icon-btn" type="button" id="themeButton" aria-label="change border color">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3" aria-hidden="true"><path d="M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 32.5-156t88-127Q256-817 330-848.5T488-880q80 0 151 27.5t124.5 76q53.5 48.5 85 115T880-518q0 115-70 176.5T640-280h-74q-9 0-12.5 5t-3.5 11q0 12 15 34.5t15 51.5q0 50-27.5 74T480-80Zm0-400Zm-177 23q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm120-160q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm200 0q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm120 160q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17ZM480-160q9 0 14.5-5t5.5-13q0-14-15-33t-15-57q0-42 29-67t71-25h70q66 0 113-38.5T800-518q0-121-92.5-201.5T488-800q-136 0-232 93t-96 227q0 133 93.5 226.5T480-160Z"/></svg>
+        </button>
+        <button class="ghost icon-btn" type="button" id="qrReaderButton" aria-label="QR reader"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4V4Zm2 2v2h2V6H6Zm8-2h6v6h-6V4Zm2 2v2h2V6h-2ZM4 14h6v6H4v-6Zm2 2v2h2v-2H6Zm9-2h2v2h-2v-2Zm3 3h2v3h-3v-2h1v-1Zm-5 1h2v2h-2v-2Z"/></svg></button>
+      </div>
+    </header>
+
+
+    <nav class="tabs" aria-label="SecretChat tabs">
+      <button class="tab active" type="button" data-tab="decrypt" data-i18n="decryptTab">بازگشایی</button>
+      <button class="tab" type="button" data-tab="encrypt" data-i18n="encryptTab">رمزگذاری</button>
+      <button class="tab" type="button" data-tab="transfer" data-transfer-i18n="tab">انتقال فایل</button>
+    </nav>
+
+    <section class="panel active" id="decryptPanel">
+      <div class="field">
+        <div class="label-row">
+          <label for="decryptPassword" data-i18n="passwordLabel">رمز</label>
+          <span class="mini-actions">
+            <button class="copy" type="button" data-copy="decryptPassword" data-status="decryptStatus" data-i18n="copyPassword">کپی رمز</button>
+            <button class="paste" type="button" data-paste="decryptPassword" data-status="decryptStatus" data-i18n="pastePassword">پیست رمز</button>
+          </span>
+        </div>
+        <div class="password-wrap">
+          <input id="decryptPassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" minlength="4" data-placeholder-fa="همان رمز دقیق؛ حداقل ۴ کاراکتر" data-placeholder-en="Exact password; minimum 4 characters" placeholder="همان رمز دقیق؛ حداقل ۴ کاراکتر" />
+          <button class="toggle-password" type="button" data-toggle-password="decryptPassword" aria-label="show password">
+            <svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg>
+          </button>
+        </div>
+        <div class="strength" id="decryptStrength" data-i18n="strengthEmpty">حداقل رمز: ۴ کاراکتر؛ حداکثر ندارد.</div>
+        <div class="meter" aria-hidden="true"><span id="decryptMeter"></span></div>
+      </div>
+
+      <div class="field">
+        <div class="label-row">
+          <label for="cipherMessage" data-i18n="encryptedMessageLabel">پیام رمزنگاری‌شده</label>
+          <span class="mini-actions">
+            <button class="copy" type="button" data-copy="cipherMessage" data-status="decryptStatus" data-i18n="copyMessage">کپی پیام</button>
+            <button class="paste" type="button" data-paste="cipherMessage" data-status="decryptStatus" data-i18n="pasteMessage">پیست پیام</button>
+            <span class="export-wrap"><button class="ghost" type="button" data-export-toggle data-i18n="exportButton">خروجی</button><span class="export-menu"><button class="ghost" type="button" data-export="txt" data-source="cipherMessage" data-status="decryptStatus">TXT</button><button class="ghost" type="button" data-export="html" data-source="cipherMessage" data-status="decryptStatus">HTML</button><button class="ghost" type="button" data-export="js" data-source="cipherMessage" data-status="decryptStatus">JS</button><button class="ghost" type="button" data-export="css" data-source="cipherMessage" data-status="decryptStatus">CSS</button><button class="ghost" type="button" data-export="json" data-source="cipherMessage" data-status="decryptStatus">JSON</button></span></span>
+            <span class="qr-wrap"><button class="ghost icon-only" type="button" data-qr="cipherMessage" data-status="decryptStatus" aria-label="QR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3V3Zm2 2v3h3V5H5Zm9-2h7v7h-7V3Zm2 2v3h3V5h-3ZM3 14h7v7H3v-7Zm2 2v3h3v-3H5Zm10-2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm-4 4h2v3h-2v-3Zm4 1h2v2h-2v-2Z"/></svg></button><span class="qr-box" id="cipherMessageQr"><canvas aria-label="QR"></canvas><button class="ghost qr-save" type="button" data-save-qr="cipherMessage" data-i18n="saveQrImageButton">ذخیره عکس</button><button class="danger qr-close" type="button" data-close-qr="cipherMessage" data-i18n="closeButton">بستن</button></span></span>
+          </span>
+        </div>
+        <textarea id="cipherMessage" data-placeholder-fa="پیام رمزنگاری‌شده را اینجا بچسبانید..." data-placeholder-en="Paste encrypted message here..." placeholder="پیام رمزنگاری‌شده را اینجا بچسبانید..."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="primary" type="button" id="decryptButton" data-i18n="unlockButton">باز کردن قفل</button>
+        <button class="danger" type="button" id="clearDecrypt" data-i18n="clearButton">پاک کردن</button>
+      </div>
+      <p class="status" id="decryptStatus"></p>
+
+      <div class="field">
+        <div class="label-row">
+          <label for="decryptedOutput" data-i18n="finalMessageLabel">پیام نهایی</label>
+          <span class="mini-actions">
+            <button class="copy" type="button" data-copy="decryptedOutput" data-status="decryptStatus" data-i18n="copyButton">کپی</button>
+            <span class="export-wrap"><button class="ghost" type="button" data-export-toggle data-i18n="exportButton">خروجی</button><span class="export-menu"><button class="ghost" type="button" data-export="txt" data-source="decryptedOutput" data-status="decryptStatus">TXT</button><button class="ghost" type="button" data-export="html" data-source="decryptedOutput" data-status="decryptStatus">HTML</button><button class="ghost" type="button" data-export="js" data-source="decryptedOutput" data-status="decryptStatus">JS</button><button class="ghost" type="button" data-export="css" data-source="decryptedOutput" data-status="decryptStatus">CSS</button><button class="ghost" type="button" data-export="json" data-source="decryptedOutput" data-status="decryptStatus">JSON</button></span></span>
+            <span class="qr-wrap"><button class="ghost icon-only" type="button" data-qr="decryptedOutput" data-status="decryptStatus" aria-label="QR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3V3Zm2 2v3h3V5H5Zm9-2h7v7h-7V3Zm2 2v3h3V5h-3ZM3 14h7v7H3v-7Zm2 2v3h3v-3H5Zm10-2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm-4 4h2v3h-2v-3Zm4 1h2v2h-2v-2Z"/></svg></button><span class="qr-box" id="decryptedOutputQr"><canvas aria-label="QR"></canvas><button class="ghost qr-save" type="button" data-save-qr="decryptedOutput" data-i18n="saveQrImageButton">ذخیره عکس</button><button class="danger qr-close" type="button" data-close-qr="decryptedOutput" data-i18n="closeButton">بستن</button></span></span>
+          </span>
+        </div>
+        <textarea id="decryptedOutput" readonly data-placeholder-fa="پیام نهایی اینجا نمایش داده می‌شود." data-placeholder-en="Final message appears here." placeholder="پیام نهایی اینجا نمایش داده می‌شود."></textarea>
+      </div>
+      <section class="output-files" data-output-files aria-live="polite"></section>
+    </section>
+
+    <section class="panel" id="encryptPanel">
+      <div class="field">
+        <div class="label-row">
+          <label for="encryptPassword" data-i18n="passwordLabel">رمز</label>
+          <span class="mini-actions">
+            <button class="copy" type="button" data-copy="encryptPassword" data-status="encryptStatus" data-i18n="copyPassword">کپی رمز</button>
+            <button class="paste" type="button" data-paste="encryptPassword" data-status="encryptStatus" data-i18n="pastePassword">پیست رمز</button>
+            <button class="primary" type="button" id="generatePassword" data-i18n="generateButton">ساخت رمز سخت</button>
+          </span>
+        </div>
+        <div class="password-wrap">
+          <input id="encryptPassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" minlength="4" data-placeholder-fa="حداقل ۴ کاراکتر؛ حداکثر ندارد" data-placeholder-en="Minimum 4 characters; no maximum" placeholder="حداقل ۴ کاراکتر؛ حداکثر ندارد" />
+          <button class="toggle-password" type="button" data-toggle-password="encryptPassword" aria-label="show password">
+            <svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg>
+          </button>
+        </div>
+        <div class="strength" id="encryptStrength" data-i18n="strengthEmpty">حداقل رمز: ۴ کاراکتر؛ حداکثر ندارد.</div>
+        <div class="meter" aria-hidden="true"><span id="encryptMeter"></span></div>
+      </div>
+
+      <div class="field">
+        <div class="label-row">
+          <label for="plainMessage" data-i18n="messageLabel">پیام</label>
+          <span class="mini-actions">
+            <button class="copy" type="button" data-copy="plainMessage" data-status="encryptStatus" data-i18n="copyMessage">کپی پیام</button>
+            <button class="paste" type="button" data-paste="plainMessage" data-status="encryptStatus" data-i18n="pasteMessage">پیست پیام</button>
+            <span class="export-wrap"><button class="ghost" type="button" data-export-toggle data-i18n="exportButton">خروجی</button><span class="export-menu"><button class="ghost" type="button" data-export="txt" data-source="plainMessage" data-status="encryptStatus">TXT</button><button class="ghost" type="button" data-export="html" data-source="plainMessage" data-status="encryptStatus">HTML</button><button class="ghost" type="button" data-export="js" data-source="plainMessage" data-status="encryptStatus">JS</button><button class="ghost" type="button" data-export="css" data-source="plainMessage" data-status="encryptStatus">CSS</button><button class="ghost" type="button" data-export="json" data-source="plainMessage" data-status="encryptStatus">JSON</button></span></span>
+            <span class="qr-wrap"><button class="ghost icon-only" type="button" data-qr="plainMessage" data-status="encryptStatus" aria-label="QR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3V3Zm2 2v3h3V5H5Zm9-2h7v7h-7V3Zm2 2v3h3V5h-3ZM3 14h7v7H3v-7Zm2 2v3h3v-3H5Zm10-2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm-4 4h2v3h-2v-3Zm4 1h2v2h-2v-2Z"/></svg></button><span class="qr-box" id="plainMessageQr"><canvas aria-label="QR"></canvas><button class="ghost qr-save" type="button" data-save-qr="plainMessage" data-i18n="saveQrImageButton">ذخیره عکس</button><button class="danger qr-close" type="button" data-close-qr="plainMessage" data-i18n="closeButton">بستن</button></span></span>
+          </span>
+        </div>
+        <textarea id="plainMessage" data-placeholder-fa="پیام را بنویسید..." data-placeholder-en="Write message..." placeholder="پیام را بنویسید..."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="primary" type="button" id="encryptButton" data-i18n="encryptButton">رمزنگاری</button>
+        <button class="danger" type="button" id="clearEncrypt" data-i18n="clearButton">پاک کردن</button>
+      </div>
+      <p class="status" id="encryptStatus"></p>
+
+      <div class="field">
+        <div class="label-row">
+          <label for="encryptedOutput" data-i18n="encryptedOutputLabel">خروجی رمزنگاری‌شده</label>
+          <span class="mini-actions">
+            <button class="copy" type="button" data-copy="encryptedOutput" data-status="encryptStatus" data-i18n="copyButton">کپی</button>
+            <span class="export-wrap"><button class="ghost" type="button" data-export-toggle data-i18n="exportButton">خروجی</button><span class="export-menu"><button class="ghost" type="button" data-export="txt" data-source="encryptedOutput" data-status="encryptStatus">TXT</button><button class="ghost" type="button" data-export="html" data-source="encryptedOutput" data-status="encryptStatus">HTML</button><button class="ghost" type="button" data-export="js" data-source="encryptedOutput" data-status="encryptStatus">JS</button><button class="ghost" type="button" data-export="css" data-source="encryptedOutput" data-status="encryptStatus">CSS</button><button class="ghost" type="button" data-export="json" data-source="encryptedOutput" data-status="encryptStatus">JSON</button></span></span>
+            <span class="qr-wrap"><button class="ghost icon-only" type="button" data-qr="encryptedOutput" data-status="encryptStatus" aria-label="QR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3V3Zm2 2v3h3V5H5Zm9-2h7v7h-7V3Zm2 2v3h3V5h-3ZM3 14h7v7H3v-7Zm2 2v3h3v-3H5Zm10-2h2v2h-2v-2Zm4 0h2v2h-2v-2Zm-4 4h2v3h-2v-3Zm4 1h2v2h-2v-2Z"/></svg></button><span class="qr-box" id="encryptedOutputQr"><canvas aria-label="QR"></canvas><button class="ghost qr-save" type="button" data-save-qr="encryptedOutput" data-i18n="saveQrImageButton">ذخیره عکس</button><button class="danger qr-close" type="button" data-close-qr="encryptedOutput" data-i18n="closeButton">بستن</button></span></span>
+          </span>
+        </div>
+        <textarea id="encryptedOutput" readonly data-placeholder-fa="خروجی اینجا ساخته می‌شود." data-placeholder-en="Output appears here." placeholder="خروجی اینجا ساخته می‌شود."></textarea>
+      </div>
+      <section class="output-files" data-output-files aria-live="polite"></section>
+    </section>
+
+    <section class="panel transfer-panel" id="transferPanel">
+      <div class="transfer-grid">
+        <section class="transfer-card" aria-labelledby="transferSendTitle">
+          <h2 id="transferSendTitle" data-transfer-i18n="sendTitle">ارسال</h2>
+          <label for="transferFile" data-transfer-i18n="chooseFile">انتخاب فایل</label>
+          <input class="transfer-file-input" id="transferFile" type="file" />
+          <div class="transfer-password-field">
+            <div class="label-row"><label for="transferSendPassword" data-transfer-i18n="optionalPassword">رمز اختیاری فایل</label><button class="primary" type="button" id="transferGeneratePassword" data-transfer-i18n="generatePassword">ساخت رمز سخت</button></div>
+            <div class="password-wrap"><input id="transferSendPassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" minlength="4" data-transfer-placeholder-fa="بدون رمز خالی بگذارید" data-transfer-placeholder-en="Leave empty for no password" placeholder="بدون رمز خالی بگذارید" /><button class="toggle-password" type="button" data-toggle-password="transferSendPassword" aria-label="show password"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg></button></div>
+            <div class="strength" id="transferPasswordStrength">حداقل رمز: ۴ کاراکتر؛ حداکثر ندارد.</div>
+            <div class="meter" aria-hidden="true"><span id="transferPasswordMeter"></span></div>
+          </div>
+          <div class="transfer-settings">
+            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="0.25" max="4" step="0.25" value="1.25" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">1.25</output><span data-transfer-i18n="fast">سریع</span></span></label>
+            <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="100" max="1200" step="100" value="300" /><span class="range-labels" dir="ltr"><span>100</span><output id="transferChunkSizeValue" for="transferChunkSize">300</output><span>1200</span></span></label>
+          </div>
+          <p class="transfer-status" id="transferSendStatus" aria-live="polite"></p>
+          <div class="transfer-qr-stage" id="transferQrStage" hidden>
+            <button class="transfer-fullscreen-button" type="button" id="transferFullscreen" data-transfer-i18n="fullscreen">تمام صفحه</button>
+            <label class="transfer-zoom-control" for="transferQrZoom"><span data-transfer-i18n="zoom">زوم</span><input id="transferQrZoom" type="range" min="0.5" max="12" step="0.1" value="1" /><span class="range-labels" dir="ltr"><span>0.5×</span><output id="transferQrZoomValue" for="transferQrZoom">1.0×</output><span>12×</span></span></label>
+            <div class="transfer-qr-viewport" id="transferQrViewport">
+              <div class="transfer-qr-box"><canvas id="transferQrCanvas" aria-label="File transfer QR"></canvas></div>
+            </div>
+            <div class="transfer-viewport-resize-handle" id="transferViewportResizeHandle" role="separator" aria-orientation="horizontal" tabindex="0" data-transfer-i18n-aria="resizeViewport" aria-label="برای تغییر ارتفاع کادر QR بکشید"><span aria-hidden="true"></span></div>
+            <label class="transfer-frame-picker" for="transferFrameNumber"><span data-transfer-i18n="frameNumber">شماره QR</span><span dir="ltr"><input id="transferFrameNumber" type="number" min="1" value="1" inputmode="numeric" /> / <b id="transferFrameTotal">0</b></span></label>
+            <progress id="transferSendProgress" max="1" value="0"></progress>
+            <div class="transfer-actions transfer-modal-playback-actions">
+              <button class="primary" type="button" id="transferModalPlayPause" disabled data-transfer-i18n="play">پخش</button>
+              <button class="ghost" type="button" id="transferModalNext" disabled data-transfer-i18n="next">بعدی</button>
+              <button class="ghost" type="button" id="transferModalPrevious" disabled data-transfer-i18n="previous">قبلی</button>
+            </div>
+            <button class="ghost transfer-zip-button" type="button" id="transferDownloadZip" disabled data-transfer-i18n="downloadQrZip">دانلود ZIP همه QRها</button>
+          </div>
+          <div class="transfer-actions transfer-page-playback-actions">
+            <button class="primary" type="button" id="transferPlayPause" disabled data-transfer-i18n="play">پخش</button>
+            <button class="ghost" type="button" id="transferNext" disabled data-transfer-i18n="next">بعدی</button>
+            <button class="ghost" type="button" id="transferPrevious" disabled data-transfer-i18n="previous">قبلی</button>
+          </div>
+        </section>
+
+        <section class="transfer-card" aria-labelledby="transferReceiveTitle">
+          <h2 id="transferReceiveTitle" data-transfer-i18n="receiveTitle">دریافت</h2>
+          <div class="transfer-actions">
+            <button class="primary" type="button" id="transferOpenScanner" data-transfer-i18n="openScanner">بازکردن اسکنر</button>
+            <button class="danger" type="button" id="transferResetReceive" data-transfer-i18n="reset">شروع دوباره</button>
+          </div>
+          <label class="transfer-offline-input"><span data-transfer-i18n="scanImages">اسکن دسته‌ای عکس‌های QR یا فایل ZIP</span><input class="transfer-file-input" id="transferQrImages" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple /></label>
+          <p class="transfer-status" id="transferReceiveStatus" aria-live="polite"></p>
+          <progress id="transferReceiveProgress" max="1" value="0"></progress>
+          <div class="transfer-file-ready" id="transferFileReady" hidden>
+            <img class="transfer-image-preview" id="transferImagePreview" alt="" hidden />
+            <strong id="transferReceivedName"></strong>
+            <span id="transferReceivedSize" dir="ltr"></span>
+            <button class="primary" type="button" id="transferSaveFile" data-transfer-i18n="saveFile">ذخیره فایل</button>
+          </div>
+          <div class="transfer-password-unlock" id="transferPasswordUnlock" hidden>
+            <label for="transferReceivePassword" data-transfer-i18n="enterPassword">رمز فایل را وارد کنید</label>
+            <div class="password-wrap"><input id="transferReceivePassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" /><button class="toggle-password" type="button" data-toggle-password="transferReceivePassword" aria-label="show password"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg></button></div>
+            <button class="primary" type="button" id="transferUnlockFile" data-transfer-i18n="unlockFile">باز کردن فایل</button>
+          </div>
+        </section>
+      </div>
+      <section class="output-files" data-output-files aria-live="polite"></section>
+    </section>
+
+  </main>
+
+  <div class="modal-backdrop" id="zipActionModal" role="dialog" aria-modal="true" aria-labelledby="zipActionTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="zipActionTitle" data-i18n="zipActionTitle">با این پروژه چه کاری انجام شود؟</h2>
+        <button class="danger icon-only" type="button" id="closeZipAction" aria-label="close">×</button>
+      </div>
+      <p class="note" id="zipActionSummary"></p>
+      <div class="modal-actions zip-action-buttons">
+        <button class="primary" type="button" id="zipActionOpen" data-i18n="openProject">باز کردن</button>
+        <button class="primary" type="button" id="zipActionEncrypt" data-i18n="encryptProject">رمزگذاری</button>
+        <button class="primary" type="button" id="zipActionDecrypt" data-i18n="decryptProject">رمزگشایی</button>
+        <button class="ghost" type="button" id="zipActionExtract" data-i18n="extractProject">استخراج پروژه</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="projectFileChoiceModal" role="dialog" aria-modal="true" aria-labelledby="projectFileChoiceTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="projectFileChoiceTitle" data-i18n="chooseProjectFile">کدام فایل؟</h2>
+        <button class="danger icon-only" type="button" id="closeProjectFileChoice" aria-label="close">×</button>
+      </div>
+      <div class="project-file-tabs" id="projectFileChoices"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="exportNameModal" role="dialog" aria-modal="true" aria-labelledby="exportNameTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="exportNameTitle" data-i18n="exportNameTitle">نام فایل خروجی</h2>
+        <button class="danger icon-only" type="button" id="cancelExportName" aria-label="close">×</button>
+      </div>
+      <div class="field">
+        <label for="exportFileName" data-i18n="exportNameLabel">نام فایل را بنویسید</label>
+        <input id="exportFileName" type="text" autocomplete="off" data-placeholder-fa="اگر خالی بماند از سه کلمه اول متن استفاده می‌شود" data-placeholder-en="Leave empty to use the first three words" placeholder="اگر خالی بماند از سه کلمه اول متن استفاده می‌شود" />
+      </div>
+      <div class="modal-actions">
+        <button class="primary" type="button" id="confirmExportName" data-i18n="saveButton">ذخیره</button>
+        <button class="ghost" type="button" id="closeExportName" data-i18n="closeButton">بستن</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="importOutputModal" role="dialog" aria-modal="true" aria-labelledby="importOutputTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="importOutputTitle" data-i18n="importOutputTitle">متن فایل کجا قرار بگیرد؟</h2>
+        <button class="danger icon-only" type="button" id="closeImportOutput" aria-label="close">×</button>
+      </div>
+      <p class="note" id="importOutputFileName"></p>
+      <div class="modal-actions">
+        <button class="primary" type="button" id="importToCipher" data-i18n="importToCipher">پیام رمزنگاری‌شده</button>
+        <button class="primary" type="button" id="importToPlain" data-i18n="importToPlain">پیام در تب رمزگذاری</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="qrReaderModal" role="dialog" aria-modal="true" aria-labelledby="qrReaderTitle">
+      <div class="modal">
+        <div class="modal-head">
+          <h2 id="qrReaderTitle" data-i18n="qrReaderTitle">خواندن QR</h2>
+          <div class="modal-head-actions">
+            <button class="ghost scanner-log-button" type="button" id="toggleQrDebugLog" data-i18n="showScanLog" aria-expanded="false" aria-controls="qrDebugPanel">نمایش لاگ</button>
+            <button class="danger icon-only" type="button" id="closeQrReader" aria-label="close">×</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="qrImageInput" data-i18n="qrImageLabel">انتخاب تصویر QR / بارکد</label>
+          <input id="qrImageInput" type="file" accept="image/*" />
+          <label for="qrEngineSelect" data-i18n="qrEngineLabel">موتور اسکن</label>
+          <select id="qrEngineSelect">
+            <option value="zxing" data-recommended-engine>ZXing (پیشنهادی)</option>
+            <option value="html5qrcode">Html5Qrcode</option>
+            <option value="jsqr">jsQR</option>
+            <option value="qrscanner">QrScanner</option>
+          </select>
+          <div class="modal-actions">
+            <button class="primary" type="button" id="toggleQrCamera" data-i18n="cameraButton">دوربین</button>
+          </div>
+          <div class="camera-box" id="qrCameraBox">
+            <div id="qrScannerTarget"></div>
+            <div class="scan-frame" aria-hidden="true"></div>
+            <div class="camera-focus-indicator" id="cameraFocusIndicator" aria-hidden="true"></div>
+          </div>
+          <p class="camera-focus-hint" data-i18n="cameraFocusHint">برای فوکوس روی نقطه دلخواه، همان قسمت تصویر دوربین را لمس کنید.</p>
+          <div class="scan-workspace" id="qrFileScanTarget" aria-hidden="true"></div>
+        </div>
+        <div class="field">
+          <label for="qrReaderResult" data-i18n="qrResultLabel">متن خوانده‌شده</label>
+          <textarea class="reader-result" id="qrReaderResult" readonly data-placeholder-fa="نتیجه QR اینجا نمایش داده می‌شود." data-placeholder-en="QR result appears here." placeholder="نتیجه QR اینجا نمایش داده می‌شود."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="copy" type="button" data-copy="qrReaderResult" data-status="qrReaderStatus" data-i18n="copyButton">کپی</button>
+          <button class="ghost" type="button" data-place-qr="decryptPassword" data-i18n="placePassword">در رمز</button>
+          <button class="ghost" type="button" data-place-qr="cipherMessage" data-i18n="placeCipher">در پیام رمزنگاری‌شده</button>
+          <button class="ghost" type="button" data-place-qr="plainMessage" data-i18n="placePlain">در پیام عادی</button>
+        </div>
+        <div class="scanner-status-row">
+          <p class="status" id="qrReaderStatus"></p>
+        </div>
+        <div class="field scanner-debug-panel" id="qrDebugPanel" hidden>
+          <label for="qrDebugLog" data-i18n="scanDebugLabel">لاگ عیب‌یابی اسکن</label>
+          <div class="modal-actions"><button class="copy" type="button" id="copyQrDebugLog" data-i18n="copyScanLog">کپی لاگ</button><button class="ghost" type="button" id="clearQrDebugLog" data-i18n="clearScanLog">پاک کردن لاگ</button></div>
+          <pre class="debug-log" id="qrDebugLog" aria-live="polite">لاگ اسکن اینجا نمایش داده می‌شود.</pre>
+        </div>
+      </div>
+    </div>
+
+  <div class="modal-backdrop" id="transferScannerModal" role="dialog" aria-modal="true" aria-labelledby="transferScannerTitle">
+    <div class="modal transfer-scanner-dialog">
+      <div class="modal-head">
+        <h2 id="transferScannerTitle" data-transfer-i18n="scannerTitle">دوربین دریافت فایل</h2>
+        <button class="danger icon-only" type="button" id="transferCloseScanner" aria-label="close">×</button>
+      </div>
+      <label class="transfer-engine-field" for="transferScannerEngine">
+        <span data-transfer-i18n="scannerEngine">موتور اسکن</span>
+        <select id="transferScannerEngine">
+          <option value="zxing" data-transfer-recommended-engine>ZXing (پیشنهادی)</option>
+          <option value="html5qrcode">Html5Qrcode</option>
+          <option value="jsqr">jsQR</option>
+          <option value="qrscanner">QrScanner</option>
+        </select>
+      </label>
+      <div class="transfer-camera-box" id="transferCameraBox">
+        <div id="transferScannerTarget"></div>
+        <div class="transfer-camera-frame" aria-hidden="true"></div>
+      </div>
+      <p class="transfer-status" id="transferCameraStatus" aria-live="polite"></p>
+      <div class="modal-actions">
+        <button class="danger" type="button" id="transferStopScanner" data-transfer-i18n="closeScanner">بستن دوربین</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="app.js" defer></script>
+  <script src="file-transfer.js" defer></script>
+
+</body>
+</html>
