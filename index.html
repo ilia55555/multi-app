@@ -3,40 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090a0f">
+  <meta name="theme-color" content="#07111f">
   <meta name="description" content="مرکز دسترسی به اپلیکیشن‌های شخصی">
   <link rel="manifest" id="app-manifest">
   <link rel="stylesheet" href="styles.css">
   <title>جعبه ابزار من</title>
 </head>
 <body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <aside class="sidebar">
-    <a class="brand" href="index.html"><span class="brand-icon">▦</span><span><b>جعبه ابزار</b><small>مرکز اپلیکیشن‌های من</small></span></a>
-    <nav><small>فضای کار</small><a class="active" href="index.html">⌂ <span>خانه</span></a><a href="apps/streambox/index.html">▶ <span>استریم باکس</span></a></nav>
-    <div class="side-note"><b>فضا برای ایده‌های بیشتر</b><p>هر اپلیکیشن در پوشهٔ مستقل خودش قرار می‌گیرد.</p><small>نسخه ۱.۱</small></div>
+    <a class="brand" href="index.html" aria-label="صفحه اصلی جعبه ابزار"><span class="brand-icon">M</span><span><b>جعبه ابزار من</b><small>MY DIGITAL WORKSPACE</small></span></a>
+    <nav aria-label="دسترسی سریع">
+      <small>منوی اصلی</small>
+      <a class="active" href="index.html"><span class="nav-icon">⌂</span><span>همه اپلیکیشن‌ها</span></a>
+      <a href="LiveWebStudio-Tuner/index.html"><span class="nav-icon">&lt;/&gt;</span><span>لایو وب استودیو</span></a>
+      <a href="secretchat/index.html"><span class="nav-icon">⌁</span><span>سکرت‌چت</span></a>
+      <a href="naghshe-Tuner/index.html"><span class="nav-icon">◇</span><span>نقشه‌کش</span></a>
+    </nav>
+    <div class="side-note"><span>۶</span><div><b>ابزار آماده</b><p>همه پروژه‌ها از یک ورودی در دسترس‌اند.</p></div></div>
   </aside>
   <main>
-    <header>
-      <div class="search"><span>⌕</span><input id="search" type="search" placeholder="جستجو بین اپلیکیشن‌ها..." aria-label="جستجوی اپلیکیشن"></div>
-      <button id="installButton" class="install-button" hidden><span>⇩</span> نصب اپلیکیشن</button>
-      <div class="profile"><span><b>کاربر مهمان</b><small>فضای شخصی شما</small></span><i>م</i></div>
+    <header class="topbar">
+      <button class="mobile-brand" type="button" aria-label="جعبه ابزار">M</button>
+      <label class="search"><span>⌕</span><input id="search" type="search" placeholder="جستجو بین ابزارها..." autocomplete="off"><kbd>Ctrl K</kbd></label>
+      <button id="installButton" class="install-button" hidden><span>⇩</span> نصب</button>
+      <div class="profile"><span><b>فضای شخصی</b><small>۶ اپلیکیشن فعال</small></span><i>م</i></div>
     </header>
     <div class="page">
-      <section class="welcome"><div><span class="eyebrow">✦ همه چیز، یک‌جا</span><h1>سلام، خوش آمدید 👋</h1><p>اپلیکیشن مورد نظرتان را انتخاب کنید و بی‌وقفه شروع به کار کنید.</p></div><div class="counter"><b>۱</b><span>اپلیکیشن فعال</span></div></section>
-      <div class="section-title"><div><h2>اپلیکیشن‌های من</h2><p>ابزارهایی که برای شما ساخته شده‌اند</p></div></div>
-      <section class="apps" id="apps">
-        <article class="app-card" data-search="استریم باکس پخش فیلم ویدیو">
-          <span class="badge">فعال</span><div class="app-icon">▶</div><h3>استریم باکس</h3><p>پخش همزمان فیلم هنگام دریافت</p>
-          <div class="tags"><span>● پخش زنده</span><span>⌁ ادامه هوشمند</span></div>
-          <a href="apps/streambox/index.html">ورود به اپلیکیشن <span>←</span></a>
-        </article>
-        <article class="empty-card"><div>＋</div><h3>اپلیکیشن بعدی</h3><p>فضای آماده برای ایدهٔ بعدی شما</p></article>
-        <article class="empty-card"><div>＋</div><h3>اپلیکیشن بعدی</h3><p>فضای آماده برای ایدهٔ بعدی شما</p></article>
-        <article class="empty-card"><div>＋</div><h3>اپلیکیشن بعدی</h3><p>فضای آماده برای ایدهٔ بعدی شما</p></article>
+      <section class="hero">
+        <div class="hero-copy"><span class="eyebrow"><i></i> فضای کار آماده است</span><h1>ابزارت را انتخاب کن،<br><em>سریع شروع کن.</em></h1><p>تمام اپلیکیشن‌های شخصی شما در یک فضای مرتب، مستقل و همیشه در دسترس.</p><a href="#apps">مشاهده ابزارها <span>↓</span></a></div>
+        <div class="hero-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="hero-logo">M<span>۶ ابزار</span></div><i class="spark spark-one">✦</i><i class="spark spark-two">✦</i></div>
       </section>
-      <section class="safe-note"><span>✓</span><div><b>ساختار ساده و امن</b><p>هر اپلیکیشن فقط از HTML، CSS و JavaScript ساخته شده و در پوشهٔ مستقل خودش اجرا می‌شود.</p></div></section>
+      <section class="section-head" id="apps"><div><span>مجموعه من</span><h2>اپلیکیشن‌ها</h2></div><p id="resultCount" aria-live="polite">۶ ابزار برای استفاده آماده است</p></section>
+      <section class="apps">
+        <article class="app-card featured" data-search="لایو وب استودیو live web studio ویرایش کد html css javascript"><div class="card-top"><span class="app-icon code">&lt;/&gt;</span><span class="status"><i></i> فعال</span></div><div class="card-copy"><small>توسعه وب</small><h3>لایو وب استودیو</h3><p>ویرایش پروژه و مشاهده زنده خروجی HTML، CSS و JavaScript.</p></div><div class="tags"><span>ویرایشگر کد</span><span>پیش‌نمایش زنده</span></div><a href="LiveWebStudio-Tuner/index.html"><span>ورود به استودیو</span><b>←</b></a></article>
+        <article class="app-card" data-search="سکرت چت secretchat رمزگذاری بازگشایی انتقال فایل"><div class="card-top"><span class="app-icon chat">⌁</span><span class="status"><i></i> فعال</span></div><div class="card-copy"><small>حریم خصوصی</small><h3>سکرت‌چت</h3><p>رمزگذاری پیام‌ها، بازگشایی امن و انتقال مستقیم فایل.</p></div><div class="tags"><span>رمزگذاری</span><span>انتقال فایل</span></div><a href="secretchat/index.html"><span>ورود به سکرت‌چت</span><b>←</b></a></article>
+        <article class="app-card" data-search="نقشه کش طراحی ترسیم دقیق canvas"><div class="card-top"><span class="app-icon map">◇</span><span class="status"><i></i> فعال</span></div><div class="card-copy"><small>طراحی دقیق</small><h3>نقشه‌کش</h3><p>ترسیم شکل‌ها و اندازه‌گذاری دقیق روی بوم حرفه‌ای.</p></div><div class="tags"><span>ترسیم</span><span>خروجی تصویر</span></div><a href="naghshe-Tuner/index.html"><span>ورود به نقشه‌کش</span><b>←</b></a></article>
+        <article class="app-card" data-search="پالت رنگ color palette تولید ویرایش کپی رنگ"><div class="card-top"><span class="app-icon palette">◉</span><span class="status"><i></i> فعال</span></div><div class="card-copy"><small>رنگ و طراحی</small><h3>استودیو پالت رنگ</h3><p>ساخت، ویرایش و کپی مجموعه رنگ‌های هماهنگ.</p></div><div class="tags"><span>ساخت پالت</span><span>کپی HEX</span></div><a href="Generator-Color-Palette--Tuner/full.html"><span>ورود به پالت رنگ</span><b>←</b></a></article>
+        <article class="app-card" data-search="نمونه المان ui elements html کامپوننت رابط کاربری"><div class="card-top"><span class="app-icon elements">▦</span><span class="status"><i></i> فعال</span></div><div class="card-copy"><small>کتابخانه رابط کاربری</small><h3>نمونه المان‌ها</h3><p>مرجع مستقل المان‌های HTML و کامپوننت‌های کاربردی UI.</p></div><div class="tags"><span>HTML</span><span>UI Components</span></div><a href="Element-Samples-Tuner/index.html"><span>مشاهده المان‌ها</span><b>←</b></a></article>
+        <article class="app-card" data-search="استریم باکس streambox فیلم ویدیو پخش لینک مستقیم"><div class="card-top"><span class="app-icon stream">▶</span><span class="status"><i></i> فعال</span></div><div class="card-copy"><small>پخش رسانه</small><h3>استریم باکس</h3><p>پخش تدریجی ویدیو از لینک مستقیم با ادامه هوشمند.</p></div><div class="tags"><span>پخش ویدیو</span><span>ادامه هوشمند</span></div><a href="apps/streambox/index.html"><span>ورود به استریم باکس</span><b>←</b></a></article>
+      </section>
+      <div class="empty-results" id="emptyResults" hidden><span>⌕</span><h3>ابزاری پیدا نشد</h3><p>عبارت دیگری را جستجو کنید.</p></div>
+      <footer><span>جعبه ابزار من</span><p>هر ابزار در فضای مستقل خودش اجرا می‌شود.</p></footer>
     </div>
   </main>
-  <script src="app.js" defer></script>
+  <script src="app.js" type="module"></script>
 </body>
 </html>
