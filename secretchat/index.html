@@ -160,8 +160,8 @@
             <div class="meter" aria-hidden="true"><span id="transferPasswordMeter"></span></div>
           </div>
           <div class="transfer-settings">
-            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="0.25" max="4" step="0.25" value="1.25" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">1.25</output><span data-transfer-i18n="fast">سریع</span></span></label>
-            <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="100" max="1200" step="100" value="300" /><span class="range-labels" dir="ltr"><span>100</span><output id="transferChunkSizeValue" for="transferChunkSize">300</output><span>1200</span></span></label>
+            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="2" max="20" step="1" value="12" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">12</output><span data-transfer-i18n="fast">سریع</span></span></label>
+            <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="300" max="1200" step="100" value="900" /><span class="range-labels" dir="ltr"><span>300</span><output id="transferChunkSizeValue" for="transferChunkSize">900</output><span>1200</span></span></label>
           </div>
           <p class="transfer-status" id="transferSendStatus" aria-live="polite"></p>
           <div class="transfer-qr-stage" id="transferQrStage" hidden>
