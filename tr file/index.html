@@ -1,0 +1,4796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Scan a QR code to receive a file on this device." />
+    <meta name="theme-color" content="#F7F6F3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141A1F" media="(prefers-color-scheme: dark)" />
+    <meta name="application-name" content="WayFold Relay" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Relay" />
+    <title data-i18n="page.receive">WayFold Relay — Receive</title>
+<script>
+      try {
+        var t = localStorage.getItem("ot-theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
+    <style>
+      .ld{position:fixed;inset:0;z-index:999;background:#F7F6F3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .55s cubic-bezier(.2,.75,.25,1),visibility .55s}
+      @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ld{background:#141A1F}}
+      [data-theme=dark] .ld{background:#141A1F}
+      [data-theme=light] .ld{background:#F7F6F3}
+      .ld.gone{opacity:0;visibility:hidden;pointer-events:none}
+      .ld .brand--load{display:flex;flex-direction:column;align-items:center;text-align:center;animation:ldFade 1.6s ease infinite alternate}
+      .ld .brand-name{font-family:Jost,Inter,system-ui,sans-serif;font-weight:500;line-height:1;font-size:clamp(1.85rem,6.5vw,2.2rem);letter-spacing:-.03em;color:#1a242b;text-transform:lowercase}
+      .ld .brand-suffix{color:#8a9690;font-weight:500}
+      .ld .brand-tagline{margin-top:9px;font-family:Inter,system-ui,sans-serif;font-size:10px;font-weight:500;letter-spacing:.28em;text-transform:uppercase;color:#8a9690}
+      @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ld .brand-name{color:#f0ede8}}
+      [data-theme=dark] .ld .brand-name{color:#f0ede8}
+      .ld-rule{display:flex;gap:6px}
+      .ld-seg{width:34px;height:2px;background:rgba(26,36,43,.14);overflow:hidden;position:relative;border-radius:2px}
+      @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .ld-seg{background:rgba(240,237,232,.15)}}
+      [data-theme=dark] .ld-seg{background:rgba(240,237,232,.15)}
+      .ld-seg::after{content:"";position:absolute;inset:0;background:#d97b5c;transform:translateX(-100%);animation:ldSeg 1.5s cubic-bezier(.2,.75,.25,1) infinite}
+      [data-theme=dark] .ld-seg::after{background:#e08b70}
+      .ld-seg:nth-child(2)::after{animation-delay:.18s}
+      .ld-seg:nth-child(3)::after{animation-delay:.36s}
+      .ld-seg:nth-child(4)::after{animation-delay:.54s}
+      @keyframes ldSeg{40%{transform:translateX(0)}100%{transform:translateX(100%)}}
+      @keyframes ldFade{from{opacity:.55}to{opacity:1}}
+    </style>
+
+<style id="single-file-ui">
+:root{--bg:#f7f6f3;--panel:#fffdf9;--ink:#19242b;--muted:#7f8b87;--line:#dddcd5;--accent:#d97b5c;--accent2:#bb6549;--soft:#eeeae2;--danger:#b95246;--good:#4c7c67;--shadow:0 18px 55px rgba(27,38,43,.10);--radius:24px;color-scheme:light}
+[data-theme=dark]{--bg:#141a1f;--panel:#1b2329;--ink:#f1ede7;--muted:#99a4a0;--line:#303a40;--accent:#e08b70;--accent2:#ef9b7e;--soft:#222d33;--danger:#f08b7e;--good:#79b494;--shadow:0 18px 55px rgba(0,0,0,.28);color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100vh;overflow-x:hidden}button,input,select{font:inherit}button,a{ -webkit-tap-highlight-color:transparent}.aurora{position:fixed;inset:-20vh -10vw;pointer-events:none;z-index:0;overflow:hidden;filter:blur(12px);opacity:.55}.aurora span{position:absolute;border-radius:50%;filter:blur(80px);animation:float 14s ease-in-out infinite alternate}.aurora span:nth-child(1){width:38vw;height:38vw;left:-6vw;top:3vh;background:rgba(217,123,92,.12)}.aurora span:nth-child(2){width:36vw;height:36vw;right:-5vw;top:28vh;background:rgba(100,133,122,.11);animation-delay:-4s}.aurora span:nth-child(3){width:30vw;height:30vw;left:35vw;bottom:-10vh;background:rgba(229,186,116,.09);animation-delay:-8s}@keyframes float{to{transform:translate3d(4vw,3vh,0) scale(1.08)}}
+.topbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;min-height:78px;padding:14px clamp(16px,4vw,42px);background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(18px);border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent)}.brand{text-decoration:none;color:var(--ink)}.brand--side{display:flex;flex-direction:column;align-items:flex-start}.brand-name{font-family:Jost,Inter,system-ui,sans-serif;font-weight:600;letter-spacing:-.035em;font-size:1.15rem}.brand-suffix{color:var(--muted);font-weight:500}.brand-tagline{margin-top:3px;color:var(--muted);font-size:.56rem;letter-spacing:.16em;text-transform:uppercase}.mode-nav{display:flex;gap:5px;padding:5px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--panel) 82%,transparent);box-shadow:0 4px 18px rgba(0,0,0,.04)}.mode-btn{border:0;background:transparent;color:var(--muted);padding:9px 16px;border-radius:999px;cursor:pointer;font-weight:600;transition:.2s}.mode-btn:hover{color:var(--ink)}.mode-btn.is-active{background:var(--ink);color:var(--bg);box-shadow:0 5px 14px rgba(0,0,0,.12)}.tb-actions{justify-self:end;display:flex;gap:8px;align-items:center}.tb-btn{width:39px;height:39px;display:grid;place-items:center;border:1px solid var(--line);border-radius:13px;background:var(--panel);color:var(--ink);cursor:pointer}.tb-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7}.lang-wrap{position:relative}.lang-menu{position:absolute;right:0;top:48px;min-width:160px;padding:7px;border:1px solid var(--line);border-radius:15px;background:var(--panel);box-shadow:var(--shadow);z-index:30}.lang-menu:empty{display:none}.lang-menu button{display:block;width:100%;border:0;background:transparent;color:var(--ink);text-align:left;padding:9px 10px;border-radius:10px;cursor:pointer}.lang-menu button:hover{background:var(--soft)}
+.app-shell{position:relative;z-index:1;width:min(1050px,calc(100% - 32px));margin:0 auto;padding:clamp(28px,5vw,64px) 0 72px}.view{animation:viewIn .25s ease both}.view[hidden]{display:none!important}@keyframes viewIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}.card{border:1px solid var(--line);border-radius:var(--radius);background:color-mix(in srgb,var(--panel) 95%,transparent);box-shadow:var(--shadow)}.workspace{padding:clamp(18px,3.3vw,34px);overflow:hidden}.card-inner{border:1px dashed color-mix(in srgb,var(--line) 82%,var(--muted));border-radius:19px;background:color-mix(in srgb,var(--soft) 34%,transparent);padding:28px}.home-board{display:grid;grid-template-columns:1.02fr .98fr;align-items:center;gap:clamp(32px,6vw,80px);min-height:430px}.home-brand{color:var(--accent);text-transform:uppercase;letter-spacing:.22em;font-size:.7rem;font-weight:700}.home-title{font-family:Jost,Inter,sans-serif;font-size:clamp(2.35rem,6vw,5.25rem);line-height:.96;letter-spacing:-.055em;margin:14px 0 24px;max-width:11ch}.home-lead{font-size:clamp(1rem,1.8vw,1.2rem);line-height:1.75;color:var(--muted);max-width:53ch}.home-footnote{font-size:.85rem;color:var(--muted);margin-top:20px}.home-visual{display:grid;place-items:center}.demo-stage{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%;gap:14px}.demo-panel{margin:0;text-align:center}.demo-monitor,.demo-phone{min-height:215px;display:grid;place-items:center}.demo-monitor-screen{width:min(210px,100%);aspect-ratio:16/10;background:#20292f;border:9px solid #2c353a;border-radius:16px;display:grid;place-items:center;box-shadow:0 16px 30px rgba(0,0,0,.15)}.demo-monitor-screen img{width:58%;border-radius:8px}.demo-monitor-chin{width:90px;height:14px;background:#364046;margin:auto;border-radius:0 0 10px 10px}.demo-monitor-stand{width:12px;height:35px;background:#6d7777;margin:auto}.demo-monitor-base{width:75px;height:7px;background:#6d7777;border-radius:99px;margin:auto}.demo-phone-shell{width:112px;height:220px;border:7px solid #222c31;border-radius:26px;padding:8px;background:#222c31;box-shadow:0 18px 34px rgba(0,0,0,.16)}.demo-phone-screen{height:100%;border-radius:15px;background:#e9e8e2;display:grid;place-items:center;position:relative;overflow:hidden}.demo-phone-screen img{width:70%}.demo-scan-reticle{position:absolute;inset:28%;border:1.5px solid var(--accent);border-radius:8px}.demo-scan-line{position:absolute;left:22%;right:22%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:scan 2.1s linear infinite}@keyframes scan{0%{top:28%}50%{top:70%}100%{top:28%}}.demo-link{display:flex;flex-direction:column;align-items:center;gap:8px}.demo-beam{width:70px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);box-shadow:0 0 10px var(--accent)}.demo-link-label,.demo-cap{color:var(--muted);font-size:.72rem}.demo-cap{display:flex;flex-direction:column;gap:4px}.demo-cap-kicker{font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.12em;font-size:.62rem}.choice-list{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}.choice{display:flex;gap:16px;align-items:center;padding:20px 22px;border:1px solid var(--line);border-radius:20px;background:var(--panel);color:var(--ink);text-decoration:none;transition:.2s;box-shadow:0 7px 20px rgba(0,0,0,.035)}.choice:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 15px 32px rgba(0,0,0,.07)}.choice-icon{width:44px;height:44px;border-radius:14px;background:var(--soft);display:grid;place-items:center;flex:0 0 auto}.choice-icon svg{width:22px;fill:none;stroke:var(--ink);stroke-width:1.7}.choice-body{display:grid;gap:3px}.choice-kicker{font-weight:700}.choice-hint{font-size:.86rem;color:var(--muted)}.choice-step{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:700}
+.drop-zone{border:1px dashed color-mix(in srgb,var(--line) 75%,var(--muted));border-radius:20px;background:color-mix(in srgb,var(--soft) 30%,transparent);transition:.2s}.drop-zone.is-dragover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}.drop-zone-inner{padding:25px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}.placeholder-frame{width:68px;height:68px;border-radius:19px;border:1px solid var(--line);display:grid;place-items:center;background:var(--panel)}.placeholder-frame svg{width:30px;fill:none;stroke:var(--muted);stroke-width:1.5}.file-field-main{min-width:0}.file-field-label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700}.file-field-name{display:block;font-size:1rem;font-weight:700;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.file-field-size{display:block;color:var(--muted);font-size:.82rem;margin-top:3px}.btn-outline,.btn-primary,.btn-secondary,.btn-ghost,.btn-xfer,.download{border-radius:13px;padding:11px 16px;border:1px solid var(--line);cursor:pointer;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:.18s}.btn-outline,.btn-secondary,.btn-xfer{background:var(--panel);color:var(--ink)}.btn-primary,.download{background:var(--ink);color:var(--bg);border-color:var(--ink)}.btn-primary:hover,.download:hover{transform:translateY(-1px)}.btn-primary--lg{padding:13px 21px}.btn-ghost{background:transparent;color:var(--muted)}.btn-cancel{color:var(--danger)}.drop-zone-hint{grid-column:2/4;margin:0;color:var(--muted);font-size:.76rem}.stage-wrap{display:grid;place-items:center;margin-top:24px}.stage{display:grid;place-items:center;width:100%;min-height:300px}.stage canvas{max-width:100%;height:auto!important;image-rendering:pixelated;background:white;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.12)}.stage-placeholder{width:100%;display:grid;place-items:center;gap:14px;text-align:center;color:var(--muted)}.xfer-status{margin-top:22px;padding:17px 19px;border:1px solid var(--line);border-radius:16px;background:var(--soft)}.xfer-status-head{display:flex;align-items:center;gap:10px}.xfer-live{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 16%,transparent);animation:pulse 1.4s ease infinite}.xfer-live[hidden]{display:none}@keyframes pulse{50%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 8%,transparent)}}.xfer-state{font-weight:700}.xfer-hint,.status-line{color:var(--muted);font-size:.86rem;line-height:1.6}.xfer-actions,.toolbar,.xfer-controls{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}.banner{margin-bottom:18px;padding:14px 16px;border-radius:14px;line-height:1.55;font-size:.88rem}.banner--error{border:1px solid color-mix(in srgb,var(--danger) 38%,var(--line));background:color-mix(in srgb,var(--danger) 9%,var(--panel));color:var(--danger)}.banner--info{border:1px solid var(--line);background:var(--soft);color:var(--muted)}
+.receive-wait{text-align:center}.receive-wait .placeholder-frame{margin:0 auto}.receive-wait-lead{font-size:1.04rem;font-weight:650;margin:20px auto 15px;max-width:48ch}.tip-list{display:inline-grid;text-align:left;gap:8px;padding-left:20px;color:var(--muted);font-size:.86rem}.perm-hint{text-align:center;color:var(--muted);font-size:.8rem}.camera-panel{margin-top:18px}.preview{width:100%;aspect-ratio:16/10;border-radius:20px;overflow:hidden;background:#0d1114;border:1px solid var(--line);box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}.preview video{width:100%;height:100%;object-fit:cover;display:block}.xfer-progress{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:17px;background:var(--soft)}.xfer-progress-head{display:flex;justify-content:space-between;align-items:center}.xfer-pct{font-family:"DM Mono",ui-monospace,monospace;font-weight:700}.progress{height:9px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--line) 75%,transparent);margin-top:13px}.progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:inherit;transition:width .2s}.xfer-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 0}.xfer-stats div{padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.xfer-stats dt{color:var(--muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.08em}.xfer-stats dd{margin:5px 0 0;font-family:"DM Mono",ui-monospace,monospace;font-size:.82rem}.result-panel{margin-top:18px;text-align:center}.done{font-size:1.3rem;font-weight:800;color:var(--good)}.error{font-weight:700;color:var(--danger)}.result-meta{color:var(--muted)}.received{display:block;max-width:min(100%,520px);max-height:430px;object-fit:contain;margin:18px auto;border-radius:16px;border:1px solid var(--line)}.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.settings-defaults{display:none!important}
+.pwa-install,.pwa-install-guide{position:fixed;z-index:50;left:50%;bottom:20px;transform:translateX(-50%);width:min(92vw,520px);padding:12px 14px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow)}.pwa-install{display:flex;align-items:center;gap:10px}.pwa-install-icon,.pwa-install-guide-icon{border-radius:10px}.pwa-install-label{font-weight:700;flex:1}.pwa-install-btn{border:0;background:var(--ink);color:var(--bg);padding:9px 13px;border-radius:11px}.pwa-install-close,.pwa-install-guide-close{border:0;background:transparent;color:var(--muted);padding:5px;cursor:pointer}.pwa-install-close svg,.pwa-install-guide-close svg{width:18px;fill:none;stroke:currentColor;stroke-width:2}.pwa-install-guide-head{display:flex;gap:12px;align-items:center}.pwa-install-guide-eyebrow{margin:0;color:var(--muted);font-size:.72rem}.pwa-install-guide-title{margin:2px 0 0;font-weight:800}.pwa-install-guide-steps{color:var(--muted);font-size:.85rem}.pwa-install-guide-fallback{color:var(--muted);font-size:.85rem}
+@media(max-width:820px){.topbar{grid-template-columns:1fr auto;min-height:70px}.brand--side .brand-tagline{display:none}.mode-nav{grid-row:2;grid-column:1/-1;justify-self:center}.app-shell{padding-top:28px}.home-board{grid-template-columns:1fr;min-height:auto}.home-title{font-size:clamp(2.7rem,13vw,4.8rem)}.home-visual{order:-1}.choice-list{grid-template-columns:1fr}.demo-stage{max-width:560px}.xfer-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.topbar{padding:10px 13px;gap:8px}.brand-name{font-size:1rem}.tb-btn{width:36px;height:36px}.mode-btn{padding:8px 13px}.app-shell{width:min(100% - 20px,1050px)}.workspace{padding:14px;border-radius:20px}.drop-zone-inner{grid-template-columns:auto 1fr}.drop-zone-inner .btn-outline{grid-column:1/-1}.drop-zone-hint{grid-column:1/-1}.placeholder-frame{width:57px;height:57px}.demo-monitor,.demo-phone{min-height:160px}.demo-monitor-screen{border-width:6px}.demo-phone-shell{width:84px;height:166px;border-width:5px;border-radius:20px}.demo-link{display:none}.demo-stage{grid-template-columns:1fr 1fr}.home-title{font-size:2.8rem}.xfer-stats{grid-template-columns:1fr 1fr}.preview{aspect-ratio:4/5}.choice{padding:16px}.card-inner{padding:20px}}
+</style>
+
+<script>
+window.__wfBip = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  window.__wfBip = e;
+  window.dispatchEvent(new Event("wf:installready"));
+});
+
+function __wfB64Encode(bytes) {
+  let out = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    const part = bytes.subarray(i, Math.min(bytes.length, i + CHUNK));
+    out += String.fromCharCode(...part);
+  }
+  return btoa(out);
+}
+function __wfB64Decode(s) {
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i) & 255;
+  return out;
+}
+
+class SingleFileQrWorker {
+  constructor() {
+    this.onmessage = null;
+    this.onerror = null;
+    this._terminated = false;
+    this._detector = ("BarcodeDetector" in window) ? new BarcodeDetector({ formats: ["qr_code"] }) : null;
+    this._canvas = document.createElement("canvas");
+    this._ctx = this._canvas.getContext("2d", { willReadFrequently: true });
+  }
+  async postMessage(msg) {
+    if (this._terminated) return;
+    const { id, buf, w, h } = msg || {};
+    try {
+      if (!this._detector) {
+        this.onmessage && this.onmessage({ data: { id, bytes: null, error: null } });
+        return;
+      }
+      if (this._canvas.width !== w) this._canvas.width = w;
+      if (this._canvas.height !== h) this._canvas.height = h;
+      const px = new Uint8ClampedArray(buf);
+      this._ctx.putImageData(new ImageData(px, w, h), 0, 0);
+      const found = await this._detector.detect(this._canvas);
+      let bytes = null;
+      for (const item of found || []) {
+        const raw = item && typeof item.rawValue === "string" ? item.rawValue : "";
+        if (raw.startsWith("WF1:")) {
+          try { bytes = __wfB64Decode(raw.slice(4)); } catch (_) {}
+          if (bytes) break;
+        }
+      }
+      if (!this._terminated && this.onmessage) this.onmessage({ data: { id, bytes, error: null } });
+    } catch (err) {
+      if (!this._terminated && this.onmessage) this.onmessage({ data: { id, bytes: null, error: null } });
+    }
+  }
+  terminate() { this._terminated = true; }
+}
+</script>
+</head>
+  <body class="role-receive" data-mode="receive">
+    <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="ld" id="ld">
+      <div class="brand brand--load" aria-hidden="true">
+        <div class="brand-name">wayfold <span class="brand-suffix">relay</span></div>
+        <div class="brand-tagline" data-i18n="app.tagline">Transfers by light, not the internet</div>
+      </div>
+      <div class="ld-rule"><div class="ld-seg"></div><div class="ld-seg"></div><div class="ld-seg"></div><div class="ld-seg"></div></div>
+    </div>
+
+    <header class="topbar">
+      <a class="brand brand--side" href="#home" data-mode-link="home">
+        <span class="brand-name">wayfold <span class="brand-suffix">relay</span></span>
+        <span class="brand-tagline" data-i18n="app.tagline">Transfers by light, not the internet</span>
+      </a>
+
+      <nav class="mode-nav" id="mode-nav" aria-label="Mode">
+        <button type="button" class="mode-btn" data-mode-btn="send" data-i18n="nav.send">Send</button>
+        <button type="button" class="mode-btn is-active" data-mode-btn="receive" data-i18n="nav.receive">Receive</button>
+      </nav>
+
+      <div class="tb-actions">
+        <div class="lang-wrap">
+          <button type="button" class="tb-btn lang-btn" id="langToggle" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="lang.label">
+            <span id="langFlag">IT</span>
+          </button>
+          <div class="lang-menu" id="langMenu" role="listbox"></div>
+        </div>
+        <button type="button" class="tb-btn" id="themeToggle" data-i18n-aria="theme.toggle">
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section id="view-home" class="view view-home" hidden>
+        <div class="home-board">
+          <header class="home-hero">
+            <p class="home-brand">wayfold <span class="brand-suffix">relay</span></p>
+            <h1 class="home-title" data-i18n="home.title">Pass a file from one screen to another.</h1>
+            <p class="home-lead" data-i18n="home.lead">No Wi‑Fi, no cable, no upload — just a QR between two devices held close.</p>
+            <p class="home-footnote" data-i18n="home.footnote">Keep the camera pointed at the sender screen until the file is ready.</p>
+          </header>
+
+          <div class="home-visual" aria-hidden="true">
+            <div class="demo-stage">
+              <figure class="demo-panel">
+                <div class="demo-monitor">
+                  <div class="demo-monitor-screen">
+                    <img class="demo-qr-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjEyIiBmaWxsPSJ3aGl0ZSIvPjxnIGZpbGw9IiMxNzIwMjciPjxwYXRoIGQ9Ik04IDhoMjh2MjhIOHpNNjQgOGgyOHYyOEg2NHpNOCA2NGgyOHYyOEg4eiIvPjxwYXRoIGZpbGw9IndoaXRlIiBkPSJNMTQgMTRoMTZ2MTZIMTR6TTcwIDE0aDE2djE2SDcwek0xNCA3MGgxNnYxNkgxNHoiLz48cGF0aCBkPSJNMTggMThoOHY4aC04ek03NCAxOGg4djhoLTh6TTE4IDc0aDh2OGgtOHpNNDQgMTBoOHY4aC04ek00NCAyNGg4djhoLTh6TTQwIDQwaDh2OGgtOHpNNTQgNDBoOHY4aC04ek02OCA0NGg4djhoLTh6TTgyIDQ0aDh2OGgtOHpNNDIgNTZoOHY4aC04ek01NiA1NGg4djhoLTh6TTcyIDU4aDh2OGgtOHpNODYgNjJoNnY4aC02ek00MiA3Mmg4djhoLTh6TTU2IDY4aDh2OGgtOHpNNjggNzRoOHY4aC04ek04MiA3OGgxMHYxMEg4MnpNNTAgODZoOHY2aC04eiIvPjwvZz48L3N2Zz4=" width="160" height="160" alt="" decoding="async" />
+                  </div>
+                  <div class="demo-monitor-chin"></div>
+                  <div class="demo-monitor-stand"></div>
+                  <div class="demo-monitor-base"></div>
+                </div>
+                <figcaption class="demo-cap">
+                  <span class="demo-cap-kicker" data-i18n="nav.send">Send</span>
+                  <span class="demo-cap-text" data-i18n="home.demoSend">QR on the screen</span>
+                </figcaption>
+              </figure>
+
+              <div class="demo-link">
+                <div class="demo-beam"></div>
+                <span class="demo-link-label" data-i18n="home.demoLink">By light</span>
+              </div>
+
+              <figure class="demo-panel">
+                <div class="demo-phone">
+                  <div class="demo-phone-shell">
+                    <div class="demo-phone-speaker"></div>
+                    <div class="demo-phone-screen">
+                      <img class="demo-qr-img demo-qr-img--scan" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjEyIiBmaWxsPSJ3aGl0ZSIvPjxnIGZpbGw9IiMxNzIwMjciPjxwYXRoIGQ9Ik04IDhoMjh2MjhIOHpNNjQgOGgyOHYyOEg2NHpNOCA2NGgyOHYyOEg4eiIvPjxwYXRoIGZpbGw9IndoaXRlIiBkPSJNMTQgMTRoMTZ2MTZIMTR6TTcwIDE0aDE2djE2SDcwek0xNCA3MGgxNnYxNkgxNHoiLz48cGF0aCBkPSJNMTggMThoOHY4aC04ek03NCAxOGg4djhoLTh6TTE4IDc0aDh2OGgtOHpNNDQgMTBoOHY4aC04ek00NCAyNGg4djhoLTh6TTQwIDQwaDh2OGgtOHpNNTQgNDBoOHY4aC04ek02OCA0NGg4djhoLTh6TTgyIDQ0aDh2OGgtOHpNNDIgNTZoOHY4aC04ek01NiA1NGg4djhoLTh6TTcyIDU4aDh2OGgtOHpNODYgNjJoNnY4aC02ek00MiA3Mmg4djhoLTh6TTU2IDY4aDh2OGgtOHpNNjggNzRoOHY4aC04ek04MiA3OGgxMHYxMEg4MnpNNTAgODZoOHY2aC04eiIvPjwvZz48L3N2Zz4=" width="96" height="96" alt="" decoding="async" />
+                      <span class="demo-scan-reticle"></span>
+                      <span class="demo-scan-line"></span>
+                    </div>
+                  </div>
+                </div>
+                <figcaption class="demo-cap">
+                  <span class="demo-cap-kicker" data-i18n="nav.receive">Receive</span>
+                  <span class="demo-cap-text" data-i18n="home.demoRecv">Scan with the camera</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <div class="choice-list">
+          <a class="choice choice--send" href="#send" data-mode-link="send">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4-4 4"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+            </span>
+            <span class="choice-body">
+              <span class="choice-kicker" data-i18n="nav.send">Send</span>
+              <span class="choice-hint" data-i18n="home.sendHint"></span>
+              <span class="choice-step" data-i18n="home.stepSend">On this device</span>
+            </span>
+          </a>
+          <a class="choice choice--receive" href="#receive" data-mode-link="receive">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </span>
+            <span class="choice-body">
+              <span class="choice-kicker" data-i18n="nav.receive">Receive</span>
+              <span class="choice-hint" data-i18n="home.receiveHint"></span>
+              <span class="choice-step" data-i18n="home.stepRecv">On the other device</span>
+            </span>
+          </a>
+        </div>
+      </section>
+
+      <section id="view-send" class="view" hidden>
+        <div class="card workspace">
+          <div class="drop-zone" id="drop-zone">
+            <input id="cfg-payload" type="file" class="sr-only" multiple />
+            <div class="drop-zone-inner">
+              <div class="placeholder-frame drop-zone-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3-3 3 3"/></svg>
+              </div>
+              <div class="file-field-main">
+                <span class="file-field-label" data-i18n="send.fileLabel">Files</span>
+                <span class="file-field-name" id="file-name" data-i18n="send.fileEmpty">No file selected yet</span>
+                <span class="file-field-size" id="file-size" hidden></span>
+              </div>
+              <label class="btn-outline" for="cfg-payload" data-i18n="send.fileChange">Select files</label>
+              <p class="drop-zone-hint" data-i18n="send.dropHint">or drag and drop here</p>
+            </div>
+          </div>
+          <div class="banner banner--error" id="send-error" hidden role="alert"></div>
+          <div class="stage-wrap">
+            <div class="stage" id="qr-stage" hidden aria-hidden="true">
+              <canvas id="qr" width="16" height="16"></canvas>
+            </div>
+            <div class="stage-placeholder card-inner" id="qr-placeholder">
+              <div class="placeholder-frame" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zm4 0h2v2h-2zm-4 4h2v2h-2zm4 0h2v2h-2z"/></svg>
+              </div>
+              <p data-i18n="send.qrWaiting">QR code appears here</p>
+            </div>
+          </div>
+          <div class="xfer-status" id="send-xfer" hidden>
+            <div class="xfer-status-head">
+              <span class="xfer-live" id="send-live" aria-hidden="true"></span>
+              <span class="xfer-state" id="send-state" role="status"></span>
+            </div>
+            <p class="xfer-hint" data-i18n="send.pointCamera">Point the other device’s camera at this QR and keep the screen facing it.</p>
+          </div>
+          <p class="status-line" id="specs" hidden role="status"></p>
+          <div class="xfer-actions" id="send-controls" hidden>
+            <button type="button" id="send-pause" class="btn-secondary btn-icon-text" data-i18n="xfer.pause">Pause</button>
+            <button type="button" id="send-resume" class="btn-primary btn-icon-text" hidden data-i18n="xfer.resume">Resume</button>
+            <button type="button" id="send-stop" class="btn-ghost btn-cancel" data-i18n="xfer.cancel">Cancel</button>
+          </div>
+        </div>
+        <div class="settings-defaults" hidden aria-hidden="true">
+          <select id="cfg-fps"><option>10</option><option selected>15</option><option>20</option><option>24</option><option>30</option><option>60</option></select>
+          <select id="cfg-bytes"><option>500</option><option>1000</option><option selected>1465</option><option>1850</option><option>2331</option><option>2953</option></select>
+          <select id="cfg-ecc"><option value="L">L</option><option value="M" selected>M</option><option value="Q">Q</option><option value="H">H</option></select>
+          <input id="cfg-size" type="range" min="300" max="1200" step="50" value="1000" />
+        </div>
+      </section>
+
+      <section id="view-receive" class="view">
+        <div class="card workspace">
+          <div class="receive-wait card-inner" id="receive-wait">
+            <div class="placeholder-frame" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <p class="receive-wait-lead" data-i18n="receive.introLead">Point your camera at the sender screen to receive the file.</p>
+            <ul class="tip-list">
+              <li data-i18n="receive.tipLight">Good lighting, avoid screen glare</li>
+              <li data-i18n="receive.tipDistance">Hold 20–40 cm from the screen</li>
+              <li data-i18n="receive.tipSteady">Keep the phone steady while progress moves</li>
+            </ul>
+          </div>
+          <div class="banner banner--error" id="recv-error" hidden role="alert"></div>
+          <div class="banner banner--info" id="recv-tips" hidden>
+            <strong data-i18n="receive.fallbackTitle">Camera trouble?</strong>
+            <p data-i18n="receive.fallbackBody">Relay needs a working camera on this device. Try another phone, grant permission in the browser, or improve lighting ? there is no internet fallback by design.</p>
+          </div>
+          <div class="toolbar" id="toolbar">
+            <button type="button" id="start" class="btn-primary btn-primary--lg" data-i18n="receive.start">Open camera</button>
+            <button type="button" id="cancel" class="btn-ghost btn-cancel" hidden data-i18n="receive.cancel">Cancel</button>
+            <button type="button" id="reset" class="btn-ghost" hidden data-i18n="receive.reset">Start over</button>
+          </div>
+          <p class="perm-hint" id="camera-perm-hint" hidden data-i18n="receive.permHint"></p>
+          <div class="camera-panel" id="camera-panel" hidden>
+            <div class="preview" id="preview">
+              <video id="video" muted playsinline></video>
+            </div>
+            <div class="xfer-progress" id="xfer-progress" hidden>
+              <div class="xfer-progress-head">
+                <span class="xfer-state" id="xfer-state" role="status"></span>
+                <span class="xfer-pct" id="xfer-pct">0%</span>
+              </div>
+              <div class="progress progress--lg"><div id="bar"></div></div>
+              <p class="xfer-hint" data-i18n="receive.keepPointing">Keep the camera on the QR until the transfer finishes.</p>
+              <dl class="xfer-stats xfer-stats--row">
+                <div><dt data-i18n="stat.speed">Speed</dt><dd id="m-rate">0 B/s</dd></div>
+                <div><dt data-i18n="stat.eta">Time remaining</dt><dd id="m-eta">?</dd></div>
+                <div><dt data-i18n="stat.done">Downloaded</dt><dd id="m-done">?</dd></div>
+                <div><dt data-i18n="stat.left">Remaining</dt><dd id="m-left">?</dd></div>
+              </dl>
+              <div class="xfer-controls">
+                <button type="button" id="pause" class="btn-xfer" hidden>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+                  <span data-i18n="xfer.pause">Pause</span>
+                </button>
+                <button type="button" id="resume" class="btn-xfer btn-xfer--go" hidden>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                  <span data-i18n="xfer.resume">Resume</span>
+                </button>
+              </div>
+            </div>
+            <p class="status-line" id="stats" hidden role="status"></p>
+          </div>
+          <div id="result" class="result-panel"></div>
+        </div>
+        <div class="settings-defaults" id="settings" hidden aria-hidden="true">
+          <select id="cfg-width"><option>960</option><option selected>1280</option><option>1920</option></select>
+          <select id="cfg-capfps"><option>30</option><option selected>60</option></select>
+          <select id="cfg-workers"><option>1</option><option selected>2</option><option>3</option></select>
+        </div>
+      </section>
+    </main>
+
+    <div class="pwa-install" id="pwaInstall" hidden>
+      <img class="pwa-install-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjEyIiBmaWxsPSJ3aGl0ZSIvPjxnIGZpbGw9IiMxNzIwMjciPjxwYXRoIGQ9Ik04IDhoMjh2MjhIOHpNNjQgOGgyOHYyOEg2NHpNOCA2NGgyOHYyOEg4eiIvPjxwYXRoIGZpbGw9IndoaXRlIiBkPSJNMTQgMTRoMTZ2MTZIMTR6TTcwIDE0aDE2djE2SDcwek0xNCA3MGgxNnYxNkgxNHoiLz48cGF0aCBkPSJNMTggMThoOHY4aC04ek03NCAxOGg4djhoLTh6TTE4IDc0aDh2OGgtOHpNNDQgMTBoOHY4aC04ek00NCAyNGg4djhoLTh6TTQwIDQwaDh2OGgtOHpNNTQgNDBoOHY4aC04ek02OCA0NGg4djhoLTh6TTgyIDQ0aDh2OGgtOHpNNDIgNTZoOHY4aC04ek01NiA1NGg4djhoLTh6TTcyIDU4aDh2OGgtOHpNODYgNjJoNnY4aC02ek00MiA3Mmg4djhoLTh6TTU2IDY4aDh2OGgtOHpNNjggNzRoOHY4aC04ek04MiA3OGgxMHYxMEg4MnpNNTAgODZoOHY2aC04eiIvPjwvZz48L3N2Zz4=" width="32" height="32" alt="" />
+      <span class="pwa-install-label">wayfold relay</span>
+      <button class="pwa-install-btn" id="pwaInstallBtn" type="button" data-i18n="pwa.install">Install</button>
+      <button class="pwa-install-close" id="pwaInstallClose" type="button" data-i18n-aria="pwa.dismiss" aria-label="Not now">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="pwa-install-guide" id="pwaInstallGuide" hidden>
+      <button class="pwa-install-guide-close" id="pwaInstallGuideClose" type="button" data-i18n-aria="pwa.dismiss" aria-label="Not now">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="pwa-install-guide-head">
+        <img class="pwa-install-guide-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjEyIiBmaWxsPSJ3aGl0ZSIvPjxnIGZpbGw9IiMxNzIwMjciPjxwYXRoIGQ9Ik04IDhoMjh2MjhIOHpNNjQgOGgyOHYyOEg2NHpNOCA2NGgyOHYyOEg4eiIvPjxwYXRoIGZpbGw9IndoaXRlIiBkPSJNMTQgMTRoMTZ2MTZIMTR6TTcwIDE0aDE2djE2SDcwek0xNCA3MGgxNnYxNkgxNHoiLz48cGF0aCBkPSJNMTggMThoOHY4aC04ek03NCAxOGg4djhoLTh6TTE4IDc0aDh2OGgtOHpNNDQgMTBoOHY4aC04ek00NCAyNGg4djhoLTh6TTQwIDQwaDh2OGgtOHpNNTQgNDBoOHY4aC04ek02OCA0NGg4djhoLTh6TTgyIDQ0aDh2OGgtOHpNNDIgNTZoOHY4aC04ek01NiA1NGg4djhoLTh6TTcyIDU4aDh2OGgtOHpNODYgNjJoNnY4aC02ek00MiA3Mmg4djhoLTh6TTU2IDY4aDh2OGgtOHpNNjggNzRoOHY4aC04ek04MiA3OGgxMHYxMEg4MnpNNTAgODZoOHY2aC04eiIvPjwvZz48L3N2Zz4=" width="40" height="40" alt="" />
+        <div>
+          <p class="pwa-install-guide-eyebrow" data-i18n="pwa.installEyebrow">App available</p>
+          <p class="pwa-install-guide-title" data-i18n="pwa.installTitle">wayfold relay on your device</p>
+        </div>
+      </div>
+      <ol class="pwa-install-guide-steps" id="pwaInstallIosSteps" hidden>
+        <li data-i18n="pwa.ios1">Tap Share</li>
+        <li data-i18n="pwa.ios2">Choose “Add to Home Screen”</li>
+        <li data-i18n="pwa.ios3">Confirm Add</li>
+      </ol>
+      <p class="pwa-install-guide-fallback" id="pwaInstallFallback" hidden data-i18n="pwa.installFallback">From the browser menu ⋮, choose “Install app” or “Add to Home Screen”.</p>
+    </div>
+
+
+  <script type="module">
+var jr = Object.defineProperty;
+var Yr = (e, t, n) => t in e ? jr(e, t, {
+    enumerable: !0,
+    configurable: !0,
+    writable: !0,
+    value: n
+}) : e[t] = n;
+var U = (e, t, n) => Yr(e, typeof t != "symbol" ? t + "" : t, n);
+(function() {
+    const t = document.createElement("link").relList;
+    if (t && t.supports && t.supports("modulepreload"))
+        return;
+    for (const i of document.querySelectorAll('link[rel="modulepreload"]'))
+        r(i);
+    new MutationObserver(i => {
+        for (const a of i)
+            if (a.type === "childList")
+                for (const o of a.addedNodes)
+                    o.tagName === "LINK" && o.rel === "modulepreload" && r(o)
+    }
+    ).observe(document, {
+        childList: !0,
+        subtree: !0
+    });
+    function n(i) {
+        const a = {};
+        return i.integrity && (a.integrity = i.integrity),
+        i.referrerPolicy && (a.referrerPolicy = i.referrerPolicy),
+        i.crossOrigin === "use-credentials" ? a.credentials = "include" : i.crossOrigin === "anonymous" ? a.credentials = "omit" : a.credentials = "same-origin",
+        a
+    }
+    function r(i) {
+        if (i.ep)
+            return;
+        i.ep = !0;
+        const a = n(i);
+        fetch(i.href, a)
+    }
+}
+)();
+const cr = "ot-lang"
+  , Kt = ["it", "en", "fr", "es", "de"]
+  , vt = {
+    it: {
+        "meta.description": "Trasferisci un file tra due dispositivi con un codice QR. Nessun upload.",
+        "app.name": "WayFold Relay",
+        "app.product": "Relay",
+        "app.tagline": "Via luce, non internet",
+        "page.home": "WayFold Relay",
+        "page.send": "WayFold Relay — Invia",
+        "page.receive": "WayFold Relay — Ricevi",
+        "nav.home": "Home",
+        "nav.send": "Invia",
+        "nav.receive": "Ricevi",
+        "theme.toggle": "Cambia tema chiaro/scuro",
+        "lang.label": "Lingua",
+        "lang.it": "Italiano",
+        "lang.en": "English",
+        "lang.fr": "Français",
+        "lang.es": "Español",
+        "lang.de": "Deutsch",
+        "home.kicker": "WayFold Relay",
+        "home.title": "Passa un file da uno schermo all’altro.",
+        "home.lead": "Niente Wi‑Fi, cavi o upload: solo un QR tra due dispositivi tenuti vicini.",
+        "home.stepSend": "Su questo dispositivo",
+        "home.stepRecv": "Sull’altro dispositivo",
+        "home.sendHint": "Scegli i file e mostra il QR animato",
+        "home.receiveHint": "Apri la fotocamera e inquadra lo schermo",
+        "home.footnote": "Tieni la fotocamera sullo schermo del mittente finché il file non è pronto.",
+        "home.demoSend": "QR sullo schermo",
+        "home.demoRecv": "Scansione con la fotocamera",
+        "home.demoLink": "Via luce",
+        "pwa.install": "Installa",
+        "pwa.dismiss": "Non ora",
+        "pwa.installEyebrow": "App disponibile",
+        "pwa.installTitle": "wayfold relay sul dispositivo",
+        "pwa.installFallback": "Dal menu ⋮ del browser scegli «Installa app» (non «Aggiungi a Home»).",
+        "pwa.ios1": "Tocca Condividi",
+        "pwa.ios2": "Scegli «Aggiungi a Home»",
+        "pwa.ios3": "Conferma Aggiungi",
+        "stat.speed": "Velocità",
+        "stat.eta": "Tempo rimanente",
+        "stat.done": "Scaricato",
+        "stat.left": "Rimanente",
+        "stat.sent": "Trasmesso",
+        "stat.frames": "Frame",
+        "send.dropHint": "oppure trascina i file qui",
+        "send.sizeHint": "Fino a 25 MiB senza conferma · oltre serve conferma (max 50 MiB)",
+        "send.fileSize": "{size}",
+        "send.fileMulti": "{count} file · pacchetto {name}",
+        "send.packing": "Creazione pacchetto ZIP…",
+        "xfer.pause": "Pausa",
+        "xfer.resume": "Riprendi",
+        "xfer.cancel": "Annulla trasferimento",
+        "xfer.paused": "Trasferimento in pausa",
+        "xfer.streaming": "Trasmissione attiva",
+        "xfer.receiving": "Ricezione in corso",
+        "xfer.preparing": "Preparazione…",
+        "send.pointCamera": "Inquadra questo QR con l’altro dispositivo e tieni lo schermo rivolto verso la fotocamera.",
+        "receive.keepPointing": "Tieni la fotocamera sul QR finché il trasferimento non termina.",
+        "receive.searchingShort": "Inquadra il QR sullo schermo…",
+        "receive.introLead": "Inquadra lo schermo del mittente con la fotocamera per ricevere il file.",
+        "receive.tipLight": "Buona luce, evita riflessi sullo schermo",
+        "receive.tipDistance": "Tieni il telefono a 20–40 cm dallo schermo",
+        "receive.tipSteady": "Resta fermo mentre avanza la barra di progresso",
+        "receive.fallbackTitle": "Problemi con la fotocamera?",
+        "receive.fallbackBody": "Relay richiede una fotocamera funzionante su questo dispositivo. Prova un altro telefono, concedi il permesso nel browser o migliora l’illuminazione — non esiste un piano B via internet, di proposito.",
+        "receive.advanced": "Impostazioni avanzate",
+        "receive.advancedHint": "Opzionale — lascia i valori predefiniti se funziona",
+        "receive.advancedIntro": "Utile se la fotocamera fatica a leggere il QR.",
+        "receive.width": "Risoluzione fotocamera",
+        "receive.widthTip": "Più alta aiuta i dettagli; più bassa può essere più veloce su telefoni vecchi.",
+        "receive.capFps": "Frequenza di cattura",
+        "receive.capFpsTip": "Fotogrammi al secondo dalla fotocamera. Di solito 60 è il meglio.",
+        "receive.workers": "Sforzo di decodifica",
+        "receive.workersTip": "Thread paralleli di lettura. Di più usa più CPU; 2 è un buon default.",
+        "send.fileLabel": "File",
+        "send.fileEmpty": "Nessun file selezionato",
+        "send.fileChange": "Seleziona file",
+        "send.qrWaiting": "Il codice QR comparirà qui dopo la selezione",
+        "send.advanced": "Impostazioni avanzate",
+        "send.advancedHint": "Opzionale — i default vanno bene per quasi tutti",
+        "send.advancedIntro": "Cambia questi valori solo se il trasferimento è lento o il QR è difficile da leggere.",
+        "send.txFps": "Velocità animazione",
+        "send.txFpsTip": "Quanto velocemente cambia il QR. Più basso = più facile da leggere; più alto = trasferimento più rapido.",
+        "send.frameBytes": "Dati per fotogramma",
+        "send.frameBytesTip": "Più byte = più veloce ma QR più denso (più difficile per fotocamere deboli).",
+        "send.ecc": "Resistenza agli errori",
+        "send.eccTip": "Più resistenza aiuta con riflessi o mosso, ma rallenta il trasferimento.",
+        "send.ecc.L": "L — più veloce",
+        "send.ecc.M": "M — bilanciato",
+        "send.ecc.Q": "Q — più resistente",
+        "send.ecc.H": "H — massima resistenza",
+        "send.displaySize": "Dimensione QR a schermo",
+        "send.displaySizeTip": "Codici più grandi sono più facili da inquadrare da vicino.",
+        "send.largeConfirm": "File grande: {size} MiB. Il trasferimento ottico può richiedere molto tempo. Continuare?",
+        "send.largeCancelled": "Trasferimento grande annullato.",
+        "send.preparing": "Preparazione…",
+        "send.sizeError": "Il file deve essere tra 1 byte e {max} MiB.",
+        "send.blocksError": "Servono {k} blocchi con questa dimensione frame — aumenta i byte/frame (max {max} blocchi).",
+        "send.compression.gzip": "gzip −{pct}%",
+        "send.compression.raw": "raw (gzip non più piccolo)",
+        "send.status.streaming": "{fileMiB} MiB · {compression} · {payloadKiB} KiB · {fps} fps",
+        "receive.scanning": "Ricerca codice QR…",
+        "receive.progress": "{elapsed} · ~{eta} · {rate}",
+        "receive.statsShort": "{kib} KiB · {sec} s",
+        "receive.start": "Apri fotocamera",
+        "receive.cancel": "Annulla",
+        "receive.reset": "Ricomincia",
+        "receive.permHint": "Quando compare il dialogo, scegli «Consenti durante la visita al sito» (non «Questa volta»), così il browser può ricordarlo.",
+        "receive.deniedHelp": "Accesso alla fotocamera bloccato. Apri le impostazioni del sito (icona lucchetto nella barra indirizzi) e consenti la fotocamera per transfer.wayfold.xyz.",
+        "receive.largeConfirm": "Payload ottico grande: {size} MiB. Può usare molta memoria e richiedere molto tempo. Continuare?",
+        "receive.largeDeclined": "Trasferimento grande rifiutato; cerco un altro flusso…",
+        "receive.secureError": "La fotocamera richiede HTTPS. Apri questa pagina su un contesto sicuro (es. transfer.wayfold.xyz).",
+        "receive.cameraError": "Fotocamera: {msg}",
+        "receive.workerError": "Worker decodifica: {msg}",
+        "receive.searching": "Fotocamera {w}×{h}@{fps} — cerco un flusso…",
+        "receive.cancelled": "Trasferimento annullato.",
+        "receive.backgroundStop": "Fotocamera fermata in background. Tocca Reimposta per ricominciare.",
+        "receive.backgroundResume": "Fotocamera in pausa (app in background). Tocca Riprendi per riattivarla.",
+        "receive.timeout": "Timeout: nessun nuovo frame da 120 secondi. Tocca Reimposta per riprovare.",
+        "receive.done": "Trasferimento completato!",
+        "receive.save": "Salva {name}",
+        "receive.previewAlt": "Anteprima di {name}",
+        "receive.stats": "{kib} KiB in {sec} s · {rate} KiB/s · FNV + SHA-256 verificati ✓{extra}",
+        "receive.stats.gzipExtra": " · gzip decodificato",
+        "receive.integrity.fnv": "Controllo FNV fallito: payload ottico corrotto.",
+        "receive.integrity.envelope": "Envelope, decompressione o SHA-256 non validi.",
+        "receive.integrity.banner": "Nessun file o download creato.",
+        "receive.integrity.title": "Errore integrità: {msg}",
+        "metric.capture": "FPS cattura",
+        "metric.decode": "FPS decode",
+        "metric.goodput": "Velocità",
+        "metric.elapsed": "Trascorso",
+        "metric.eta": "Restante",
+        "metric.frames": "Frame nuovi/dup",
+        "metric.k": "Blocchi K",
+        "metric.block": "Lunghezza blocco",
+        "metric.payload": "Payload",
+        "pwa.update": "Aggiornamento disponibile — ricarica dopo il trasferimento"
+    },
+    en: {
+        "meta.description": "Transfer a file between two devices with a QR code. Nothing is uploaded.",
+        "app.name": "WayFold Relay",
+        "app.product": "Relay",
+        "app.tagline": "By light, not the internet",
+        "page.home": "WayFold Relay",
+        "page.send": "WayFold Relay — Send",
+        "page.receive": "WayFold Relay — Receive",
+        "nav.home": "Home",
+        "nav.send": "Send",
+        "nav.receive": "Receive",
+        "theme.toggle": "Toggle light/dark theme",
+        "lang.label": "Language",
+        "lang.it": "Italiano",
+        "lang.en": "English",
+        "lang.fr": "Français",
+        "lang.es": "Español",
+        "lang.de": "Deutsch",
+        "home.kicker": "WayFold Relay",
+        "home.title": "Pass a file from one screen to another.",
+        "home.lead": "No Wi‑Fi, no cable, no upload — just a QR between two devices held close.",
+        "home.stepSend": "On this device",
+        "home.stepRecv": "On the other device",
+        "home.sendHint": "Pick files and show the animated QR",
+        "home.receiveHint": "Open the camera and point at the screen",
+        "home.footnote": "Keep the camera on the sender screen until the file is ready.",
+        "home.demoSend": "QR on the screen",
+        "home.demoRecv": "Scan with the camera",
+        "home.demoLink": "By light",
+        "pwa.install": "Install",
+        "pwa.dismiss": "Not now",
+        "pwa.installEyebrow": "App available",
+        "pwa.installTitle": "wayfold relay on your device",
+        "pwa.installFallback": "From the browser menu ⋮, choose “Install app” (not “Add to Home Screen”).",
+        "pwa.ios1": "Tap Share",
+        "pwa.ios2": "Choose “Add to Home Screen”",
+        "pwa.ios3": "Confirm Add",
+        "stat.speed": "Speed",
+        "stat.eta": "Time remaining",
+        "stat.done": "Downloaded",
+        "stat.left": "Remaining",
+        "stat.sent": "Transmitted",
+        "stat.frames": "Frames",
+        "send.dropHint": "or drag and drop here",
+        "send.sizeHint": "Up to 25 MiB freely · larger files need confirmation (max 50 MiB)",
+        "send.fileSize": "{size}",
+        "send.fileMulti": "{count} files · package {name}",
+        "send.packing": "Creating ZIP package…",
+        "xfer.pause": "Pause",
+        "xfer.resume": "Resume",
+        "xfer.cancel": "Cancel transfer",
+        "xfer.paused": "Transfer paused",
+        "xfer.streaming": "Streaming",
+        "xfer.receiving": "Receiving",
+        "xfer.preparing": "Preparing…",
+        "send.pointCamera": "Point the other device’s camera at this QR and keep the screen facing it.",
+        "receive.keepPointing": "Keep the camera on the QR until the transfer finishes.",
+        "receive.searchingShort": "Point at the QR on the screen…",
+        "receive.introLead": "Point your camera at the sender screen to receive the file.",
+        "receive.tipLight": "Good lighting, avoid screen glare",
+        "receive.tipDistance": "Hold 20–40 cm from the screen",
+        "receive.tipSteady": "Keep the phone steady while progress moves",
+        "receive.fallbackTitle": "Camera trouble?",
+        "receive.fallbackBody": "Relay needs a working camera on this device. Try another phone, grant permission in the browser, or improve lighting — there is no internet fallback by design.",
+        "receive.advanced": "Advanced settings",
+        "receive.advancedHint": "Optional — leave defaults unless scanning fails",
+        "receive.advancedIntro": "Useful if the camera struggles to lock onto the QR.",
+        "receive.width": "Camera resolution",
+        "receive.widthTip": "Higher can help detail; lower may be faster on older phones.",
+        "receive.capFps": "Capture rate",
+        "receive.capFpsTip": "Frames per second from the camera. 60 is usually best.",
+        "receive.workers": "Decode effort",
+        "receive.workersTip": "Parallel decode threads. More uses more CPU; 2 is a good default.",
+        "send.fileLabel": "Files",
+        "send.fileEmpty": "No file selected yet",
+        "send.fileChange": "Select files",
+        "send.qrWaiting": "QR code appears here after you pick a file",
+        "send.advanced": "Advanced settings",
+        "send.advancedHint": "Optional — defaults work for most people",
+        "send.advancedIntro": "Change these only if the transfer is slow or the QR is hard to read.",
+        "send.txFps": "Animation speed",
+        "send.txFpsTip": "How fast the QR changes. Lower = easier to scan; higher = faster transfer.",
+        "send.frameBytes": "Data per frame",
+        "send.frameBytesTip": "More bytes = faster but denser QR (harder for weak cameras).",
+        "send.ecc": "Error resilience",
+        "send.eccTip": "Higher resilience helps with glare or blur, but slows the transfer.",
+        "send.ecc.L": "L — fastest",
+        "send.ecc.M": "M — balanced",
+        "send.ecc.Q": "Q — more resilient",
+        "send.ecc.H": "H — most resilient",
+        "send.displaySize": "QR size on screen",
+        "send.displaySizeTip": "Larger codes are easier to capture from a short distance.",
+        "send.largeConfirm": "Large file: {size} MiB. Optical transfer may take a long time. Continue?",
+        "send.largeCancelled": "Large transfer cancelled.",
+        "send.preparing": "Preparing…",
+        "send.sizeError": "File must be between 1 byte and {max} MiB.",
+        "send.blocksError": "This file needs {k} blocks at the selected frame size — increase bytes/frame (max {max} blocks).",
+        "send.compression.gzip": "gzip −{pct}%",
+        "send.compression.raw": "raw (gzip not smaller)",
+        "send.status.streaming": "{fileMiB} MiB · {compression} · {payloadKiB} KiB · {fps} fps",
+        "receive.scanning": "Looking for QR code…",
+        "receive.progress": "{elapsed} · ~{eta} left · {rate}",
+        "receive.statsShort": "{kib} KiB · {sec} s",
+        "receive.start": "Open camera",
+        "receive.cancel": "Cancel",
+        "receive.reset": "Start over",
+        "receive.permHint": "When prompted, choose “Allow while visiting the site” (not “Allow this time”) so the browser can remember it.",
+        "receive.deniedHelp": "Camera access is blocked. Open site settings (lock icon in the address bar) and allow the camera for transfer.wayfold.xyz.",
+        "receive.largeConfirm": "Large optical payload: {size} MiB. It may use significant memory and take a long time. Continue?",
+        "receive.largeDeclined": "Large transfer declined; looking for another stream…",
+        "receive.secureError": "Camera requires HTTPS. Open this page on a secure origin (e.g. transfer.wayfold.xyz).",
+        "receive.cameraError": "Camera: {msg}",
+        "receive.workerError": "Decode worker: {msg}",
+        "receive.searching": "Camera {w}×{h}@{fps} — searching for a stream…",
+        "receive.cancelled": "Transfer cancelled.",
+        "receive.backgroundStop": "Camera stopped in the background. Tap Reset to start again.",
+        "receive.backgroundResume": "Camera paused (app in background). Tap Resume to turn it back on.",
+        "receive.timeout": "Timed out after 120s without a new frame. Tap Reset to retry.",
+        "receive.done": "Transfer complete!",
+        "receive.save": "Save {name}",
+        "receive.previewAlt": "Preview of {name}",
+        "receive.stats": "{kib} KiB in {sec} s · {rate} KiB/s · FNV + SHA-256 verified ✓{extra}",
+        "receive.stats.gzipExtra": " · gzip decoded",
+        "receive.integrity.fnv": "FNV check failed: reconstructed optical payload is corrupt.",
+        "receive.integrity.envelope": "Envelope, decompression, or SHA-256 validation failed.",
+        "receive.integrity.banner": "No file or download was created.",
+        "receive.integrity.title": "Integrity error: {msg}",
+        "metric.capture": "Capture FPS",
+        "metric.decode": "Decode FPS",
+        "metric.goodput": "Goodput",
+        "metric.elapsed": "Elapsed",
+        "metric.eta": "Remaining",
+        "metric.frames": "Frames new/dup",
+        "metric.k": "Blocks K",
+        "metric.block": "Block len",
+        "metric.payload": "Payload",
+        "pwa.update": "Update available — reload after this transfer"
+    },
+    fr: {
+        "meta.description": "Transférez un fichier entre appareils avec un QR code. Aucun envoi serveur.",
+        "app.name": "WayFold Relay",
+        "app.product": "Relay",
+        "app.tagline": "Par la lumière, pas internet",
+        "page.home": "WayFold Relay",
+        "page.send": "WayFold Relay — Envoyer",
+        "page.receive": "WayFold Relay — Recevoir",
+        "nav.home": "Accueil",
+        "nav.send": "Envoyer",
+        "nav.receive": "Recevoir",
+        "theme.toggle": "Thème clair/sombre",
+        "lang.label": "Langue",
+        "home.kicker": "WayFold Relay",
+        "home.title": "Passez un fichier d’un écran à l’autre.",
+        "home.lead": "Pas de Wi‑Fi, câble ni envoi — juste un QR entre deux appareils proches.",
+        "home.stepSend": "Sur cet appareil",
+        "home.stepRecv": "Sur l’autre appareil",
+        "home.sendHint": "Choisissez les fichiers et montrez le QR",
+        "home.receiveHint": "Ouvrez la caméra et visez l’écran",
+        "home.footnote": "Gardez la caméra sur l’écran jusqu’à la fin.",
+        "home.demoSend": "QR à l’écran",
+        "home.demoRecv": "Scan avec la caméra",
+        "home.demoLink": "Par la lumière",
+        "pwa.install": "Installer",
+        "pwa.dismiss": "Pas maintenant",
+        "pwa.installEyebrow": "App disponible",
+        "pwa.installTitle": "wayfold relay sur l’appareil",
+        "pwa.installFallback": "Menu ⋮ → Installer l’application.",
+        "pwa.ios1": "Touchez Partager",
+        "pwa.ios2": "Ajoutez à l’écran d’accueil",
+        "pwa.ios3": "Confirmez",
+        "stat.speed": "Vitesse",
+        "stat.eta": "Temps restant",
+        "stat.done": "Téléchargé",
+        "stat.left": "Restant",
+        "stat.sent": "Transmis",
+        "stat.frames": "Images",
+        "send.dropHint": "ou glissez-déposez ici",
+        "send.fileSize": "{size}",
+        "xfer.pause": "Pause",
+        "xfer.resume": "Reprendre",
+        "xfer.cancel": "Annuler le transfert",
+        "xfer.paused": "Transfert en pause",
+        "xfer.streaming": "Émission en cours",
+        "xfer.receiving": "Réception en cours",
+        "xfer.preparing": "Préparation…",
+        "send.pointCamera": "Pointez la caméra de l’autre appareil sur ce QR.",
+        "receive.keepPointing": "Gardez la caméra sur le QR jusqu’à la fin.",
+        "receive.searchingShort": "Cadrez le QR à l’écran…",
+        "receive.introLead": "Pointez la caméra vers l'écran de l'expéditeur pour recevoir le fichier.",
+        "receive.advanced": "Avancé",
+        "send.fileLabel": "Fichier",
+        "send.fileEmpty": "Aucun fichier",
+        "send.fileChange": "Choisir un fichier",
+        "send.qrWaiting": "Le QR apparaîtra ici",
+        "send.advanced": "Avancé",
+        "send.txFps": "FPS émission",
+        "send.frameBytes": "Octets / image",
+        "send.ecc": "Correction d'erreurs",
+        "send.displaySize": "Taille affichage",
+        "send.largeConfirm": "Gros fichier : {size} Mio. Cela peut prendre longtemps. Continuer ?",
+        "send.largeCancelled": "Transfert annulé.",
+        "send.preparing": "Préparation et test gzip…",
+        "send.sizeError": "Fichier entre 1 octet et {max} Mio.",
+        "send.blocksError": "Il faut {k} blocs — augmentez les octets/image (max {max}).",
+        "send.compression.gzip": "gzip −{pct}%",
+        "send.compression.raw": "brut (gzip pas plus petit)",
+        "send.status.streaming": "{fileMiB} Mio · {compression} · {payloadKiB} Kio · {fps} ips",
+        "receive.scanning": "Recherche du QR…",
+        "receive.progress": "{elapsed} · ~{eta} · {rate}",
+        "receive.statsShort": "{kib} Kio · {sec} s",
+        "receive.start": "Ouvrir la caméra",
+        "receive.cancel": "Annuler",
+        "receive.reset": "Réinitialiser",
+        "receive.permHint": "Dans la boîte de dialogue, choisissez « Autoriser pour ce site » (pas « Cette fois »), pour que le navigateur s’en souvienne.",
+        "receive.deniedHelp": "Caméra bloquée. Ouvrez les paramètres du site (cadenas) et autorisez la caméra pour transfer.wayfold.xyz.",
+        "receive.largeConfirm": "Gros payload : {size} Mio. Continuer ?",
+        "receive.largeDeclined": "Transfert refusé ; autre flux…",
+        "receive.secureError": "HTTPS requis pour la caméra.",
+        "receive.cameraError": "Caméra : {msg}",
+        "receive.workerError": "Worker : {msg}",
+        "receive.searching": "Caméra {w}×{h}@{fps} — recherche…",
+        "receive.cancelled": "Transfert annulé.",
+        "receive.backgroundStop": "Caméra arrêtée en arrière-plan. Réinitialiser.",
+        "receive.backgroundResume": "Caméra en pause (arrière-plan). Appuyez sur Reprendre.",
+        "receive.timeout": "Délai dépassé (120 s). Réinitialiser.",
+        "receive.done": "Transfert terminé !",
+        "receive.save": "Enregistrer {name}",
+        "receive.previewAlt": "Aperçu de {name}",
+        "receive.stats": "{kib} Kio en {sec} s · {rate} Kio/s · FNV + SHA-256 ✓{extra}",
+        "receive.stats.gzipExtra": " · gzip décodé",
+        "receive.integrity.fnv": "Échec FNV.",
+        "receive.integrity.envelope": "Envelope ou SHA-256 invalide.",
+        "receive.integrity.banner": "Aucun fichier créé.",
+        "receive.integrity.title": "Erreur : {msg}",
+        "metric.capture": "FPS capture",
+        "metric.decode": "FPS décode",
+        "metric.goodput": "Débit",
+        "metric.elapsed": "Écoulé",
+        "metric.eta": "Restant",
+        "metric.frames": "Images n/dup",
+        "metric.k": "Blocs K",
+        "metric.block": "Taille bloc",
+        "metric.payload": "Payload",
+        "receive.width": "Largeur",
+        "receive.capFps": "FPS capture",
+        "receive.workers": "Workers",
+        "pwa.update": "Mise à jour — rechargez après le transfert"
+    },
+    es: {
+        "meta.description": "Transfiere un archivo entre dispositivos con un código QR. Sin subida.",
+        "app.name": "WayFold Relay",
+        "app.product": "Relay",
+        "app.tagline": "Por luz, no internet",
+        "page.home": "WayFold Relay",
+        "page.send": "WayFold Relay — Enviar",
+        "page.receive": "WayFold Relay — Recibir",
+        "nav.home": "Inicio",
+        "nav.send": "Enviar",
+        "nav.receive": "Recibir",
+        "theme.toggle": "Tema claro/oscuro",
+        "lang.label": "Idioma",
+        "home.kicker": "WayFold Relay",
+        "home.title": "Pasa un archivo de una pantalla a otra.",
+        "home.lead": "Sin Wi‑Fi, cable ni subida: solo un QR entre dos dispositivos cercanos.",
+        "home.stepSend": "En este dispositivo",
+        "home.stepRecv": "En el otro dispositivo",
+        "home.sendHint": "Elige archivos y muestra el QR",
+        "home.receiveHint": "Abre la cámara y apunta a la pantalla",
+        "home.footnote": "Mantén la cámara en la pantalla hasta terminar.",
+        "home.demoSend": "QR en pantalla",
+        "home.demoRecv": "Escaneo con la cámara",
+        "home.demoLink": "Por luz",
+        "pwa.install": "Instalar",
+        "pwa.dismiss": "Ahora no",
+        "pwa.installEyebrow": "App disponible",
+        "pwa.installTitle": "wayfold relay en el dispositivo",
+        "pwa.installFallback": "Menú ⋮ → Instalar app.",
+        "pwa.ios1": "Toca Compartir",
+        "pwa.ios2": "Añadir a inicio",
+        "pwa.ios3": "Confirma",
+        "stat.speed": "Velocidad",
+        "stat.eta": "Tiempo restante",
+        "stat.done": "Descargado",
+        "stat.left": "Restante",
+        "stat.sent": "Transmitido",
+        "stat.frames": "Frames",
+        "send.dropHint": "o arrastra el archivo aquí",
+        "send.fileSize": "{size}",
+        "xfer.pause": "Pausa",
+        "xfer.resume": "Reanudar",
+        "xfer.cancel": "Cancelar transferencia",
+        "xfer.paused": "Transferencia en pausa",
+        "xfer.streaming": "Transmitiendo",
+        "xfer.receiving": "Recibiendo",
+        "xfer.preparing": "Preparando…",
+        "send.pointCamera": "Apunta la cámara del otro dispositivo a este QR.",
+        "receive.keepPointing": "Mantén la cámara en el QR hasta terminar.",
+        "receive.searchingShort": "Apunta al QR en pantalla…",
+        "receive.introLead": "Apunta la cámara a la pantalla del emisor para recibir el archivo.",
+        "receive.advanced": "Avanzado",
+        "send.fileLabel": "Archivo",
+        "send.fileEmpty": "Ninguno",
+        "send.fileChange": "Seleccionar archivo",
+        "send.qrWaiting": "El QR aparecerá aquí",
+        "send.advanced": "Avanzado",
+        "send.txFps": "FPS envío",
+        "send.frameBytes": "Bytes por frame",
+        "send.ecc": "Corrección",
+        "send.displaySize": "Tamaño pantalla",
+        "send.largeConfirm": "Archivo grande: {size} MiB. ¿Continuar?",
+        "send.largeCancelled": "Cancelado.",
+        "send.preparing": "Preparando y probando gzip…",
+        "send.sizeError": "Entre 1 byte y {max} MiB.",
+        "send.blocksError": "Necesita {k} bloques (máx. {max}).",
+        "send.compression.gzip": "gzip −{pct}%",
+        "send.compression.raw": "raw",
+        "send.status.streaming": "{fileMiB} MiB · {compression} · {payloadKiB} KiB · {fps} fps",
+        "receive.scanning": "Buscando QR…",
+        "receive.progress": "{elapsed} · ~{eta} · {rate}",
+        "receive.statsShort": "{kib} KiB · {sec} s",
+        "receive.start": "Abrir cámara",
+        "receive.cancel": "Cancelar",
+        "receive.reset": "Reiniciar",
+        "receive.permHint": "Cuando aparezca el diálogo, elige «Permitir en esta visita» (no «Esta vez») para que el navegador lo recuerde.",
+        "receive.deniedHelp": "Cámara bloqueada. Abre la configuración del sitio (candado) y permite la cámara para transfer.wayfold.xyz.",
+        "receive.largeConfirm": "Payload grande: {size} MiB. ¿Continuar?",
+        "receive.largeDeclined": "Rechazado; buscando otro flujo…",
+        "receive.secureError": "Se requiere HTTPS para la cámara.",
+        "receive.cameraError": "Cámara: {msg}",
+        "receive.workerError": "Worker: {msg}",
+        "receive.searching": "Cámara {w}×{h}@{fps} — buscando…",
+        "receive.cancelled": "Transferencia cancelada.",
+        "receive.backgroundStop": "Cámara detenida. Reinicia.",
+        "receive.backgroundResume": "Cámara en pausa (segundo plano). Toca Reanudar.",
+        "receive.timeout": "Tiempo agotado (120 s). Reinicia.",
+        "receive.done": "¡Completado!",
+        "receive.save": "Guardar {name}",
+        "receive.previewAlt": "Vista de {name}",
+        "receive.stats": "{kib} KiB en {sec} s · {rate} KiB/s · verificado ✓{extra}",
+        "receive.stats.gzipExtra": " · gzip",
+        "receive.integrity.fnv": "FNV falló.",
+        "receive.integrity.envelope": "Envelope o SHA-256 inválido.",
+        "receive.integrity.banner": "No se creó archivo.",
+        "receive.integrity.title": "Error: {msg}",
+        "metric.capture": "FPS captura",
+        "metric.decode": "FPS decode",
+        "metric.goodput": "Velocidad",
+        "metric.elapsed": "Transcurrido",
+        "metric.eta": "Restante",
+        "metric.frames": "Frames",
+        "metric.k": "Bloques K",
+        "metric.block": "Bloque",
+        "metric.payload": "Payload",
+        "receive.width": "Ancho",
+        "receive.capFps": "FPS",
+        "receive.workers": "Workers",
+        "pwa.update": "Actualización — recarga después"
+    },
+    de: {
+        "meta.description": "Datei zwischen Geräten per QR-Code übertragen. Kein Upload.",
+        "app.name": "WayFold Relay",
+        "app.product": "Relay",
+        "app.tagline": "Per Licht, nicht Internet",
+        "page.home": "WayFold Relay",
+        "page.send": "WayFold Relay — Senden",
+        "page.receive": "WayFold Relay — Empfangen",
+        "nav.home": "Start",
+        "nav.send": "Senden",
+        "nav.receive": "Empfangen",
+        "theme.toggle": "Hell/Dunkel",
+        "lang.label": "Sprache",
+        "home.kicker": "WayFold Relay",
+        "home.title": "Datei von einem Bildschirm zum anderen.",
+        "home.lead": "Kein WLAN, Kabel oder Upload — nur ein QR zwischen zwei nahen Geräten.",
+        "home.stepSend": "Auf diesem Gerät",
+        "home.stepRecv": "Auf dem anderen Gerät",
+        "home.sendHint": "Dateien wählen und QR zeigen",
+        "home.receiveHint": "Kamera öffnen und auf den Bildschirm richten",
+        "home.footnote": "Kamera auf den Sender richten, bis die Datei fertig ist.",
+        "home.demoSend": "QR auf dem Bildschirm",
+        "home.demoRecv": "Mit der Kamera scannen",
+        "home.demoLink": "Über Licht",
+        "pwa.install": "Installieren",
+        "pwa.dismiss": "Nicht jetzt",
+        "pwa.installEyebrow": "App verfügbar",
+        "pwa.installTitle": "wayfold relay auf dem Gerät",
+        "pwa.installFallback": "Menü ⋮ → App installieren.",
+        "pwa.ios1": "Teilen tippen",
+        "pwa.ios2": "Zum Home-Bildschirm",
+        "pwa.ios3": "Bestätigen",
+        "stat.speed": "Geschwindigkeit",
+        "stat.eta": "Verbleibende Zeit",
+        "stat.done": "Empfangen",
+        "stat.left": "Verbleibend",
+        "stat.sent": "Gesendet",
+        "stat.frames": "Frames",
+        "send.dropHint": "oder Datei hierher ziehen",
+        "send.fileSize": "{size}",
+        "xfer.pause": "Pause",
+        "xfer.resume": "Fortsetzen",
+        "xfer.cancel": "Übertragung abbrechen",
+        "xfer.paused": "Übertragung pausiert",
+        "xfer.streaming": "Senden aktiv",
+        "xfer.receiving": "Empfang läuft",
+        "xfer.preparing": "Vorbereitung…",
+        "send.pointCamera": "Richte die Kamera des anderen Geräts auf diesen QR.",
+        "receive.keepPointing": "Halte die Kamera auf den QR, bis fertig.",
+        "receive.searchingShort": "QR auf dem Bildschirm anvisieren…",
+        "receive.introLead": "Richte die Kamera auf den Bildschirm des Senders, um die Datei zu empfangen.",
+        "receive.advanced": "Erweitert",
+        "send.fileLabel": "Datei",
+        "send.fileEmpty": "Keine Auswahl",
+        "send.fileChange": "Datei wählen",
+        "send.qrWaiting": "QR-Code erscheint hier",
+        "send.advanced": "Erweitert",
+        "send.txFps": "Sende-FPS",
+        "send.frameBytes": "Bytes/Frame",
+        "send.ecc": "Fehlerkorrektur",
+        "send.displaySize": "Anzeigegröße",
+        "send.largeConfirm": "Große Datei: {size} MiB. Fortfahren?",
+        "send.largeCancelled": "Abgebrochen.",
+        "send.preparing": "Vorbereitung und gzip-Test…",
+        "send.sizeError": "Zwischen 1 Byte und {max} MiB.",
+        "send.blocksError": "Benötigt {k} Blöcke (max. {max}).",
+        "send.compression.gzip": "gzip −{pct}%",
+        "send.compression.raw": "raw",
+        "send.status.streaming": "{fileMiB} MiB · {compression} · {payloadKiB} KiB · {fps} fps",
+        "receive.scanning": "Suche QR-Code…",
+        "receive.progress": "{elapsed} · ~{eta} · {rate}",
+        "receive.statsShort": "{kib} KiB · {sec} s",
+        "receive.start": "Kamera öffnen",
+        "receive.cancel": "Abbrechen",
+        "receive.reset": "Zurücksetzen",
+        "receive.permHint": "Im Dialog „Beim Besuch dieser Website zulassen“ wählen (nicht „Dieses Mal“), damit der Browser es speichert.",
+        "receive.deniedHelp": "Kamera blockiert. Site-Einstellungen (Schloss-Symbol) öffnen und Kamera für transfer.wayfold.xyz erlauben.",
+        "receive.largeConfirm": "Großes Payload: {size} MiB. Fortfahren?",
+        "receive.largeDeclined": "Abgelehnt; suche anderen Stream…",
+        "receive.secureError": "HTTPS für Kamera erforderlich.",
+        "receive.cameraError": "Kamera: {msg}",
+        "receive.workerError": "Worker: {msg}",
+        "receive.searching": "Kamera {w}×{h}@{fps} — suche…",
+        "receive.cancelled": "Abgebrochen.",
+        "receive.backgroundStop": "Kamera im Hintergrund gestoppt.",
+        "receive.backgroundResume": "Kamera pausiert (Hintergrund). Tippe auf Fortsetzen.",
+        "receive.timeout": "Zeitüberschreitung (120 s).",
+        "receive.done": "Fertig!",
+        "receive.save": "{name} speichern",
+        "receive.previewAlt": "Vorschau {name}",
+        "receive.stats": "{kib} KiB in {sec} s · {rate} KiB/s · verifiziert ✓{extra}",
+        "receive.stats.gzipExtra": " · gzip",
+        "receive.integrity.fnv": "FNV fehlgeschlagen.",
+        "receive.integrity.envelope": "Envelope oder SHA-256 ungültig.",
+        "receive.integrity.banner": "Keine Datei erstellt.",
+        "receive.integrity.title": "Fehler: {msg}",
+        "metric.capture": "Capture-FPS",
+        "metric.decode": "Decode-FPS",
+        "metric.goodput": "Durchsatz",
+        "metric.elapsed": "Dauer",
+        "metric.eta": "Verbleibend",
+        "metric.frames": "Frames",
+        "metric.k": "Blöcke K",
+        "metric.block": "Block",
+        "metric.payload": "Payload",
+        "receive.width": "Breite",
+        "receive.capFps": "FPS",
+        "receive.workers": "Worker",
+        "pwa.update": "Update — nach Transfer neu laden"
+    }
+};
+function Jr() {
+    try {
+        const t = localStorage.getItem(cr);
+        if (t && Kt.includes(t))
+            return t
+    } catch {}
+    const e = (navigator.language || "en").slice(0, 2).toLowerCase();
+    return Kt.includes(e) ? e : "en"
+}
+let dt = Jr();
+document.documentElement.lang = dt;
+function ln() {
+    return dt
+}
+function Xr(e) {
+    if (Kt.includes(e)) {
+        dt = e,
+        document.documentElement.lang = e;
+        try {
+            localStorage.setItem(cr, e)
+        } catch {}
+    }
+}
+function I(e, t={}) {
+    var r;
+    let n = ((r = vt[dt]) == null ? void 0 : r[e]) ?? vt.en[e] ?? vt.it[e] ?? e;
+    for (const [i,a] of Object.entries(t))
+        n = n.replaceAll(`{${i}}`, String(a));
+    return n
+}
+function jt() {
+    var n;
+    document.querySelectorAll("[data-i18n]").forEach(r => {
+        const i = r.dataset.i18n;
+        i && (r.textContent = I(i))
+    }
+    ),
+    document.querySelectorAll("[data-i18n-title]").forEach(r => {
+        const i = r.dataset.i18nTitle;
+        i && r.setAttribute("title", I(i))
+    }
+    ),
+    document.querySelectorAll("[data-i18n-aria]").forEach(r => {
+        const i = r.dataset.i18nAria;
+        i && r.setAttribute("aria-label", I(i))
+    }
+    );
+    const e = document.querySelector('meta[name="description"]');
+    e && e.setAttribute("content", I("meta.description"));
+    const t = (n = document.querySelector("title[data-i18n]")) == null ? void 0 : n.getAttribute("data-i18n");
+    t && (document.title = I(t))
+}
+function Yt(e) {
+    window.addEventListener("ot:langchange", e)
+}
+function Zr() {
+    jt(),
+    window.dispatchEvent(new Event("ot:langchange"))
+}
+const ei = [{
+    id: "it",
+    name: "Italiano"
+}, {
+    id: "en",
+    name: "English"
+}, {
+    id: "fr",
+    name: "Français"
+}, {
+    id: "es",
+    name: "Español"
+}, {
+    id: "de",
+    name: "Deutsch"
+}]
+  , lr = "ot:pwa-install-dismissed"
+  , ti = 2800
+  , ni = "is-visible";
+let Z = null
+  , dr = !1
+  , ur = !1
+  , Ot = !1
+  , ke = null
+  , dn = !1
+  , nt = !1;
+function un() {
+    !Z && window.__wfBip && (Z = window.__wfBip)
+}
+function ri() {
+    return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === !0
+}
+function Jt() {
+    return /iPad|iPhone|iPod/i.test(navigator.userAgent) ? !0 : navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.userAgent)
+}
+function fr() {
+    return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ? !0 : window.matchMedia("(hover: none) and (pointer: coarse)").matches
+}
+function mr() {
+    return fr() && !ri()
+}
+function ii() {
+    if (dr)
+        return !0;
+    try {
+        return sessionStorage.getItem(lr) === "1"
+    } catch {
+        return !1
+    }
+}
+function ut(e, t) {
+    e && (e.classList.toggle(ni, t),
+    e.hidden = !t)
+}
+function Ue() {
+    ut(document.getElementById("pwaInstall"), !1)
+}
+function _e() {
+    ut(document.getElementById("pwaInstallGuide"), !1)
+}
+function ai() {
+    _e(),
+    ut(document.getElementById("pwaInstall"), !0)
+}
+function oi() {
+    Ue();
+    const e = document.getElementById("pwaInstallGuide")
+      , t = document.getElementById("pwaInstallIosSteps")
+      , n = document.getElementById("pwaInstallFallback");
+    if (!e)
+        return;
+    const r = Jt();
+    t && (t.hidden = !r),
+    n && (n.hidden = r),
+    ut(e, !0)
+}
+function Ye() {
+    dr = !0;
+    try {
+        sessionStorage.setItem(lr, "1")
+    } catch {}
+    Ue(),
+    _e()
+}
+function Ne() {
+    if (!ur || !mr() || ii()) {
+        Ue(),
+        _e();
+        return
+    }
+    if (Z) {
+        ke && (window.clearTimeout(ke),
+        ke = null),
+        ai();
+        return
+    }
+    if (Jt() || Ot) {
+        oi();
+        return
+    }
+    Ue(),
+    _e()
+}
+function si() {
+    if (ke && window.clearTimeout(ke),
+    !fr() || Jt()) {
+        Ot = !0,
+        Ne();
+        return
+    }
+    ke = window.setTimeout( () => {
+        Ot = !0,
+        Ne()
+    }
+    , ti)
+}
+function ci() {
+    var t, n, r;
+    if ((t = document.getElementById("pwa-update")) == null || t.remove(),
+    !mr()) {
+        Ue(),
+        _e();
+        return
+    }
+    const e = document.getElementById("pwaInstallBtn");
+    e && ((n = document.getElementById("pwaInstallClose")) == null || n.addEventListener("click", Ye),
+    (r = document.getElementById("pwaInstallGuideClose")) == null || r.addEventListener("click", Ye),
+    e.addEventListener("click", async () => {
+        Z && (await Z.prompt(),
+        await Z.userChoice,
+        Z = null,
+        window.__wfBip = null,
+        Ye())
+    }
+    ),
+    window.addEventListener("appinstalled", () => {
+        Z = null,
+        window.__wfBip = null,
+        Ye()
+    }
+    ),
+    window.addEventListener("wf:installready", () => {
+        un(),
+        Ne()
+    }
+    ),
+    window.addEventListener("beforeinstallprompt", i => {
+        i.preventDefault(),
+        Z = i,
+        window.__wfBip = Z,
+        Ne()
+    }
+    ),
+    ur = !0,
+    un(),
+    si(),
+    Ne())
+}
+function Vt(e) {
+    return !!(e.waiting && navigator.serviceWorker.controller)
+}
+function li(e) {
+    const t = e.waiting;
+    t && (t.postMessage({
+        type: "SKIP_WAITING"
+    }),
+    window.setTimeout( () => {
+        nt || (nt = !0,
+        location.reload())
+    }
+    , 400))
+}
+function fn(e) {
+    if (dn || !Vt(e))
+        return;
+    dn = !0;
+    const t = () => {
+        document.visibilityState === "hidden" && (document.querySelector(".xfer-progress:not([hidden]), #camera-panel:not([hidden])") || li(e))
+    }
+    ;
+    if (document.visibilityState === "hidden") {
+        t();
+        return
+    }
+    document.addEventListener("visibilitychange", t)
+}
+async function di() { /* single-file build: no service worker */
+}
+async function ui() { /* single-file build: no external service worker */
+}
+const mn = "ot-theme";
+function fi(e) {
+    return e === "light" ? "#F7F6F3" : "#141A1F"
+}
+function mi(e) {
+    let t = document.querySelector('meta[name="theme-color"]:not([media])');
+    t || (t = document.createElement("meta"),
+    t.setAttribute("name", "theme-color"),
+    document.head.append(t)),
+    t.setAttribute("content", fi(e))
+}
+function gn(e) {
+    document.documentElement.setAttribute("data-theme", e),
+    mi(e);
+    const t = document.getElementById("themeToggle");
+    if (!t)
+        return;
+    const n = t.querySelector(".icon-moon")
+      , r = t.querySelector(".icon-sun");
+    n && (n.style.display = e === "light" ? "none" : ""),
+    r && (r.style.display = e === "light" ? "" : "none")
+}
+function gi() {
+    var r;
+    let e = null;
+    try {
+        e = localStorage.getItem(mn)
+    } catch {}
+    const t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    gn(e === "light" || e === "dark" ? e : t),
+    (r = document.getElementById("themeToggle")) == null || r.addEventListener("click", () => {
+        const i = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+        gn(i);
+        try {
+            localStorage.setItem(mn, i)
+        } catch {}
+    }
+    )
+}
+const hn = {
+    it: "IT",
+    en: "GB",
+    fr: "FR",
+    es: "ES",
+    de: "DE"
+};
+function hi() {
+    gi(),
+    pi(),
+    jt()
+}
+function pi() {
+    const e = document.getElementById("langToggle")
+      , t = document.getElementById("langMenu");
+    if (!e || !t)
+        return;
+    if (!t.childElementCount)
+        for (const r of ei) {
+            const i = document.createElement("button");
+            i.type = "button",
+            i.className = "lang-opt",
+            i.dataset.lang = r.id,
+            i.setAttribute("role", "option"),
+            i.innerHTML = `<span class="lang-flag">${hn[r.id]}</span><span>${r.name}</span>`,
+            t.append(i)
+        }
+    const n = () => {
+        const r = ln()
+          , i = document.getElementById("langFlag");
+        i && (i.textContent = hn[r] ?? "IT"),
+        t.querySelectorAll(".lang-opt").forEach(a => {
+            const o = a.dataset.lang === r;
+            a.classList.toggle("on", o),
+            a.setAttribute("aria-selected", o ? "true" : "false")
+        }
+        ),
+        e.setAttribute("aria-label", I("lang.label")),
+        e.setAttribute("aria-expanded", t.classList.contains("open") ? "true" : "false")
+    }
+    ;
+    document.addEventListener("click", () => {
+        t.classList.remove("open"),
+        n()
+    }
+    ),
+    e.addEventListener("click", r => {
+        r.stopPropagation();
+        const i = t.classList.toggle("open");
+        e.setAttribute("aria-expanded", i ? "true" : "false")
+    }
+    ),
+    t.querySelectorAll(".lang-opt").forEach(r => {
+        r.addEventListener("click", i => {
+            i.stopPropagation();
+            const a = r.dataset.lang;
+            a && a !== ln() && (Xr(a),
+            Zr()),
+            t.classList.remove("open"),
+            n()
+        }
+        )
+    }
+    ),
+    n()
+}
+const gr = 1024 * 1024
+  , Wt = 25 * gr
+  , Te = 50 * gr
+  , Xt = 255
+  , Zt = 127
+  , Ae = 50
+  , en = Te + Ae + Xt + Zt
+  , vi = 4096
+  , Qt = 4e4
+  , wi = 12e4
+  , Le = 20
+  , hr = 209
+  , pr = 12;
+function yi() {
+    const e = new Uint16Array(1);
+    do
+        crypto.getRandomValues(e);
+    while (e[0] === 0);
+    return e[0]
+}
+function vr(e) {
+    if (!Number.isInteger(e.sessionId) || e.sessionId <= 0 || e.sessionId > 65535 || !Number.isInteger(e.seq) || e.seq < 0 || e.seq > 4294967295 || !Number.isInteger(e.k) || e.k <= 0 || e.k > Qt || !Number.isInteger(e.blockLen) || e.blockLen <= 0 || e.blockLen > vi || !Number.isInteger(e.totalLen) || e.totalLen <= 0 || e.totalLen > en || !Number.isInteger(e.payloadFnv) || e.payloadFnv < 0 || e.payloadFnv > 4294967295)
+        return !1;
+    const t = e.k * e.blockLen
+      , n = (e.k - 1) * e.blockLen + 1;
+    return Number.isSafeInteger(t) && Number.isSafeInteger(n) && e.totalLen >= n && e.totalLen <= t
+}
+function bi(e, t) {
+    if (!vr(e) || t.length !== e.blockLen)
+        throw new RangeError("invalid optical frame header or block length");
+    const n = new Uint8Array(Le + t.length)
+      , r = new DataView(n.buffer);
+    return r.setUint8(0, hr),
+    r.setUint8(1, pr),
+    r.setUint16(2, e.sessionId, !0),
+    r.setUint32(4, e.seq, !0),
+    r.setUint16(8, e.k, !0),
+    r.setUint16(10, e.blockLen, !0),
+    r.setUint32(12, e.totalLen, !0),
+    r.setUint32(16, e.payloadFnv, !0),
+    n.set(t, Le),
+    n
+}
+function Ei(e) {
+    if (e.length <= Le || e[0] !== hr || e[1] !== pr)
+        return null;
+    const t = new DataView(e.buffer,e.byteOffset,e.byteLength)
+      , n = {
+        sessionId: t.getUint16(2, !0),
+        seq: t.getUint32(4, !0),
+        k: t.getUint16(8, !0),
+        blockLen: t.getUint16(10, !0),
+        totalLen: t.getUint32(12, !0),
+        payloadFnv: t.getUint32(16, !0)
+    };
+    return !vr(n) || e.length !== Le + n.blockLen ? null : {
+        header: n,
+        block: e.subarray(Le)
+    }
+}
+function wr(e) {
+    let t = 2166136261;
+    for (let n = 0; n < e.length; n++)
+        t ^= e[n],
+        t = Math.imul(t, 16777619);
+    return t >>> 0
+}
+function Ci(e) {
+    let t = e | 0;
+    return () => {
+        t = t + 2654435769 | 0;
+        let n = t ^ t >>> 16;
+        return n = Math.imul(n, 569420461),
+        n ^= n >>> 15,
+        n = Math.imul(n, 1935289751),
+        n ^= n >>> 15,
+        n >>> 0
+    }
+}
+const Si = .6931471805599453;
+function pn(e) {
+    let t = 0
+      , n = e;
+    for (; n >= 1.5; )
+        n /= 2,
+        t++;
+    for (; n < .75; )
+        n *= 2,
+        t--;
+    const r = (n - 1) / (n + 1)
+      , i = r * r;
+    let a = r
+      , o = 0;
+    for (let s = 1; s <= 21; s += 2)
+        o += a / s,
+        a *= i;
+    return t * Si + 2 * o
+}
+const Bi = .1
+  , vn = .5;
+function yr(e) {
+    const t = new Float64Array(e);
+    if (e === 1)
+        return t[0] = 1,
+        t;
+    const n = Math.max(1, Bi * pn(e / vn) * Math.sqrt(e))
+      , r = Math.min(e, Math.ceil(e / n));
+    let i = 0;
+    for (let a = 1; a <= e; a++) {
+        const o = a === 1 ? 1 / e : 1 / (a * (a - 1));
+        let s = 0;
+        a < r ? s = n / (a * e) : a === r && (s = n * Math.max(0, pn(n / vn)) / e),
+        i += o + s,
+        t[a - 1] = i
+    }
+    for (let a = 0; a < e; a++)
+        t[a] = t[a] / i;
+    return t[e - 1] = 1,
+    t
+}
+function Ri(e, t) {
+    let n = Math.imul(e + 1, 2654435761) ^ t + 2246822507 | 0;
+    return n = Math.imul(n ^ n >>> 13, 3266489909),
+    n ^ n >>> 16 | 0
+}
+function br(e, t, n, r) {
+    const i = Ci(Ri(n, r))
+      , a = i() * 2 ** -32;
+    let o = 0
+      , s = e - 1;
+    for (; o < s; ) {
+        const l = o + s >> 1;
+        t[l] >= a ? s = l : o = l + 1
+    }
+    const c = Math.min(e, o + 1);
+    if (c > e >> 3) {
+        const l = new Uint32Array(e);
+        for (let d = 0; d < e; d++)
+            l[d] = d;
+        const m = new Array(c);
+        for (let d = 0; d < c; d++) {
+            const f = d + i() % (e - d)
+              , C = l[d];
+            l[d] = l[f],
+            l[f] = C,
+            m[d] = l[d]
+        }
+        return m
+    }
+    const u = new Set;
+    for (; u.size < c; )
+        u.add(i() % e);
+    return [...u]
+}
+function wn(e, t) {
+    for (let n = 0; n < e.length; n++)
+        e[n] = (e[n] ^ t[n]) >>> 0
+}
+class ki {
+    constructor(t, n, r) {
+        U(this, "k");
+        U(this, "blockLen");
+        U(this, "sessionId");
+        U(this, "words");
+        U(this, "blocks");
+        U(this, "cdf");
+        this.blockLen = n,
+        this.sessionId = r,
+        this.k = Math.max(1, Math.ceil(t.length / n)),
+        this.words = Math.ceil(n / 4),
+        this.blocks = new Uint32Array(this.k * this.words);
+        const i = new Uint8Array(this.blocks.buffer);
+        for (let a = 0; a < this.k; a++) {
+            const o = t.subarray(a * n, Math.min((a + 1) * n, t.length));
+            i.set(o, a * this.words * 4)
+        }
+        this.cdf = yr(this.k)
+    }
+    encode(t) {
+        const n = br(this.k, this.cdf, this.sessionId, t)
+          , r = new Uint32Array(this.words);
+        for (const i of n) {
+            const a = i * this.words;
+            for (let o = 0; o < this.words; o++)
+                r[o] = (r[o] ^ this.blocks[a + o]) >>> 0
+        }
+        return new Uint8Array(r.buffer,0,this.blockLen)
+    }
+}
+class Ai {
+    constructor(t, n, r, i) {
+        U(this, "k");
+        U(this, "blockLen");
+        U(this, "sessionId");
+        U(this, "totalLen");
+        U(this, "words");
+        U(this, "cdf");
+        U(this, "solved");
+        U(this, "byBlock", new Map);
+        U(this, "pending", new Set);
+        U(this, "maxPendingFrames");
+        U(this, "maxUniqueFrames");
+        U(this, "seen", new Set);
+        U(this, "solvedCount", 0);
+        U(this, "framesNew", 0);
+        U(this, "framesDup", 0);
+        this.k = t,
+        this.blockLen = n,
+        this.sessionId = r,
+        this.totalLen = i,
+        this.words = Math.ceil(n / 4),
+        this.cdf = yr(t),
+        this.solved = new Array(t).fill(null),
+        this.maxPendingFrames = Math.min(6e4, Math.max(64, Math.ceil(t * 1.5))),
+        this.maxUniqueFrames = Math.min(2e5, Math.max(1024, t * 4))
+    }
+    get isComplete() {
+        return this.solvedCount >= this.k
+    }
+    get pendingFrameCount() {
+        return this.pending.size
+    }
+    addFrame(t, n) {
+        if (this.seen.has(t)) {
+            this.framesDup++;
+            return
+        }
+        if (this.seen.size >= this.maxUniqueFrames || (this.seen.add(t),
+        this.framesNew++,
+        this.isComplete))
+            return;
+        const r = new Set(br(this.k, this.cdf, this.sessionId, t))
+          , i = new Uint32Array(this.words);
+        new Uint8Array(i.buffer).set(n.subarray(0, this.blockLen));
+        for (const o of [...r]) {
+            const s = this.solved[o];
+            s && (wn(i, s),
+            r.delete(o))
+        }
+        if (r.size === 0)
+            return;
+        if (r.size === 1) {
+            this.resolve(r.values().next().value, i);
+            return
+        }
+        if (this.pending.size >= this.maxPendingFrames)
+            return;
+        const a = {
+            idx: r,
+            words: i
+        };
+        this.pending.add(a);
+        for (const o of r) {
+            let s = this.byBlock.get(o);
+            s || (s = new Set,
+            this.byBlock.set(o, s)),
+            s.add(a)
+        }
+    }
+    resolve(t, n) {
+        var i;
+        const r = [[t, n]];
+        for (; r.length > 0; ) {
+            const [a,o] = r.pop();
+            if (this.solved[a])
+                continue;
+            this.solved[a] = o,
+            this.solvedCount++;
+            const s = this.byBlock.get(a);
+            if (s) {
+                this.byBlock.delete(a);
+                for (const c of s)
+                    if (wn(c.words, o),
+                    c.idx.delete(a),
+                    c.idx.size === 1) {
+                        const u = c.idx.values().next().value;
+                        (i = this.byBlock.get(u)) == null || i.delete(c),
+                        this.pending.delete(c),
+                        this.solved[u] || r.push([u, c.words])
+                    }
+            }
+        }
+    }
+    assemble() {
+        if (!this.isComplete)
+            return null;
+        const t = new Uint8Array(this.totalLen);
+        for (let n = 0; n < this.k; n++) {
+            const r = n * this.blockLen
+              , i = Math.min(this.blockLen, this.totalLen - r);
+            i > 0 && t.set(new Uint8Array(this.solved[n].buffer,0,i), r)
+        }
+        return t
+    }
+}
+const Gt = new Uint8Array([68, 67, 77, 78])
+  , Er = 1
+  , tn = 1
+  , Li = tn
+  , Ii = 32
+  , rt = new TextEncoder
+  , yn = new TextDecoder("utf-8",{
+    fatal: !0
+})
+  , bn = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+function Cr(e) {
+    const n = (e.split(/[\\/]/).pop() ?? "").replace(/[\0-\x1f\x7f]/g, "").trim();
+    return !n || n === "." || n === ".." ? null : rt.encode(n).length <= Xt ? n : null
+}
+function Sr(e) {
+    if (/[\0-\x1f\x7f]/.test(e))
+        return null;
+    const t = e.trim().toLowerCase() || "application/octet-stream";
+    return rt.encode(t).length <= Zt ? t : null
+}
+function Ti(e, t) {
+    if (e.length !== t.length)
+        return !1;
+    let n = 0;
+    for (let r = 0; r < e.length; r++)
+        n |= e[r] ^ t[r];
+    return n === 0
+}
+async function Br(e) {
+    const t = Uint8Array.from(e);
+    return new Uint8Array(await crypto.subtle.digest("SHA-256", t))
+}
+async function Mi(e, t) {
+    const n = e.getReader()
+      , r = [];
+    let i = 0;
+    try {
+        for (; ; ) {
+            const {done: s, value: c} = await n.read();
+            if (s)
+                break;
+            if (i += c.length,
+            i > t)
+                return await n.cancel("output limit exceeded"),
+                null;
+            r.push(c)
+        }
+    } catch {
+        return null
+    } finally {
+        n.releaseLock()
+    }
+    const a = new Uint8Array(i);
+    let o = 0;
+    for (const s of r)
+        a.set(s, o),
+        o += s.length;
+    return a
+}
+async function Fi(e) {
+    if (typeof CompressionStream > "u")
+        return null;
+    try {
+        const t = new Blob([e]).stream().pipeThrough(new CompressionStream("gzip"))
+          , n = await Mi(t, e.length);
+        return n && n.length < e.length ? n : null
+    } catch {
+        return null
+    }
+}
+async function Pi(e, t) {
+    if (typeof DecompressionStream > "u")
+        return null;
+    const n = new Uint8Array(t);
+    let r = 0
+      , i = null;
+    try {
+        for (i = new Blob([e]).stream().pipeThrough(new DecompressionStream("gzip")).getReader(); ; ) {
+            const {done: o, value: s} = await i.read();
+            if (o)
+                break;
+            if (r + s.length > t || r + s.length > Te)
+                return await i.cancel("decompressed output exceeds declared length"),
+                null;
+            n.set(s, r),
+            r += s.length
+        }
+    } catch {
+        return null
+    } finally {
+        i == null || i.releaseLock()
+    }
+    return r === t ? n : null
+}
+async function zi(e, t, n) {
+    if (e.length === 0 || e.length > Te)
+        throw new RangeError("file size is outside the supported range");
+    const r = Cr(t)
+      , i = Sr(n);
+    if (!r || !i)
+        throw new TypeError("invalid file metadata");
+    const a = rt.encode(r)
+      , o = rt.encode(i)
+      , s = await Fi(e)
+      , c = s ?? e
+      , u = s ? tn : 0
+      , l = Ae + a.length + o.length + c.length;
+    if (!Number.isSafeInteger(l) || l > en)
+        throw new RangeError("wrapped payload is too large");
+    const m = new Uint8Array(l)
+      , d = new DataView(m.buffer);
+    m.set(Gt, 0),
+    d.setUint8(4, Er),
+    d.setUint8(5, u),
+    d.setUint16(6, a.length, !0),
+    d.setUint16(8, o.length, !0),
+    d.setUint32(10, c.length, !0),
+    d.setUint32(14, e.length, !0),
+    m.set(await Br(e), 18);
+    let f = Ae;
+    return m.set(a, f),
+    f += a.length,
+    m.set(o, f),
+    f += o.length,
+    m.set(c, f),
+    {
+        bytes: m,
+        compressed: !!s,
+        originalLen: e.length,
+        wireFileLen: c.length
+    }
+}
+async function xi(e) {
+    try {
+        if (e.length < Ae || e.length > en)
+            return null;
+        for (let b = 0; b < Gt.length; b++)
+            if (e[b] !== Gt[b])
+                return null;
+        const t = new DataView(e.buffer,e.byteOffset,e.byteLength);
+        if (t.getUint8(4) !== Er)
+            return null;
+        const n = t.getUint8(5);
+        if ((n & ~Li) !== 0)
+            return null;
+        const r = t.getUint16(6, !0)
+          , i = t.getUint16(8, !0)
+          , a = t.getUint32(10, !0)
+          , o = t.getUint32(14, !0);
+        if (r === 0 || r > Xt || i > Zt || a === 0 || o === 0 || o > Te)
+            return null;
+        const s = Ae + r + i + a;
+        if (!Number.isSafeInteger(s) || s !== e.length)
+            return null;
+        const c = (n & tn) !== 0;
+        if (!c && a !== o || c && a >= o)
+            return null;
+        const u = e.subarray(18, 18 + Ii);
+        let l = Ae;
+        const m = Cr(yn.decode(e.subarray(l, l + r)));
+        l += r;
+        const d = Sr(yn.decode(e.subarray(l, l + i)));
+        if (l += i,
+        !m || !d)
+            return null;
+        const f = e.subarray(l, l + a)
+          , C = c ? await Pi(f, o) : Uint8Array.from(f);
+        return !C || C.length !== o || !Ti(await Br(C), u) ? null : {
+            filename: m,
+            mime: d,
+            file: C,
+            compressed: c
+        }
+    } catch {
+        return null
+    }
+}
+const Ni = 1.12
+  , Di = 1.06
+  , qi = 1600
+  , Ui = 200;
+function E(e) {
+    return document.getElementById(e)
+}
+const Rr = "ot-camera-granted";
+let G = null
+  , q = null
+  , O = null
+  , De = 0
+  , He = 0
+  , ye = 0
+  , _ = !1
+  , N = !1
+  , K = !1
+  , ge = !1
+  , tt = null
+  , Ie = null
+  , Ke = null;
+const it = []
+  , Oe = []
+  , qe = []
+  , me = []
+  , re = [];
+let at = ""
+  , Re = ""
+  , V = 0;
+const $t = new Set
+  , Pe = document.createElement("canvas");
+let _i = 0;
+function En(e) {
+    return e < 1024 ? `${Math.max(0, Math.round(e))} B` : e < 1024 * 1024 ? `${(e / 1024).toFixed(1)} KiB` : `${(e / 1024 / 1024).toFixed(2)} MiB`
+}
+function Hi(e) {
+    return [e.sessionId, e.k, e.blockLen, e.totalLen, e.payloadFnv].join(":")
+}
+function Ki(e, t) {
+    return e.sessionId === t.sessionId && e.k === t.k && e.blockLen === t.blockLen && e.totalLen === t.totalLen && e.payloadFnv === t.payloadFnv
+}
+function ee(e, t) {
+    const n = document.getElementById(e);
+    n && (n.textContent = t)
+}
+function ie(e, t=!1) {
+    const n = E("recv-error")
+      , r = E("recv-tips");
+    n && (e ? (n.hidden = !1,
+    n.textContent = e) : (n.hidden = !0,
+    n.textContent = "")),
+    r && (r.hidden = !t)
+}
+function ft() {
+    re.length = 0,
+    at = "",
+    Re = "",
+    V = 0
+}
+function mt() {
+    const e = document.querySelector("#xfer-progress .xfer-stats");
+    e && (e.hidden = !q || _)
+}
+function gt(e, t, n, r, i) {
+    const a = E("bar")
+      , o = E("xfer-pct");
+    a && (a.style.width = `${e.toFixed(1)}%`),
+    o && (N && !q && !_ ? o.textContent = "…" : o.textContent = `${Math.min(100, Math.round(e))}%`),
+    ee("m-rate", t),
+    ee("m-eta", n),
+    ee("m-done", En(r)),
+    ee("m-left", En(i)),
+    oe()
+}
+function Oi(e) {
+    return (!Number.isFinite(e) || e < 0) && (e = 0),
+    e < 1024 ? `${Math.round(e)} B/s` : `${(e / 1024).toFixed(1)} KiB/s`
+}
+function Vi(e) {
+    return !Number.isFinite(e) || e < 0 ? Re || "…" : e < 1.25 ? "< 1 s" : e < 90 ? `${Math.ceil(e)} s` : e < 180 ? `${Math.round(e / 5) * 5} s` : `${Math.max(1, Math.round(e / 60))} min`
+}
+function Wi(e, t, n=1e3) {
+    let r = me.length - 1
+      , i = 0;
+    for (; r >= 0 && me[r] >= e - n; )
+        i++,
+        r--;
+    if (i <= 0)
+        return 0;
+    const a = me[r + 1]
+      , o = Math.max(.15, (e - a) / 1e3);
+    return i * t / o
+}
+function Qi(e) {
+    return !Number.isFinite(e) || e < 0 ? V : V <= 0 ? (V = e,
+    V) : (e < V ? V = .35 * V + .65 * e : V = .82 * V + .18 * e,
+    V)
+}
+function Qe() {
+    if (!N || _ || !q || !O)
+        return;
+    const e = performance.now()
+      , t = q.solvedCount
+      , n = q.framesNew
+      , r = Math.max(1, q.blockLen)
+      , i = Math.max(1, O.totalLen)
+      , a = Math.max(1, q.k)
+      , o = Math.max(.08, (e - De) / 1e3)
+      , s = a * Ni
+      , c = a * Di
+      , u = t / a
+      , l = Math.min(1.05, n / s)
+      , m = Math.min(99, Math.max(l, u) * 100)
+      , d = Math.min(i, Math.max(u * i, Math.min(1, n / s) * i))
+      , f = Math.max(0, i - d);
+    if (!K)
+        for (re.push({
+            t: e,
+            solved: t,
+            frames: n,
+            bytes: d
+        }); re.length > 1 && re[0].t < e - qi; )
+            re.shift();
+    const C = n > 0 ? n * r / o : 0
+      , b = n > 0 ? n / o : 0;
+    let F = 0
+      , S = 0
+      , T = 0;
+    if (re.length >= 2) {
+        const h = re[0]
+          , w = re[re.length - 1]
+          , g = (w.t - h.t) / 1e3;
+        g >= .25 && (F = Math.max(0, (w.bytes - h.bytes) / g),
+        S = Math.max(0, (w.frames - h.frames) / g),
+        T = Math.max(0, (w.solved - h.solved) / g))
+    }
+    const k = Wi(e, r, 900)
+      , R = F > 0 ? Math.max(F, k * .35) : Math.max(k, C)
+      , P = S > .15 ? S : Math.max(S, b);
+    let p = Oi(R), y;
+    const B = Math.max(0, a - t)
+      , v = Math.max(0, c - n)
+      , L = Math.max(0, s - n);
+    if (B <= 0 || m >= 99 || n >= c)
+        V = 0,
+        y = "< 1 s";
+    else {
+        const h = [];
+        P > .2 && (h.push(v / P),
+        h.push(L / P));
+        const w = P > .2 ? P * r : F;
+        w > 256 && f > 0 && h.push(f / w),
+        T > .5 && u > .35 && h.push(B / T),
+        l > .08 && o > .5 && h.push(o / l * (1 - Math.min(.99, l)));
+        let g = 0;
+        if (h.length > 0) {
+            h.sort( (M, x) => M - x),
+            g = h[Math.floor(h.length / 2)];
+            const A = h[0];
+            A > 0 && g > A * 1.8 && (g = A * 1.25 + g * .2)
+        } else
+            Re && V > 0 && (g = V);
+        if (l > .12 && o > .8) {
+            const A = o / l * (1 - Math.min(.99, l)) * 2.2;
+            g > A && (g = A)
+        }
+        l > .85 ? g = Math.min(g, 8) : l > .7 && (g = Math.min(g, 20)),
+        g > 0 ? y = Vi(Qi(g)) : y = Re || "…"
+    }
+    K ? (p = at || p,
+    y = Re || y) : (at = p,
+    Re = y),
+    gt(m, p, y, d, f)
+}
+function oe() {
+    const e = E("xfer-state")
+      , t = E("xfer-progress");
+    e && (ge && K && N ? e.textContent = I("receive.backgroundResume") : K && N ? e.textContent = I("xfer.paused") : q && N ? e.textContent = I("xfer.receiving") : N ? e.textContent = I("receive.searchingShort") : e.textContent = "",
+    t && N && !_ && (t.hidden = !1),
+    t == null || t.classList.toggle("is-searching", !!(N && !q && !_)),
+    t == null || t.classList.toggle("is-receiving", !!(N && q && !_)),
+    mt())
+}
+function kr() {
+    return !!(G != null && G.getVideoTracks().some(e => e.readyState === "live"))
+}
+function Cn() {
+    try {
+        localStorage.setItem(Rr, "1")
+    } catch {}
+}
+function nn() {
+    G == null || G.getTracks().forEach(t => t.stop()),
+    G = null;
+    const e = E("video");
+    e && (e.srcObject = null)
+}
+async function Ar(e, t) {
+    if (kr() && G)
+        return G;
+    const n = {
+        audio: !1,
+        video: {
+            facingMode: {
+                ideal: "environment"
+            },
+            width: {
+                ideal: e
+            },
+            height: {
+                ideal: Math.round(e * 3 / 4)
+            },
+            frameRate: {
+                ideal: t
+            }
+        }
+    };
+    try {
+        const r = await navigator.mediaDevices.getUserMedia(n);
+        return Cn(),
+        r
+    } catch (r) {
+        try {
+            const i = await navigator.mediaDevices.getUserMedia({
+                audio: !1,
+                video: {
+                    facingMode: {
+                        ideal: "environment"
+                    }
+                }
+            });
+            return Cn(),
+            i
+        } catch {
+            throw r
+        }
+    }
+}
+async function Ve() {
+    const e = E("camera-perm-hint");
+    if (!e)
+        return;
+    if (N) {
+        e.hidden = !0;
+        return
+    }
+    let t = !1;
+    try {
+        const n = await navigator.permissions.query({
+            name: "camera"
+        });
+        t = n.state === "prompt",
+        n.onchange = () => {
+            Ve()
+        }
+    } catch {
+        t = localStorage.getItem(Rr) !== "1"
+    }
+    e.hidden = !t,
+    t && (e.textContent = I("receive.permHint"))
+}
+function se() {
+    const e = E("pause")
+      , t = E("resume")
+      , n = N && !_;
+    e && (e.hidden = !n || K),
+    t && (t.hidden = !n || !K)
+}
+function We(e) {
+    const t = E("receive-wait");
+    t && (t.hidden = !e)
+}
+function he() {
+    ye++,
+    N = !1,
+    K = !1,
+    ge = !1,
+    se(),
+    nn();
+    for (const n of it)
+        n.terminate();
+    it.length = 0,
+    Oe.length = 0,
+    tt !== null && (window.clearInterval(tt),
+    tt = null);
+    const e = E("camera-panel")
+      , t = E("cancel");
+    e && (e.hidden = !0),
+    t && (t.hidden = !0),
+    Ve()
+}
+function Ge() {
+    q = null,
+    O = null,
+    De = 0,
+    He = 0,
+    qe.length = 0,
+    me.length = 0,
+    ft(),
+    gt(0, "…", "…", 0, 0),
+    mt()
+}
+function ot(e, t=!1) {
+    _ = !0,
+    he(),
+    Ge(),
+    ee("stats", ""),
+    ie(e, t),
+    We(!0);
+    const n = E("start")
+      , r = E("reset")
+      , i = E("settings");
+    n && (n.hidden = !1),
+    r && (r.hidden = !1),
+    i && (i.hidden = !0)
+}
+function Lr() {
+    var a;
+    he(),
+    Ge(),
+    _ = !1,
+    K = !1,
+    Ke = null,
+    $t.clear(),
+    Ie && (URL.revokeObjectURL(Ie),
+    Ie = null),
+    (a = E("result")) == null || a.replaceChildren();
+    const e = E("settings")
+      , t = E("start")
+      , n = E("reset")
+      , r = E("camera-panel")
+      , i = E("xfer-progress");
+    e && (e.hidden = !0),
+    t && (t.hidden = !1),
+    n && (n.hidden = !0),
+    r && (r.hidden = !0),
+    i && (i.hidden = !0),
+    ee("stats", ""),
+    ie(null, !1),
+    We(!0),
+    oe(),
+    se()
+}
+async function Gi() {
+    var d, f, C;
+    if (N)
+        return;
+    const e = E("stats")
+      , t = E("start")
+      , n = E("cancel")
+      , r = E("reset")
+      , i = E("settings")
+      , a = E("camera-panel")
+      , o = E("video");
+    if (!t || !n || !i || !a || !o)
+        return;
+    if (!((d = navigator.mediaDevices) != null && d.getUserMedia)) {
+        ie(I("receive.secureError"), !0);
+        return
+    }
+    if (!("BarcodeDetector" in window)) {
+        ie("This self-contained build needs a Chromium browser with BarcodeDetector support for QR receiving.", !0);
+        return
+    }
+    try {
+        if ((await navigator.permissions.query({
+            name: "camera"
+        })).state === "denied") {
+            ie(I("receive.deniedHelp"), !0);
+            return
+        }
+    } catch {}
+    Ge(),
+    _ = !1,
+    ge = !1,
+    ie(null, !1),
+    (f = E("result")) == null || f.replaceChildren();
+    const s = Number(E("cfg-width").value)
+      , c = Number(E("cfg-capfps").value)
+      , u = Number(E("cfg-workers").value);
+    i.hidden = !0,
+    t.hidden = !0,
+    We(!1),
+    r && (r.hidden = !0),
+    n.hidden = !1,
+    se(),
+    a.hidden = !1,
+    N = !0,
+    Ve();
+    const l = ++ye;
+    try {
+        G = await Ar(s, c)
+    } catch (b) {
+        he();
+        const F = b instanceof Error ? b.message : String(b)
+          , S = /NotAllowedError|Permission denied|PermissionDismissed/i.test(F);
+        ie(S ? I("receive.deniedHelp") : I("receive.cameraError", {
+            msg: F
+        }), !0),
+        t.hidden = !1,
+        i.hidden = !0,
+        We(!0);
+        return
+    }
+    if (!N || l !== ye) {
+        he();
+        return
+    }
+    o.srcObject = G,
+    await o.play().catch( () => {}
+    ),
+    e && (e.hidden = !0,
+    e.textContent = "");
+    const m = E("xfer-progress");
+    m && (m.hidden = !1),
+    ft(),
+    gt(0, "…", "…", 0, 0),
+    se(),
+    oe();
+    for (let b = 0; b < u; b++) {
+        const F = new SingleFileQrWorker()
+          , S = b;
+        F.onmessage = T => {
+            const {id: k, bytes: R, error: P} = T.data;
+            if (P) {
+                ot(`✗ ${I("receive.workerError", {
+                    msg: P
+                })}`);
+                return
+            }
+            k !== -1 && (Oe[S] = !1,
+            R && $i(R))
+        }
+        ,
+        F.onerror = T => ot(`✗ ${I("receive.workerError", {
+            msg: T.message
+        })}`),
+        it.push(F),
+        Oe.push(!1)
+    }
+    ye++,
+    Ir(ye),
+    tt = window.setInterval(Yi, Ui),
+    (C = navigator.wakeLock) == null || C.request("screen").catch( () => {}
+    )
+}
+function Ir(e) {
+    if (_ || e !== ye || !N)
+        return;
+    const t = E("video");
+    if (!t)
+        return;
+    const n = () => {
+        _ || e !== ye || !N || (K || Tr(),
+        Ir(e))
+    }
+    ;
+    t.requestVideoFrameCallback ? t.requestVideoFrameCallback(n) : requestAnimationFrame(n)
+}
+function Tr() {
+    if (K)
+        return;
+    const e = E("video");
+    if (!e)
+        return;
+    const t = e.videoWidth
+      , n = e.videoHeight;
+    if (!t || !n)
+        return;
+    qe.push(performance.now());
+    const r = Oe.indexOf(!1);
+    if (r === -1)
+        return;
+    (Pe.width !== t || Pe.height !== n) && (Pe.width = t,
+    Pe.height = n);
+    const i = Pe.getContext("2d", {
+        willReadFrequently: !0
+    });
+    i.drawImage(e, 0, 0);
+    const a = i.getImageData(0, 0, t, n);
+    Oe[r] = !0,
+    it[r].postMessage({
+        id: _i++,
+        buf: a.data.buffer,
+        w: t,
+        h: n
+    }, [a.data.buffer])
+}
+function $i(e) {
+    me.push(performance.now());
+    const t = Ei(e);
+    if (!t || _ || !N)
+        return;
+    const {header: n, block: r} = t;
+    if ((O == null ? void 0 : O.sessionId) === n.sessionId && !Ki(O, n))
+        return;
+    if (!q || (O == null ? void 0 : O.sessionId) !== n.sessionId) {
+        const o = Hi(n);
+        if ($t.has(o))
+            return;
+        if (n.totalLen > Wt && !window.confirm(I("receive.largeConfirm", {
+            size: (n.totalLen / 1024 / 1024).toFixed(1)
+        }))) {
+            $t.add(o),
+            ee("stats", I("receive.largeDeclined"));
+            return
+        }
+        q = new Ai(n.k,n.blockLen,n.sessionId,n.totalLen),
+        O = {
+            ...n
+        },
+        De = performance.now(),
+        He = De,
+        ft();
+        const s = E("xfer-progress");
+        s && (s.hidden = !1),
+        se(),
+        mt()
+    }
+    if (!q || !O)
+        return;
+    const i = q.framesNew
+      , a = q.solvedCount;
+    if (q.addFrame(n.seq, r),
+    (q.framesNew > i || q.solvedCount > a) && (He = performance.now()),
+    Qe(),
+    q.isComplete) {
+        const o = q.assemble()
+          , s = (performance.now() - De) / 1e3;
+        _ = !0,
+        ji(o, s, O)
+    }
+}
+async function ji(e, t, n) {
+    if (wr(e) !== n.payloadFnv) {
+        Sn(I("receive.integrity.fnv"));
+        return
+    }
+    he();
+    const r = E("camera-panel");
+    r && (r.hidden = !0);
+    const i = await xi(e);
+    if (!i) {
+        Sn(I("receive.integrity.envelope"));
+        return
+    }
+    gt(100, at || "…", "0 s", i.file.length, 0),
+    mt(),
+    Ke = {
+        kib: Math.round(i.file.length / 1024),
+        sec: t.toFixed(1)
+    },
+    ee("stats", "");
+    const o = E("result");
+    if (!o)
+        return;
+    const s = document.createElement("div");
+    s.className = "done",
+    s.textContent = I("receive.done");
+    const c = document.createElement("p");
+    c.className = "result-meta",
+    c.textContent = I("receive.statsShort", Ke);
+    const u = bn.has(i.mime) ? i.mime : "application/octet-stream";
+    Ie = URL.createObjectURL(new Blob([i.file],{
+        type: u
+    }));
+    const l = document.createElement("a");
+    if (l.className = "download",
+    l.href = Ie,
+    l.download = i.filename,
+    l.textContent = I("receive.save", {
+        name: i.filename
+    }),
+    o.append(s, c, l),
+    bn.has(i.mime)) {
+        const d = document.createElement("img");
+        d.className = "received",
+        d.src = Ie,
+        d.alt = I("receive.previewAlt", {
+            name: i.filename
+        }),
+        o.append(d)
+    }
+    const m = E("reset");
+    m && (m.hidden = !1)
+}
+function Sn(e) {
+    _ = !0,
+    he(),
+    Ge(),
+    ee("stats", ""),
+    ie(I("receive.integrity.title", {
+        msg: e
+    }), !0);
+    const t = E("result");
+    if (t) {
+        const a = document.createElement("div");
+        a.className = "error",
+        a.textContent = I("receive.integrity.banner"),
+        t.replaceChildren(a)
+    }
+    const n = E("start")
+      , r = E("reset")
+      , i = E("settings");
+    n && (n.hidden = !1),
+    r && (r.hidden = !1),
+    i && (i.hidden = !0),
+    We(!0)
+}
+function Yi() {
+    if (_ || !N)
+        return;
+    const e = performance.now();
+    for (; qe.length > 0 && qe[0] < e - 2e3; )
+        qe.shift();
+    for (; me.length > 0 && me[0] < e - 2e3; )
+        me.shift();
+    if (q && O && !K && e - He > wi) {
+        ot(I("receive.timeout"), !0);
+        return
+    }
+    q && O ? Qe() : oe(),
+    ee("stats", "")
+}
+function Mr() {
+    if (document.hidden) {
+        N && !_ && (ge = !0,
+        K = !0,
+        nn(),
+        se(),
+        oe(),
+        Qe());
+        return
+    }
+    ge && N && !_ && (se(),
+    oe())
+}
+function Fr(e) {
+    if (e.persisted) {
+        N && !_ && (ge = !0,
+        K = !0,
+        nn());
+        return
+    }
+    he()
+}
+function Pr() {
+    !N || _ || K || (K = !0,
+    ge = !1,
+    se(),
+    Qe(),
+    oe())
+}
+async function zr() {
+    if (!(!N || _ || !K)) {
+        if (!kr()) {
+            const e = Number(E("cfg-width").value)
+              , t = Number(E("cfg-capfps").value)
+              , n = E("video");
+            try {
+                G = await Ar(e, t),
+                n && (n.srcObject = G,
+                await n.play().catch( () => {}
+                ))
+            } catch (r) {
+                const i = r instanceof Error ? r.message : String(r);
+                ie(I("receive.cameraError", {
+                    msg: i
+                }), !0);
+                return
+            }
+        }
+        ge = !1,
+        K = !1,
+        ie(null, !1),
+        He = performance.now(),
+        ft(),
+        se(),
+        Qe(),
+        oe(),
+        !_ && N && Tr()
+    }
+}
+function xr() {
+    Gi()
+}
+function Nr() {
+    ot(I("receive.cancelled"), !1)
+}
+function Dr() {
+    Lr()
+}
+let Bn = !1;
+function Ji() {
+    var e, t, n, r, i;
+    (e = E("start")) == null || e.addEventListener("click", xr),
+    (t = E("pause")) == null || t.addEventListener("click", Pr),
+    (n = E("resume")) == null || n.addEventListener("click", zr),
+    (r = E("cancel")) == null || r.addEventListener("click", Nr),
+    (i = E("reset")) == null || i.addEventListener("click", Dr),
+    document.addEventListener("visibilitychange", Mr),
+    window.addEventListener("pagehide", Fr),
+    Bn || (Bn = !0,
+    Yt( () => {
+        if (Ke) {
+            const a = document.querySelector(".result-meta");
+            a && (a.textContent = I("receive.statsShort", Ke))
+        }
+        oe(),
+        Ve()
+    }
+    )),
+    Lr(),
+    Ve()
+}
+function Xi() {
+    var e, t, n, r, i;
+    (e = E("start")) == null || e.removeEventListener("click", xr),
+    (t = E("pause")) == null || t.removeEventListener("click", Pr),
+    (n = E("resume")) == null || n.removeEventListener("click", zr),
+    (r = E("cancel")) == null || r.removeEventListener("click", Nr),
+    (i = E("reset")) == null || i.removeEventListener("click", Dr),
+    document.removeEventListener("visibilitychange", Mr),
+    window.removeEventListener("pagehide", Fr),
+    he(),
+    Ge()
+}
+function Zi(e) {
+    return e && e.__esModule && Object.prototype.hasOwnProperty.call(e, "default") ? e.default : e
+}
+var Be = {}, wt, Rn;
+function ea() {
+    return Rn || (Rn = 1,
+    wt = function() {
+        return typeof Promise == "function" && Promise.prototype && Promise.prototype.then
+    }
+    ),
+    wt
+}
+var yt = {}, le = {}, kn;
+function be() {
+    if (kn)
+        return le;
+    kn = 1;
+    let e;
+    const t = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346, 404, 466, 532, 581, 655, 733, 815, 901, 991, 1085, 1156, 1258, 1364, 1474, 1588, 1706, 1828, 1921, 2051, 2185, 2323, 2465, 2611, 2761, 2876, 3034, 3196, 3362, 3532, 3706];
+    return le.getSymbolSize = function(r) {
+        if (!r)
+            throw new Error('"version" cannot be null or undefined');
+        if (r < 1 || r > 40)
+            throw new Error('"version" should be in range from 1 to 40');
+        return r * 4 + 17
+    }
+    ,
+    le.getSymbolTotalCodewords = function(r) {
+        return t[r]
+    }
+    ,
+    le.getBCHDigit = function(n) {
+        let r = 0;
+        for (; n !== 0; )
+            r++,
+            n >>>= 1;
+        return r
+    }
+    ,
+    le.setToSJISFunction = function(r) {
+        if (typeof r != "function")
+            throw new Error('"toSJISFunc" is not a valid function.');
+        e = r
+    }
+    ,
+    le.isKanjiModeEnabled = function() {
+        return typeof e < "u"
+    }
+    ,
+    le.toSJIS = function(r) {
+        return e(r)
+    }
+    ,
+    le
+}
+var bt = {}, An;
+function rn() {
+    return An || (An = 1,
+    (function(e) {
+        e.L = {
+            bit: 1
+        },
+        e.M = {
+            bit: 0
+        },
+        e.Q = {
+            bit: 3
+        },
+        e.H = {
+            bit: 2
+        };
+        function t(n) {
+            if (typeof n != "string")
+                throw new Error("Param is not a string");
+            switch (n.toLowerCase()) {
+            case "l":
+            case "low":
+                return e.L;
+            case "m":
+            case "medium":
+                return e.M;
+            case "q":
+            case "quartile":
+                return e.Q;
+            case "h":
+            case "high":
+                return e.H;
+            default:
+                throw new Error("Unknown EC Level: " + n)
+            }
+        }
+        e.isValid = function(r) {
+            return r && typeof r.bit < "u" && r.bit >= 0 && r.bit < 4
+        }
+        ,
+        e.from = function(r, i) {
+            if (e.isValid(r))
+                return r;
+            try {
+                return t(r)
+            } catch {
+                return i
+            }
+        }
+    }
+    )(bt)),
+    bt
+}
+var Et, Ln;
+function ta() {
+    if (Ln)
+        return Et;
+    Ln = 1;
+    function e() {
+        this.buffer = [],
+        this.length = 0
+    }
+    return e.prototype = {
+        get: function(t) {
+            const n = Math.floor(t / 8);
+            return (this.buffer[n] >>> 7 - t % 8 & 1) === 1
+        },
+        put: function(t, n) {
+            for (let r = 0; r < n; r++)
+                this.putBit((t >>> n - r - 1 & 1) === 1)
+        },
+        getLengthInBits: function() {
+            return this.length
+        },
+        putBit: function(t) {
+            const n = Math.floor(this.length / 8);
+            this.buffer.length <= n && this.buffer.push(0),
+            t && (this.buffer[n] |= 128 >>> this.length % 8),
+            this.length++
+        }
+    },
+    Et = e,
+    Et
+}
+var Ct, In;
+function na() {
+    if (In)
+        return Ct;
+    In = 1;
+    function e(t) {
+        if (!t || t < 1)
+            throw new Error("BitMatrix size must be defined and greater than 0");
+        this.size = t,
+        this.data = new Uint8Array(t * t),
+        this.reservedBit = new Uint8Array(t * t)
+    }
+    return e.prototype.set = function(t, n, r, i) {
+        const a = t * this.size + n;
+        this.data[a] = r,
+        i && (this.reservedBit[a] = !0)
+    }
+    ,
+    e.prototype.get = function(t, n) {
+        return this.data[t * this.size + n]
+    }
+    ,
+    e.prototype.xor = function(t, n, r) {
+        this.data[t * this.size + n] ^= r
+    }
+    ,
+    e.prototype.isReserved = function(t, n) {
+        return this.reservedBit[t * this.size + n]
+    }
+    ,
+    Ct = e,
+    Ct
+}
+var St = {}, Tn;
+function ra() {
+    return Tn || (Tn = 1,
+    (function(e) {
+        const t = be().getSymbolSize;
+        e.getRowColCoords = function(r) {
+            if (r === 1)
+                return [];
+            const i = Math.floor(r / 7) + 2
+              , a = t(r)
+              , o = a === 145 ? 26 : Math.ceil((a - 13) / (2 * i - 2)) * 2
+              , s = [a - 7];
+            for (let c = 1; c < i - 1; c++)
+                s[c] = s[c - 1] - o;
+            return s.push(6),
+            s.reverse()
+        }
+        ,
+        e.getPositions = function(r) {
+            const i = []
+              , a = e.getRowColCoords(r)
+              , o = a.length;
+            for (let s = 0; s < o; s++)
+                for (let c = 0; c < o; c++)
+                    s === 0 && c === 0 || s === 0 && c === o - 1 || s === o - 1 && c === 0 || i.push([a[s], a[c]]);
+            return i
+        }
+    }
+    )(St)),
+    St
+}
+var Bt = {}, Mn;
+function ia() {
+    if (Mn)
+        return Bt;
+    Mn = 1;
+    const e = be().getSymbolSize
+      , t = 7;
+    return Bt.getPositions = function(r) {
+        const i = e(r);
+        return [[0, 0], [i - t, 0], [0, i - t]]
+    }
+    ,
+    Bt
+}
+var Rt = {}, Fn;
+function aa() {
+    return Fn || (Fn = 1,
+    (function(e) {
+        e.Patterns = {
+            PATTERN000: 0,
+            PATTERN001: 1,
+            PATTERN010: 2,
+            PATTERN011: 3,
+            PATTERN100: 4,
+            PATTERN101: 5,
+            PATTERN110: 6,
+            PATTERN111: 7
+        };
+        const t = {
+            N1: 3,
+            N2: 3,
+            N3: 40,
+            N4: 10
+        };
+        e.isValid = function(i) {
+            return i != null && i !== "" && !isNaN(i) && i >= 0 && i <= 7
+        }
+        ,
+        e.from = function(i) {
+            return e.isValid(i) ? parseInt(i, 10) : void 0
+        }
+        ,
+        e.getPenaltyN1 = function(i) {
+            const a = i.size;
+            let o = 0
+              , s = 0
+              , c = 0
+              , u = null
+              , l = null;
+            for (let m = 0; m < a; m++) {
+                s = c = 0,
+                u = l = null;
+                for (let d = 0; d < a; d++) {
+                    let f = i.get(m, d);
+                    f === u ? s++ : (s >= 5 && (o += t.N1 + (s - 5)),
+                    u = f,
+                    s = 1),
+                    f = i.get(d, m),
+                    f === l ? c++ : (c >= 5 && (o += t.N1 + (c - 5)),
+                    l = f,
+                    c = 1)
+                }
+                s >= 5 && (o += t.N1 + (s - 5)),
+                c >= 5 && (o += t.N1 + (c - 5))
+            }
+            return o
+        }
+        ,
+        e.getPenaltyN2 = function(i) {
+            const a = i.size;
+            let o = 0;
+            for (let s = 0; s < a - 1; s++)
+                for (let c = 0; c < a - 1; c++) {
+                    const u = i.get(s, c) + i.get(s, c + 1) + i.get(s + 1, c) + i.get(s + 1, c + 1);
+                    (u === 4 || u === 0) && o++
+                }
+            return o * t.N2
+        }
+        ,
+        e.getPenaltyN3 = function(i) {
+            const a = i.size;
+            let o = 0
+              , s = 0
+              , c = 0;
+            for (let u = 0; u < a; u++) {
+                s = c = 0;
+                for (let l = 0; l < a; l++)
+                    s = s << 1 & 2047 | i.get(u, l),
+                    l >= 10 && (s === 1488 || s === 93) && o++,
+                    c = c << 1 & 2047 | i.get(l, u),
+                    l >= 10 && (c === 1488 || c === 93) && o++
+            }
+            return o * t.N3
+        }
+        ,
+        e.getPenaltyN4 = function(i) {
+            let a = 0;
+            const o = i.data.length;
+            for (let c = 0; c < o; c++)
+                a += i.data[c];
+            return Math.abs(Math.ceil(a * 100 / o / 5) - 10) * t.N4
+        }
+        ;
+        function n(r, i, a) {
+            switch (r) {
+            case e.Patterns.PATTERN000:
+                return (i + a) % 2 === 0;
+            case e.Patterns.PATTERN001:
+                return i % 2 === 0;
+            case e.Patterns.PATTERN010:
+                return a % 3 === 0;
+            case e.Patterns.PATTERN011:
+                return (i + a) % 3 === 0;
+            case e.Patterns.PATTERN100:
+                return (Math.floor(i / 2) + Math.floor(a / 3)) % 2 === 0;
+            case e.Patterns.PATTERN101:
+                return i * a % 2 + i * a % 3 === 0;
+            case e.Patterns.PATTERN110:
+                return (i * a % 2 + i * a % 3) % 2 === 0;
+            case e.Patterns.PATTERN111:
+                return (i * a % 3 + (i + a) % 2) % 2 === 0;
+            default:
+                throw new Error("bad maskPattern:" + r)
+            }
+        }
+        e.applyMask = function(i, a) {
+            const o = a.size;
+            for (let s = 0; s < o; s++)
+                for (let c = 0; c < o; c++)
+                    a.isReserved(c, s) || a.xor(c, s, n(i, c, s))
+        }
+        ,
+        e.getBestMask = function(i, a) {
+            const o = Object.keys(e.Patterns).length;
+            let s = 0
+              , c = 1 / 0;
+            for (let u = 0; u < o; u++) {
+                a(u),
+                e.applyMask(u, i);
+                const l = e.getPenaltyN1(i) + e.getPenaltyN2(i) + e.getPenaltyN3(i) + e.getPenaltyN4(i);
+                e.applyMask(u, i),
+                l < c && (c = l,
+                s = u)
+            }
+            return s
+        }
+    }
+    )(Rt)),
+    Rt
+}
+var Je = {}, Pn;
+function qr() {
+    if (Pn)
+        return Je;
+    Pn = 1;
+    const e = rn()
+      , t = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 2, 2, 4, 1, 2, 4, 4, 2, 4, 4, 4, 2, 4, 6, 5, 2, 4, 6, 6, 2, 5, 8, 8, 4, 5, 8, 8, 4, 5, 8, 11, 4, 8, 10, 11, 4, 9, 12, 16, 4, 9, 16, 16, 6, 10, 12, 18, 6, 10, 17, 16, 6, 11, 16, 19, 6, 13, 18, 21, 7, 14, 21, 25, 8, 16, 20, 25, 8, 17, 23, 25, 9, 17, 23, 34, 9, 18, 25, 30, 10, 20, 27, 32, 12, 21, 29, 35, 12, 23, 34, 37, 12, 25, 34, 40, 13, 26, 35, 42, 14, 28, 38, 45, 15, 29, 40, 48, 16, 31, 43, 51, 17, 33, 45, 54, 18, 35, 48, 57, 19, 37, 51, 60, 19, 38, 53, 63, 20, 40, 56, 66, 21, 43, 59, 70, 22, 45, 62, 74, 24, 47, 65, 77, 25, 49, 68, 81]
+      , n = [7, 10, 13, 17, 10, 16, 22, 28, 15, 26, 36, 44, 20, 36, 52, 64, 26, 48, 72, 88, 36, 64, 96, 112, 40, 72, 108, 130, 48, 88, 132, 156, 60, 110, 160, 192, 72, 130, 192, 224, 80, 150, 224, 264, 96, 176, 260, 308, 104, 198, 288, 352, 120, 216, 320, 384, 132, 240, 360, 432, 144, 280, 408, 480, 168, 308, 448, 532, 180, 338, 504, 588, 196, 364, 546, 650, 224, 416, 600, 700, 224, 442, 644, 750, 252, 476, 690, 816, 270, 504, 750, 900, 300, 560, 810, 960, 312, 588, 870, 1050, 336, 644, 952, 1110, 360, 700, 1020, 1200, 390, 728, 1050, 1260, 420, 784, 1140, 1350, 450, 812, 1200, 1440, 480, 868, 1290, 1530, 510, 924, 1350, 1620, 540, 980, 1440, 1710, 570, 1036, 1530, 1800, 570, 1064, 1590, 1890, 600, 1120, 1680, 1980, 630, 1204, 1770, 2100, 660, 1260, 1860, 2220, 720, 1316, 1950, 2310, 750, 1372, 2040, 2430];
+    return Je.getBlocksCount = function(i, a) {
+        switch (a) {
+        case e.L:
+            return t[(i - 1) * 4 + 0];
+        case e.M:
+            return t[(i - 1) * 4 + 1];
+        case e.Q:
+            return t[(i - 1) * 4 + 2];
+        case e.H:
+            return t[(i - 1) * 4 + 3];
+        default:
+            return
+        }
+    }
+    ,
+    Je.getTotalCodewordsCount = function(i, a) {
+        switch (a) {
+        case e.L:
+            return n[(i - 1) * 4 + 0];
+        case e.M:
+            return n[(i - 1) * 4 + 1];
+        case e.Q:
+            return n[(i - 1) * 4 + 2];
+        case e.H:
+            return n[(i - 1) * 4 + 3];
+        default:
+            return
+        }
+    }
+    ,
+    Je
+}
+var kt = {}, ze = {}, zn;
+function oa() {
+    if (zn)
+        return ze;
+    zn = 1;
+    const e = new Uint8Array(512)
+      , t = new Uint8Array(256);
+    return (function() {
+        let r = 1;
+        for (let i = 0; i < 255; i++)
+            e[i] = r,
+            t[r] = i,
+            r <<= 1,
+            r & 256 && (r ^= 285);
+        for (let i = 255; i < 512; i++)
+            e[i] = e[i - 255]
+    }
+    )(),
+    ze.log = function(r) {
+        if (r < 1)
+            throw new Error("log(" + r + ")");
+        return t[r]
+    }
+    ,
+    ze.exp = function(r) {
+        return e[r]
+    }
+    ,
+    ze.mul = function(r, i) {
+        return r === 0 || i === 0 ? 0 : e[t[r] + t[i]]
+    }
+    ,
+    ze
+}
+var xn;
+function sa() {
+    return xn || (xn = 1,
+    (function(e) {
+        const t = oa();
+        e.mul = function(r, i) {
+            const a = new Uint8Array(r.length + i.length - 1);
+            for (let o = 0; o < r.length; o++)
+                for (let s = 0; s < i.length; s++)
+                    a[o + s] ^= t.mul(r[o], i[s]);
+            return a
+        }
+        ,
+        e.mod = function(r, i) {
+            let a = new Uint8Array(r);
+            for (; a.length - i.length >= 0; ) {
+                const o = a[0];
+                for (let c = 0; c < i.length; c++)
+                    a[c] ^= t.mul(i[c], o);
+                let s = 0;
+                for (; s < a.length && a[s] === 0; )
+                    s++;
+                a = a.slice(s)
+            }
+            return a
+        }
+        ,
+        e.generateECPolynomial = function(r) {
+            let i = new Uint8Array([1]);
+            for (let a = 0; a < r; a++)
+                i = e.mul(i, new Uint8Array([1, t.exp(a)]));
+            return i
+        }
+    }
+    )(kt)),
+    kt
+}
+var At, Nn;
+function ca() {
+    if (Nn)
+        return At;
+    Nn = 1;
+    const e = sa();
+    function t(n) {
+        this.genPoly = void 0,
+        this.degree = n,
+        this.degree && this.initialize(this.degree)
+    }
+    return t.prototype.initialize = function(r) {
+        this.degree = r,
+        this.genPoly = e.generateECPolynomial(this.degree)
+    }
+    ,
+    t.prototype.encode = function(r) {
+        if (!this.genPoly)
+            throw new Error("Encoder not initialized");
+        const i = new Uint8Array(r.length + this.degree);
+        i.set(r);
+        const a = e.mod(i, this.genPoly)
+          , o = this.degree - a.length;
+        if (o > 0) {
+            const s = new Uint8Array(this.degree);
+            return s.set(a, o),
+            s
+        }
+        return a
+    }
+    ,
+    At = t,
+    At
+}
+var Lt = {}, It = {}, Tt = {}, Dn;
+function Ur() {
+    return Dn || (Dn = 1,
+    Tt.isValid = function(t) {
+        return !isNaN(t) && t >= 1 && t <= 40
+    }
+    ),
+    Tt
+}
+var X = {}, qn;
+function _r() {
+    if (qn)
+        return X;
+    qn = 1;
+    const e = "[0-9]+"
+      , t = "[A-Z $%*+\\-./:]+";
+    let n = "(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+";
+    n = n.replace(/u/g, "\\u");
+    const r = "(?:(?![A-Z0-9 $%*+\\-./:]|" + n + `)(?:.|[\r
+]))+`;
+    X.KANJI = new RegExp(n,"g"),
+    X.BYTE_KANJI = new RegExp("[^A-Z0-9 $%*+\\-./:]+","g"),
+    X.BYTE = new RegExp(r,"g"),
+    X.NUMERIC = new RegExp(e,"g"),
+    X.ALPHANUMERIC = new RegExp(t,"g");
+    const i = new RegExp("^" + n + "$")
+      , a = new RegExp("^" + e + "$")
+      , o = new RegExp("^[A-Z0-9 $%*+\\-./:]+$");
+    return X.testKanji = function(c) {
+        return i.test(c)
+    }
+    ,
+    X.testNumeric = function(c) {
+        return a.test(c)
+    }
+    ,
+    X.testAlphanumeric = function(c) {
+        return o.test(c)
+    }
+    ,
+    X
+}
+var Un;
+function Ee() {
+    return Un || (Un = 1,
+    (function(e) {
+        const t = Ur()
+          , n = _r();
+        e.NUMERIC = {
+            id: "Numeric",
+            bit: 1,
+            ccBits: [10, 12, 14]
+        },
+        e.ALPHANUMERIC = {
+            id: "Alphanumeric",
+            bit: 2,
+            ccBits: [9, 11, 13]
+        },
+        e.BYTE = {
+            id: "Byte",
+            bit: 4,
+            ccBits: [8, 16, 16]
+        },
+        e.KANJI = {
+            id: "Kanji",
+            bit: 8,
+            ccBits: [8, 10, 12]
+        },
+        e.MIXED = {
+            bit: -1
+        },
+        e.getCharCountIndicator = function(a, o) {
+            if (!a.ccBits)
+                throw new Error("Invalid mode: " + a);
+            if (!t.isValid(o))
+                throw new Error("Invalid version: " + o);
+            return o >= 1 && o < 10 ? a.ccBits[0] : o < 27 ? a.ccBits[1] : a.ccBits[2]
+        }
+        ,
+        e.getBestModeForData = function(a) {
+            return n.testNumeric(a) ? e.NUMERIC : n.testAlphanumeric(a) ? e.ALPHANUMERIC : n.testKanji(a) ? e.KANJI : e.BYTE
+        }
+        ,
+        e.toString = function(a) {
+            if (a && a.id)
+                return a.id;
+            throw new Error("Invalid mode")
+        }
+        ,
+        e.isValid = function(a) {
+            return a && a.bit && a.ccBits
+        }
+        ;
+        function r(i) {
+            if (typeof i != "string")
+                throw new Error("Param is not a string");
+            switch (i.toLowerCase()) {
+            case "numeric":
+                return e.NUMERIC;
+            case "alphanumeric":
+                return e.ALPHANUMERIC;
+            case "kanji":
+                return e.KANJI;
+            case "byte":
+                return e.BYTE;
+            default:
+                throw new Error("Unknown mode: " + i)
+            }
+        }
+        e.from = function(a, o) {
+            if (e.isValid(a))
+                return a;
+            try {
+                return r(a)
+            } catch {
+                return o
+            }
+        }
+    }
+    )(It)),
+    It
+}
+var _n;
+function la() {
+    return _n || (_n = 1,
+    (function(e) {
+        const t = be()
+          , n = qr()
+          , r = rn()
+          , i = Ee()
+          , a = Ur()
+          , o = 7973
+          , s = t.getBCHDigit(o);
+        function c(d, f, C) {
+            for (let b = 1; b <= 40; b++)
+                if (f <= e.getCapacity(b, C, d))
+                    return b
+        }
+        function u(d, f) {
+            return i.getCharCountIndicator(d, f) + 4
+        }
+        function l(d, f) {
+            let C = 0;
+            return d.forEach(function(b) {
+                const F = u(b.mode, f);
+                C += F + b.getBitsLength()
+            }),
+            C
+        }
+        function m(d, f) {
+            for (let C = 1; C <= 40; C++)
+                if (l(d, C) <= e.getCapacity(C, f, i.MIXED))
+                    return C
+        }
+        e.from = function(f, C) {
+            return a.isValid(f) ? parseInt(f, 10) : C
+        }
+        ,
+        e.getCapacity = function(f, C, b) {
+            if (!a.isValid(f))
+                throw new Error("Invalid QR Code version");
+            typeof b > "u" && (b = i.BYTE);
+            const F = t.getSymbolTotalCodewords(f)
+              , S = n.getTotalCodewordsCount(f, C)
+              , T = (F - S) * 8;
+            if (b === i.MIXED)
+                return T;
+            const k = T - u(b, f);
+            switch (b) {
+            case i.NUMERIC:
+                return Math.floor(k / 10 * 3);
+            case i.ALPHANUMERIC:
+                return Math.floor(k / 11 * 2);
+            case i.KANJI:
+                return Math.floor(k / 13);
+            case i.BYTE:
+            default:
+                return Math.floor(k / 8)
+            }
+        }
+        ,
+        e.getBestVersionForData = function(f, C) {
+            let b;
+            const F = r.from(C, r.M);
+            if (Array.isArray(f)) {
+                if (f.length > 1)
+                    return m(f, F);
+                if (f.length === 0)
+                    return 1;
+                b = f[0]
+            } else
+                b = f;
+            return c(b.mode, b.getLength(), F)
+        }
+        ,
+        e.getEncodedBits = function(f) {
+            if (!a.isValid(f) || f < 7)
+                throw new Error("Invalid QR Code version");
+            let C = f << 12;
+            for (; t.getBCHDigit(C) - s >= 0; )
+                C ^= o << t.getBCHDigit(C) - s;
+            return f << 12 | C
+        }
+    }
+    )(Lt)),
+    Lt
+}
+var Mt = {}, Hn;
+function da() {
+    if (Hn)
+        return Mt;
+    Hn = 1;
+    const e = be()
+      , t = 1335
+      , n = 21522
+      , r = e.getBCHDigit(t);
+    return Mt.getEncodedBits = function(a, o) {
+        const s = a.bit << 3 | o;
+        let c = s << 10;
+        for (; e.getBCHDigit(c) - r >= 0; )
+            c ^= t << e.getBCHDigit(c) - r;
+        return (s << 10 | c) ^ n
+    }
+    ,
+    Mt
+}
+var Ft = {}, Pt, Kn;
+function ua() {
+    if (Kn)
+        return Pt;
+    Kn = 1;
+    const e = Ee();
+    function t(n) {
+        this.mode = e.NUMERIC,
+        this.data = n.toString()
+    }
+    return t.getBitsLength = function(r) {
+        return 10 * Math.floor(r / 3) + (r % 3 ? r % 3 * 3 + 1 : 0)
+    }
+    ,
+    t.prototype.getLength = function() {
+        return this.data.length
+    }
+    ,
+    t.prototype.getBitsLength = function() {
+        return t.getBitsLength(this.data.length)
+    }
+    ,
+    t.prototype.write = function(r) {
+        let i, a, o;
+        for (i = 0; i + 3 <= this.data.length; i += 3)
+            a = this.data.substr(i, 3),
+            o = parseInt(a, 10),
+            r.put(o, 10);
+        const s = this.data.length - i;
+        s > 0 && (a = this.data.substr(i),
+        o = parseInt(a, 10),
+        r.put(o, s * 3 + 1))
+    }
+    ,
+    Pt = t,
+    Pt
+}
+var zt, On;
+function fa() {
+    if (On)
+        return zt;
+    On = 1;
+    const e = Ee()
+      , t = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", " ", "$", "%", "*", "+", "-", ".", "/", ":"];
+    function n(r) {
+        this.mode = e.ALPHANUMERIC,
+        this.data = r
+    }
+    return n.getBitsLength = function(i) {
+        return 11 * Math.floor(i / 2) + 6 * (i % 2)
+    }
+    ,
+    n.prototype.getLength = function() {
+        return this.data.length
+    }
+    ,
+    n.prototype.getBitsLength = function() {
+        return n.getBitsLength(this.data.length)
+    }
+    ,
+    n.prototype.write = function(i) {
+        let a;
+        for (a = 0; a + 2 <= this.data.length; a += 2) {
+            let o = t.indexOf(this.data[a]) * 45;
+            o += t.indexOf(this.data[a + 1]),
+            i.put(o, 11)
+        }
+        this.data.length % 2 && i.put(t.indexOf(this.data[a]), 6)
+    }
+    ,
+    zt = n,
+    zt
+}
+var xt, Vn;
+function ma() {
+    if (Vn)
+        return xt;
+    Vn = 1;
+    const e = Ee();
+    function t(n) {
+        this.mode = e.BYTE,
+        typeof n == "string" ? this.data = new TextEncoder().encode(n) : this.data = new Uint8Array(n)
+    }
+    return t.getBitsLength = function(r) {
+        return r * 8
+    }
+    ,
+    t.prototype.getLength = function() {
+        return this.data.length
+    }
+    ,
+    t.prototype.getBitsLength = function() {
+        return t.getBitsLength(this.data.length)
+    }
+    ,
+    t.prototype.write = function(n) {
+        for (let r = 0, i = this.data.length; r < i; r++)
+            n.put(this.data[r], 8)
+    }
+    ,
+    xt = t,
+    xt
+}
+var Nt, Wn;
+function ga() {
+    if (Wn)
+        return Nt;
+    Wn = 1;
+    const e = Ee()
+      , t = be();
+    function n(r) {
+        this.mode = e.KANJI,
+        this.data = r
+    }
+    return n.getBitsLength = function(i) {
+        return i * 13
+    }
+    ,
+    n.prototype.getLength = function() {
+        return this.data.length
+    }
+    ,
+    n.prototype.getBitsLength = function() {
+        return n.getBitsLength(this.data.length)
+    }
+    ,
+    n.prototype.write = function(r) {
+        let i;
+        for (i = 0; i < this.data.length; i++) {
+            let a = t.toSJIS(this.data[i]);
+            if (a >= 33088 && a <= 40956)
+                a -= 33088;
+            else if (a >= 57408 && a <= 60351)
+                a -= 49472;
+            else
+                throw new Error("Invalid SJIS character: " + this.data[i] + `
+Make sure your charset is UTF-8`);
+            a = (a >>> 8 & 255) * 192 + (a & 255),
+            r.put(a, 13)
+        }
+    }
+    ,
+    Nt = n,
+    Nt
+}
+var Dt = {
+    exports: {}
+}, Qn;
+function ha() {
+    return Qn || (Qn = 1,
+    (function(e) {
+        var t = {
+            single_source_shortest_paths: function(n, r, i) {
+                var a = {}
+                  , o = {};
+                o[r] = 0;
+                var s = t.PriorityQueue.make();
+                s.push(r, 0);
+                for (var c, u, l, m, d, f, C, b, F; !s.empty(); ) {
+                    c = s.pop(),
+                    u = c.value,
+                    m = c.cost,
+                    d = n[u] || {};
+                    for (l in d)
+                        d.hasOwnProperty(l) && (f = d[l],
+                        C = m + f,
+                        b = o[l],
+                        F = typeof o[l] > "u",
+                        (F || b > C) && (o[l] = C,
+                        s.push(l, C),
+                        a[l] = u))
+                }
+                if (typeof i < "u" && typeof o[i] > "u") {
+                    var S = ["Could not find a path from ", r, " to ", i, "."].join("");
+                    throw new Error(S)
+                }
+                return a
+            },
+            extract_shortest_path_from_predecessor_list: function(n, r) {
+                for (var i = [], a = r; a; )
+                    i.push(a),
+                    n[a],
+                    a = n[a];
+                return i.reverse(),
+                i
+            },
+            find_path: function(n, r, i) {
+                var a = t.single_source_shortest_paths(n, r, i);
+                return t.extract_shortest_path_from_predecessor_list(a, i)
+            },
+            PriorityQueue: {
+                make: function(n) {
+                    var r = t.PriorityQueue, i = {}, a;
+                    n = n || {};
+                    for (a in r)
+                        r.hasOwnProperty(a) && (i[a] = r[a]);
+                    return i.queue = [],
+                    i.sorter = n.sorter || r.default_sorter,
+                    i
+                },
+                default_sorter: function(n, r) {
+                    return n.cost - r.cost
+                },
+                push: function(n, r) {
+                    var i = {
+                        value: n,
+                        cost: r
+                    };
+                    this.queue.push(i),
+                    this.queue.sort(this.sorter)
+                },
+                pop: function() {
+                    return this.queue.shift()
+                },
+                empty: function() {
+                    return this.queue.length === 0
+                }
+            }
+        };
+        e.exports = t
+    }
+    )(Dt)),
+    Dt.exports
+}
+var Gn;
+function pa() {
+    return Gn || (Gn = 1,
+    (function(e) {
+        const t = Ee()
+          , n = ua()
+          , r = fa()
+          , i = ma()
+          , a = ga()
+          , o = _r()
+          , s = be()
+          , c = ha();
+        function u(S) {
+            return unescape(encodeURIComponent(S)).length
+        }
+        function l(S, T, k) {
+            const R = [];
+            let P;
+            for (; (P = S.exec(k)) !== null; )
+                R.push({
+                    data: P[0],
+                    index: P.index,
+                    mode: T,
+                    length: P[0].length
+                });
+            return R
+        }
+        function m(S) {
+            const T = l(o.NUMERIC, t.NUMERIC, S)
+              , k = l(o.ALPHANUMERIC, t.ALPHANUMERIC, S);
+            let R, P;
+            return s.isKanjiModeEnabled() ? (R = l(o.BYTE, t.BYTE, S),
+            P = l(o.KANJI, t.KANJI, S)) : (R = l(o.BYTE_KANJI, t.BYTE, S),
+            P = []),
+            T.concat(k, R, P).sort(function(y, B) {
+                return y.index - B.index
+            }).map(function(y) {
+                return {
+                    data: y.data,
+                    mode: y.mode,
+                    length: y.length
+                }
+            })
+        }
+        function d(S, T) {
+            switch (T) {
+            case t.NUMERIC:
+                return n.getBitsLength(S);
+            case t.ALPHANUMERIC:
+                return r.getBitsLength(S);
+            case t.KANJI:
+                return a.getBitsLength(S);
+            case t.BYTE:
+                return i.getBitsLength(S)
+            }
+        }
+        function f(S) {
+            return S.reduce(function(T, k) {
+                const R = T.length - 1 >= 0 ? T[T.length - 1] : null;
+                return R && R.mode === k.mode ? (T[T.length - 1].data += k.data,
+                T) : (T.push(k),
+                T)
+            }, [])
+        }
+        function C(S) {
+            const T = [];
+            for (let k = 0; k < S.length; k++) {
+                const R = S[k];
+                switch (R.mode) {
+                case t.NUMERIC:
+                    T.push([R, {
+                        data: R.data,
+                        mode: t.ALPHANUMERIC,
+                        length: R.length
+                    }, {
+                        data: R.data,
+                        mode: t.BYTE,
+                        length: R.length
+                    }]);
+                    break;
+                case t.ALPHANUMERIC:
+                    T.push([R, {
+                        data: R.data,
+                        mode: t.BYTE,
+                        length: R.length
+                    }]);
+                    break;
+                case t.KANJI:
+                    T.push([R, {
+                        data: R.data,
+                        mode: t.BYTE,
+                        length: u(R.data)
+                    }]);
+                    break;
+                case t.BYTE:
+                    T.push([{
+                        data: R.data,
+                        mode: t.BYTE,
+                        length: u(R.data)
+                    }])
+                }
+            }
+            return T
+        }
+        function b(S, T) {
+            const k = {}
+              , R = {
+                start: {}
+            };
+            let P = ["start"];
+            for (let p = 0; p < S.length; p++) {
+                const y = S[p]
+                  , B = [];
+                for (let v = 0; v < y.length; v++) {
+                    const L = y[v]
+                      , h = "" + p + v;
+                    B.push(h),
+                    k[h] = {
+                        node: L,
+                        lastCount: 0
+                    },
+                    R[h] = {};
+                    for (let w = 0; w < P.length; w++) {
+                        const g = P[w];
+                        k[g] && k[g].node.mode === L.mode ? (R[g][h] = d(k[g].lastCount + L.length, L.mode) - d(k[g].lastCount, L.mode),
+                        k[g].lastCount += L.length) : (k[g] && (k[g].lastCount = L.length),
+                        R[g][h] = d(L.length, L.mode) + 4 + t.getCharCountIndicator(L.mode, T))
+                    }
+                }
+                P = B
+            }
+            for (let p = 0; p < P.length; p++)
+                R[P[p]].end = 0;
+            return {
+                map: R,
+                table: k
+            }
+        }
+        function F(S, T) {
+            let k;
+            const R = t.getBestModeForData(S);
+            if (k = t.from(T, R),
+            k !== t.BYTE && k.bit < R.bit)
+                throw new Error('"' + S + '" cannot be encoded with mode ' + t.toString(k) + `.
+ Suggested mode is: ` + t.toString(R));
+            switch (k === t.KANJI && !s.isKanjiModeEnabled() && (k = t.BYTE),
+            k) {
+            case t.NUMERIC:
+                return new n(S);
+            case t.ALPHANUMERIC:
+                return new r(S);
+            case t.KANJI:
+                return new a(S);
+            case t.BYTE:
+                return new i(S)
+            }
+        }
+        e.fromArray = function(T) {
+            return T.reduce(function(k, R) {
+                return typeof R == "string" ? k.push(F(R, null)) : R.data && k.push(F(R.data, R.mode)),
+                k
+            }, [])
+        }
+        ,
+        e.fromString = function(T, k) {
+            const R = m(T, s.isKanjiModeEnabled())
+              , P = C(R)
+              , p = b(P, k)
+              , y = c.find_path(p.map, "start", "end")
+              , B = [];
+            for (let v = 1; v < y.length - 1; v++)
+                B.push(p.table[y[v]].node);
+            return e.fromArray(f(B))
+        }
+        ,
+        e.rawSplit = function(T) {
+            return e.fromArray(m(T, s.isKanjiModeEnabled()))
+        }
+    }
+    )(Ft)),
+    Ft
+}
+var $n;
+function va() {
+    if ($n)
+        return yt;
+    $n = 1;
+    const e = be()
+      , t = rn()
+      , n = ta()
+      , r = na()
+      , i = ra()
+      , a = ia()
+      , o = aa()
+      , s = qr()
+      , c = ca()
+      , u = la()
+      , l = da()
+      , m = Ee()
+      , d = pa();
+    function f(p, y) {
+        const B = p.size
+          , v = a.getPositions(y);
+        for (let L = 0; L < v.length; L++) {
+            const h = v[L][0]
+              , w = v[L][1];
+            for (let g = -1; g <= 7; g++)
+                if (!(h + g <= -1 || B <= h + g))
+                    for (let A = -1; A <= 7; A++)
+                        w + A <= -1 || B <= w + A || (g >= 0 && g <= 6 && (A === 0 || A === 6) || A >= 0 && A <= 6 && (g === 0 || g === 6) || g >= 2 && g <= 4 && A >= 2 && A <= 4 ? p.set(h + g, w + A, !0, !0) : p.set(h + g, w + A, !1, !0))
+        }
+    }
+    function C(p) {
+        const y = p.size;
+        for (let B = 8; B < y - 8; B++) {
+            const v = B % 2 === 0;
+            p.set(B, 6, v, !0),
+            p.set(6, B, v, !0)
+        }
+    }
+    function b(p, y) {
+        const B = i.getPositions(y);
+        for (let v = 0; v < B.length; v++) {
+            const L = B[v][0]
+              , h = B[v][1];
+            for (let w = -2; w <= 2; w++)
+                for (let g = -2; g <= 2; g++)
+                    w === -2 || w === 2 || g === -2 || g === 2 || w === 0 && g === 0 ? p.set(L + w, h + g, !0, !0) : p.set(L + w, h + g, !1, !0)
+        }
+    }
+    function F(p, y) {
+        const B = p.size
+          , v = u.getEncodedBits(y);
+        let L, h, w;
+        for (let g = 0; g < 18; g++)
+            L = Math.floor(g / 3),
+            h = g % 3 + B - 8 - 3,
+            w = (v >> g & 1) === 1,
+            p.set(L, h, w, !0),
+            p.set(h, L, w, !0)
+    }
+    function S(p, y, B) {
+        const v = p.size
+          , L = l.getEncodedBits(y, B);
+        let h, w;
+        for (h = 0; h < 15; h++)
+            w = (L >> h & 1) === 1,
+            h < 6 ? p.set(h, 8, w, !0) : h < 8 ? p.set(h + 1, 8, w, !0) : p.set(v - 15 + h, 8, w, !0),
+            h < 8 ? p.set(8, v - h - 1, w, !0) : h < 9 ? p.set(8, 15 - h - 1 + 1, w, !0) : p.set(8, 15 - h - 1, w, !0);
+        p.set(v - 8, 8, 1, !0)
+    }
+    function T(p, y) {
+        const B = p.size;
+        let v = -1
+          , L = B - 1
+          , h = 7
+          , w = 0;
+        for (let g = B - 1; g > 0; g -= 2)
+            for (g === 6 && g--; ; ) {
+                for (let A = 0; A < 2; A++)
+                    if (!p.isReserved(L, g - A)) {
+                        let M = !1;
+                        w < y.length && (M = (y[w] >>> h & 1) === 1),
+                        p.set(L, g - A, M),
+                        h--,
+                        h === -1 && (w++,
+                        h = 7)
+                    }
+                if (L += v,
+                L < 0 || B <= L) {
+                    L -= v,
+                    v = -v;
+                    break
+                }
+            }
+    }
+    function k(p, y, B) {
+        const v = new n;
+        B.forEach(function(A) {
+            v.put(A.mode.bit, 4),
+            v.put(A.getLength(), m.getCharCountIndicator(A.mode, p)),
+            A.write(v)
+        });
+        const L = e.getSymbolTotalCodewords(p)
+          , h = s.getTotalCodewordsCount(p, y)
+          , w = (L - h) * 8;
+        for (v.getLengthInBits() + 4 <= w && v.put(0, 4); v.getLengthInBits() % 8 !== 0; )
+            v.putBit(0);
+        const g = (w - v.getLengthInBits()) / 8;
+        for (let A = 0; A < g; A++)
+            v.put(A % 2 ? 17 : 236, 8);
+        return R(v, p, y)
+    }
+    function R(p, y, B) {
+        const v = e.getSymbolTotalCodewords(y)
+          , L = s.getTotalCodewordsCount(y, B)
+          , h = v - L
+          , w = s.getBlocksCount(y, B)
+          , g = v % w
+          , A = w - g
+          , M = Math.floor(v / w)
+          , x = Math.floor(h / w)
+          , j = x + 1
+          , je = M - x
+          , Fe = new c(je);
+        let Ce = 0;
+        const pe = new Array(w)
+          , J = new Array(w);
+        let ve = 0;
+        const ht = new Uint8Array(p.buffer);
+        for (let Se = 0; Se < w; Se++) {
+            const pt = Se < A ? x : j;
+            pe[Se] = ht.slice(Ce, Ce + pt),
+            J[Se] = Fe.encode(pe[Se]),
+            Ce += pt,
+            ve = Math.max(ve, pt)
+        }
+        const ce = new Uint8Array(v);
+        let cn = 0, te, ne;
+        for (te = 0; te < ve; te++)
+            for (ne = 0; ne < w; ne++)
+                te < pe[ne].length && (ce[cn++] = pe[ne][te]);
+        for (te = 0; te < je; te++)
+            for (ne = 0; ne < w; ne++)
+                ce[cn++] = J[ne][te];
+        return ce
+    }
+    function P(p, y, B, v) {
+        let L;
+        if (Array.isArray(p))
+            L = d.fromArray(p);
+        else if (typeof p == "string") {
+            let M = y;
+            if (!M) {
+                const x = d.rawSplit(p);
+                M = u.getBestVersionForData(x, B)
+            }
+            L = d.fromString(p, M || 40)
+        } else
+            throw new Error("Invalid data");
+        const h = u.getBestVersionForData(L, B);
+        if (!h)
+            throw new Error("The amount of data is too big to be stored in a QR Code");
+        if (!y)
+            y = h;
+        else if (y < h)
+            throw new Error(`
+The chosen QR Code version cannot contain this amount of data.
+Minimum version required to store current data is: ` + h + `.
+`);
+        const w = k(y, B, L)
+          , g = e.getSymbolSize(y)
+          , A = new r(g);
+        return f(A, y),
+        C(A),
+        b(A, y),
+        S(A, B, 0),
+        y >= 7 && F(A, y),
+        T(A, w),
+        isNaN(v) && (v = o.getBestMask(A, S.bind(null, A, B))),
+        o.applyMask(v, A),
+        S(A, B, v),
+        {
+            modules: A,
+            version: y,
+            errorCorrectionLevel: B,
+            maskPattern: v,
+            segments: L
+        }
+    }
+    return yt.create = function(y, B) {
+        if (typeof y > "u" || y === "")
+            throw new Error("No input text");
+        let v = t.M, L, h;
+        return typeof B < "u" && (v = t.from(B.errorCorrectionLevel, t.M),
+        L = u.from(B.version),
+        h = o.from(B.maskPattern),
+        B.toSJISFunc && e.setToSJISFunction(B.toSJISFunc)),
+        P(y, L, v, h)
+    }
+    ,
+    yt
+}
+var qt = {}, Ut = {}, jn;
+function Hr() {
+    return jn || (jn = 1,
+    (function(e) {
+        function t(n) {
+            if (typeof n == "number" && (n = n.toString()),
+            typeof n != "string")
+                throw new Error("Color should be defined as hex string");
+            let r = n.slice().replace("#", "").split("");
+            if (r.length < 3 || r.length === 5 || r.length > 8)
+                throw new Error("Invalid hex color: " + n);
+            (r.length === 3 || r.length === 4) && (r = Array.prototype.concat.apply([], r.map(function(a) {
+                return [a, a]
+            }))),
+            r.length === 6 && r.push("F", "F");
+            const i = parseInt(r.join(""), 16);
+            return {
+                r: i >> 24 & 255,
+                g: i >> 16 & 255,
+                b: i >> 8 & 255,
+                a: i & 255,
+                hex: "#" + r.slice(0, 6).join("")
+            }
+        }
+        e.getOptions = function(r) {
+            r || (r = {}),
+            r.color || (r.color = {});
+            const i = typeof r.margin > "u" || r.margin === null || r.margin < 0 ? 4 : r.margin
+              , a = r.width && r.width >= 21 ? r.width : void 0
+              , o = r.scale || 4;
+            return {
+                width: a,
+                scale: a ? 4 : o,
+                margin: i,
+                color: {
+                    dark: t(r.color.dark || "#000000ff"),
+                    light: t(r.color.light || "#ffffffff")
+                },
+                type: r.type,
+                rendererOpts: r.rendererOpts || {}
+            }
+        }
+        ,
+        e.getScale = function(r, i) {
+            return i.width && i.width >= r + i.margin * 2 ? i.width / (r + i.margin * 2) : i.scale
+        }
+        ,
+        e.getImageWidth = function(r, i) {
+            const a = e.getScale(r, i);
+            return Math.floor((r + i.margin * 2) * a)
+        }
+        ,
+        e.qrToImageData = function(r, i, a) {
+            const o = i.modules.size
+              , s = i.modules.data
+              , c = e.getScale(o, a)
+              , u = Math.floor((o + a.margin * 2) * c)
+              , l = a.margin * c
+              , m = [a.color.light, a.color.dark];
+            for (let d = 0; d < u; d++)
+                for (let f = 0; f < u; f++) {
+                    let C = (d * u + f) * 4
+                      , b = a.color.light;
+                    if (d >= l && f >= l && d < u - l && f < u - l) {
+                        const F = Math.floor((d - l) / c)
+                          , S = Math.floor((f - l) / c);
+                        b = m[s[F * o + S] ? 1 : 0]
+                    }
+                    r[C++] = b.r,
+                    r[C++] = b.g,
+                    r[C++] = b.b,
+                    r[C] = b.a
+                }
+        }
+    }
+    )(Ut)),
+    Ut
+}
+var Yn;
+function wa() {
+    return Yn || (Yn = 1,
+    (function(e) {
+        const t = Hr();
+        function n(i, a, o) {
+            i.clearRect(0, 0, a.width, a.height),
+            a.style || (a.style = {}),
+            a.height = o,
+            a.width = o,
+            a.style.height = o + "px",
+            a.style.width = o + "px"
+        }
+        function r() {
+            try {
+                return document.createElement("canvas")
+            } catch {
+                throw new Error("You need to specify a canvas element")
+            }
+        }
+        e.render = function(a, o, s) {
+            let c = s
+              , u = o;
+            typeof c > "u" && (!o || !o.getContext) && (c = o,
+            o = void 0),
+            o || (u = r()),
+            c = t.getOptions(c);
+            const l = t.getImageWidth(a.modules.size, c)
+              , m = u.getContext("2d")
+              , d = m.createImageData(l, l);
+            return t.qrToImageData(d.data, a, c),
+            n(m, u, l),
+            m.putImageData(d, 0, 0),
+            u
+        }
+        ,
+        e.renderToDataURL = function(a, o, s) {
+            let c = s;
+            typeof c > "u" && (!o || !o.getContext) && (c = o,
+            o = void 0),
+            c || (c = {});
+            const u = e.render(a, o, c)
+              , l = c.type || "image/png"
+              , m = c.rendererOpts || {};
+            return u.toDataURL(l, m.quality)
+        }
+    }
+    )(qt)),
+    qt
+}
+var _t = {}, Jn;
+function ya() {
+    if (Jn)
+        return _t;
+    Jn = 1;
+    const e = Hr();
+    function t(i, a) {
+        const o = i.a / 255
+          , s = a + '="' + i.hex + '"';
+        return o < 1 ? s + " " + a + '-opacity="' + o.toFixed(2).slice(1) + '"' : s
+    }
+    function n(i, a, o) {
+        let s = i + a;
+        return typeof o < "u" && (s += " " + o),
+        s
+    }
+    function r(i, a, o) {
+        let s = ""
+          , c = 0
+          , u = !1
+          , l = 0;
+        for (let m = 0; m < i.length; m++) {
+            const d = Math.floor(m % a)
+              , f = Math.floor(m / a);
+            !d && !u && (u = !0),
+            i[m] ? (l++,
+            m > 0 && d > 0 && i[m - 1] || (s += u ? n("M", d + o, .5 + f + o) : n("m", c, 0),
+            c = 0,
+            u = !1),
+            d + 1 < a && i[m + 1] || (s += n("h", l),
+            l = 0)) : c++
+        }
+        return s
+    }
+    return _t.render = function(a, o, s) {
+        const c = e.getOptions(o)
+          , u = a.modules.size
+          , l = a.modules.data
+          , m = u + c.margin * 2
+          , d = c.color.light.a ? "<path " + t(c.color.light, "fill") + ' d="M0 0h' + m + "v" + m + 'H0z"/>' : ""
+          , f = "<path " + t(c.color.dark, "stroke") + ' d="' + r(l, u, c.margin) + '"/>'
+          , C = 'viewBox="0 0 ' + m + " " + m + '"'
+          , F = '<svg xmlns="http://www.w3.org/2000/svg" ' + (c.width ? 'width="' + c.width + '" height="' + c.width + '" ' : "") + C + ' shape-rendering="crispEdges">' + d + f + `</svg>
+`;
+        return typeof s == "function" && s(null, F),
+        F
+    }
+    ,
+    _t
+}
+var Xn;
+function ba() {
+    if (Xn)
+        return Be;
+    Xn = 1;
+    const e = ea()
+      , t = va()
+      , n = wa()
+      , r = ya();
+    function i(a, o, s, c, u) {
+        const l = [].slice.call(arguments, 1)
+          , m = l.length
+          , d = typeof l[m - 1] == "function";
+        if (!d && !e())
+            throw new Error("Callback required as last argument");
+        if (d) {
+            if (m < 2)
+                throw new Error("Too few arguments provided");
+            m === 2 ? (u = s,
+            s = o,
+            o = c = void 0) : m === 3 && (o.getContext && typeof u > "u" ? (u = c,
+            c = void 0) : (u = c,
+            c = s,
+            s = o,
+            o = void 0))
+        } else {
+            if (m < 1)
+                throw new Error("Too few arguments provided");
+            return m === 1 ? (s = o,
+            o = c = void 0) : m === 2 && !o.getContext && (c = s,
+            s = o,
+            o = void 0),
+            new Promise(function(f, C) {
+                try {
+                    const b = t.create(s, c);
+                    f(a(b, o, c))
+                } catch (b) {
+                    C(b)
+                }
+            }
+            )
+        }
+        try {
+            const f = t.create(s, c);
+            u(null, a(f, o, c))
+        } catch (f) {
+            u(f)
+        }
+    }
+    return Be.create = t.create,
+    Be.toCanvas = i.bind(null, n.render),
+    Be.toDataURL = i.bind(null, n.renderToDataURL),
+    Be.toString = i.bind(null, function(a, o, s) {
+        return r.render(a, s)
+    }),
+    Be
+}
+var Ea = ba();
+const Ca = Zi(Ea)
+  , Sa = new TextEncoder;
+function Ba(e) {
+    let t = 4294967295;
+    for (let n = 0; n < e.length; n++) {
+        t ^= e[n];
+        for (let r = 0; r < 8; r++)
+            t = t & 1 ? t >>> 1 ^ 3988292384 : t >>> 1
+    }
+    return (t ^ 4294967295) >>> 0
+}
+function D(e) {
+    const t = new Uint8Array(2);
+    return new DataView(t.buffer).setUint16(0, e, !0),
+    t
+}
+function Q(e) {
+    const t = new Uint8Array(4);
+    return new DataView(t.buffer).setUint32(0, e, !0),
+    t
+}
+function xe(e) {
+    let t = 0;
+    for (const i of e)
+        t += i.length;
+    const n = new Uint8Array(t);
+    let r = 0;
+    for (const i of e)
+        n.set(i, r),
+        r += i.length;
+    return n
+}
+function Ra(e, t) {
+    return (e.split(/[\\/]/).pop() || `file-${t + 1}`).replace(/[\0-\x1f\x7f]/g, "") || `file-${t + 1}`
+}
+async function ka(e) {
+    if (e.length === 0)
+        throw new Error("no files");
+    if (e.length === 1)
+        return e[0];
+    const t = []
+      , n = [];
+    let r = 0;
+    for (let c = 0; c < e.length; c++) {
+        const u = e[c]
+          , l = Ra(u.name, c)
+          , m = Sa.encode(l)
+          , d = new Uint8Array(await u.arrayBuffer())
+          , f = Ba(d)
+          , C = xe([Q(67324752), D(20), D(0), D(0), D(0), D(0), Q(f), Q(d.length), Q(d.length), D(m.length), D(0), m, d])
+          , b = xe([Q(33639248), D(20), D(20), D(0), D(0), D(0), D(0), Q(f), Q(d.length), Q(d.length), D(m.length), D(0), D(0), D(0), D(0), Q(0), Q(r), m]);
+        t.push(C),
+        n.push(b),
+        r += C.length
+    }
+    const i = xe(n)
+      , a = xe([Q(101010256), D(0), D(0), D(e.length), D(e.length), Q(i.length), Q(r), D(0)])
+      , o = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")
+      , s = Uint8Array.from(xe([...t, i, a]));
+    return new File([s],`wayfold-relay-${o}.zip`,{
+        type: "application/zip"
+    })
+}
+const Xe = 4
+  , Aa = 3;
+let fe = 0
+  , ae = null
+  , Zn = !1;
+const er = new WeakMap
+  , tr = new WeakSet;
+let an = null
+  , st = 0
+  , W = !1
+  , $ = !1
+  , Y = !1
+  , $e = !1
+  , nr = !1
+  , rr = !1
+  , ir = !1;
+function z(e) {
+    return document.getElementById(e)
+}
+function La(e) {
+    return e < 1024 ? `${Math.max(0, Math.round(e))} B` : e < 1024 * 1024 ? `${(e / 1024).toFixed(1)} KiB` : `${(e / 1024 / 1024).toFixed(2)} MiB`
+}
+function de(e) {
+    const t = z("send-error");
+    if (t) {
+        if (!e) {
+            t.hidden = !0,
+            t.textContent = "";
+            return
+        }
+        t.hidden = !1,
+        t.textContent = e
+    }
+}
+function on(e, t=0) {
+    const n = z("file-name")
+      , r = z("file-size")
+      , i = z("drop-zone");
+    n && (e ? t > 1 ? n.textContent = I("send.fileMulti", {
+        count: t,
+        name: e.name
+    }) : n.textContent = e.name : n.textContent = I("send.fileEmpty"),
+    n.removeAttribute("data-i18n")),
+    r && (e && e.size > 0 ? (r.hidden = !1,
+    r.textContent = I("send.fileSize", {
+        size: La(e.size)
+    })) : (r.hidden = !0,
+    r.textContent = "")),
+    i == null || i.classList.toggle("has-file", !!e)
+}
+function we(e) {
+    const t = z("qr-stage")
+      , n = z("qr-placeholder");
+    t && (t.hidden = !e,
+    t.setAttribute("aria-hidden", e ? "false" : "true")),
+    n && (n.hidden = e)
+}
+function Ia(e) {
+    var t;
+    (t = document.querySelector("#view-send .workspace")) == null || t.classList.toggle("is-xfer", e)
+}
+function ue(e) {
+    const t = z("send-xfer")
+      , n = z("send-controls")
+      , r = z("drop-zone");
+    t && (t.hidden = !e),
+    n && (n.hidden = !e),
+    r && (r.hidden = e),
+    Ia(e)
+}
+function Kr() {
+    const e = z("send-pause")
+      , t = z("send-resume");
+    if (!(!e || !t)) {
+        if (!$) {
+            e.hidden = !0,
+            t.hidden = !0;
+            return
+        }
+        e.hidden = W,
+        t.hidden = !W
+    }
+}
+function Me() {
+    const e = z("send-state")
+      , t = z("send-live");
+    e && ($ ? e.textContent = I(W ? "xfer.paused" : "xfer.streaming") : e.textContent = ""),
+    t && (t.hidden = !$ || W),
+    Kr()
+}
+function sn() {
+    var r, i;
+    ae = null,
+    W = !1,
+    $ = !1,
+    Y = !1,
+    $e = !1,
+    an = null,
+    st = 0,
+    ue(!1),
+    Kr(),
+    de(null);
+    const e = z("specs")
+      , t = z("cfg-payload");
+    e && (e.hidden = !0,
+    e.textContent = "");
+    const n = (r = t == null ? void 0 : t.files) == null ? void 0 : r[0];
+    on(n, ((i = t == null ? void 0 : t.files) == null ? void 0 : i.length) ?? 0),
+    we(!!n),
+    Me()
+}
+function Or(e) {
+    ae = e;
+    const t = z("specs");
+    t && (t.hidden = !0,
+    t.textContent = "")
+}
+function ar(e) {
+    const t = z("send-state")
+      , n = z("send-xfer");
+    n && (n.hidden = !1),
+    t && (t.textContent = e);
+    const r = z("specs");
+    r && (r.hidden = !0,
+    r.textContent = "")
+}
+async function Ta(e) {
+    const t = er.get(e);
+    if (t)
+        return t;
+    const n = e.arrayBuffer().then(r => zi(new Uint8Array(r), e.name || "received-file", e.type));
+    return er.set(e, n),
+    n
+}
+function or(e) {
+    !$ || Y || (W = e,
+    Me())
+}
+function Vr() {
+    !$ || Y || (Y = !0,
+    $e = W,
+    W = !0,
+    Me())
+}
+function Wr() {
+    Y && (Y = !1,
+    W = $e,
+    Me())
+}
+function Ma() {
+    return $
+}
+function Fa() {
+    fe++,
+    Y = !1,
+    $e = !1;
+    const e = z("cfg-payload");
+    e && (e.value = ""),
+    sn()
+}
+async function Pa() {
+    const e = ++fe;
+    W = !1,
+    $ = !1,
+    Y = !1,
+    $e = !1,
+    ue(!1);
+    const t = z("qr")
+      , n = z("cfg-payload")
+      , r = z("cfg-fps")
+      , i = z("cfg-bytes")
+      , a = z("cfg-ecc")
+      , o = z("cfg-size");
+    if (!t || !n || !r || !i || !a || !o)
+        return;
+    const s = n.files ? Array.from(n.files) : [];
+    if (!s.length) {
+        sn();
+        return
+    }
+    const __preTotal = s.reduce((acc, f) => acc + (Number.isFinite(f.size) ? f.size : 0), 0);
+    if (__preTotal <= 0 || __preTotal > Te) {
+        de(I("send.sizeError", { max: Te / 1024 / 1024 }));
+        ue(!1);
+        we(!1);
+        return
+    }
+    de(null),
+    st = s.length,
+    ar(s.length > 1 ? I("send.packing") : I("xfer.preparing"));
+    let c;
+    try {
+        c = await ka(s)
+    } catch (M) {
+        de(M instanceof Error ? M.message : String(M)),
+        ue(!1),
+        we(!1);
+        return
+    }
+    if (e !== fe)
+        return;
+    if (an = c,
+    on(c, st),
+    we(!0),
+    c.size === 0 || c.size > Te) {
+        ae = null;
+        const M = I("send.sizeError", {
+            max: Te / 1024 / 1024
+        });
+        de(M),
+        ue(!1),
+        we(!1);
+        return
+    }
+    if (c.size > Wt && !tr.has(c) && !window.confirm(I("send.largeConfirm", {
+        size: (c.size / 1024 / 1024).toFixed(1)
+    }))) {
+        ae = null,
+        de(I("send.largeCancelled")),
+        ue(!1),
+        we(!1);
+        return
+    }
+    c.size > Wt && tr.add(c),
+    ae = null,
+    ar(I("xfer.preparing"));
+    let u;
+    try {
+        u = await Ta(c)
+    } catch (M) {
+        const x = M instanceof Error ? M.message : String(M);
+        de(x),
+        ue(!1),
+        we(!1);
+        return
+    }
+    if (e !== fe)
+        return;
+    const l = u.bytes
+      , m = Number(r.value)
+      , d = Number(i.value)
+      , f = a.value
+      , C = Number(o.value)
+      , b = yi()
+      , F = d - Le
+      , S = new ki(l,F,b);
+    if (S.k > Qt) {
+        ae = null;
+        const M = I("send.blocksError", {
+            k: S.k,
+            max: Qt
+        });
+        de(M),
+        ue(!1),
+        we(!1);
+        return
+    }
+    const T = {
+        sessionId: b,
+        seq: 0,
+        k: S.k,
+        blockLen: F,
+        totalLen: l.length,
+        payloadFnv: wr(l)
+    };
+    let k, R = 0, P = 1;
+    const p = document.createElement("canvas")
+      , y = [];
+    let B = 0;
+    const v = () => {
+        const M = window.devicePixelRatio || 1
+          , x = R + 2 * Xe
+          , j = Math.min(.9 * Math.min(window.innerWidth, window.innerHeight), C);
+        P = Math.max(1, Math.floor(j * M / x)),
+        p.width = x,
+        p.height = x,
+        t.width = x * P,
+        t.height = x * P,
+        t.style.width = `${x * P / M}px`,
+        t.style.height = `${x * P / M}px`
+    }
+      , L = () => {
+        const M = bi({
+            ...T,
+            seq: B
+        }, S.encode(B));
+        const Msf = rt.encode("WF1:" + __wfB64Encode(M));
+        B++;
+        const x = Ca.create([{
+            data: Msf,
+            mode: "byte"
+        }], {
+            errorCorrectionLevel: f,
+            version: k,
+            maskPattern: 4
+        });
+        if (k === void 0) {
+            k = x.version,
+            R = x.modules.size,
+            v();
+            const J = u.originalLen - u.wireFileLen
+              , ve = u.compressed && J > 0 ? I("send.compression.gzip", {
+                pct: (J / u.originalLen * 100).toFixed(1)
+            }) : I("send.compression.raw");
+            Or({
+                fps: m,
+                fileMiB: (u.originalLen / 1024 / 1024).toFixed(2),
+                compression: ve,
+                payloadKiB: Math.ceil(l.length / 1024)
+            }),
+            $ = !0,
+            ue(!0),
+            Me()
+        }
+        const j = x.modules.size
+          , je = x.modules.data
+          , Fe = j + 2 * Xe
+          , Ce = new ImageData(Fe,Fe)
+          , pe = new Uint32Array(Ce.data.buffer);
+        pe.fill(4294967295);
+        for (let J = 0; J < j; J++) {
+            const ve = (J + Xe) * Fe + Xe
+              , ht = J * j;
+            for (let ce = 0; ce < j; ce++)
+                je[ht + ce] && (pe[ve + ce] = 4278190080)
+        }
+        return Ce
+    }
+      , h = () => {
+        if (e === fe) {
+            if (W) {
+                window.setTimeout(h, 160);
+                return
+            }
+            try {
+                for (; y.length < Aa; )
+                    y.push(L())
+            } catch (M) {
+                de(M instanceof Error ? M.message : String(M));
+                return
+            }
+            window.setTimeout(h, 0)
+        }
+    }
+    ;
+    h();
+    const w = 1e3 / m;
+    let g = performance.now();
+    const A = M => {
+        if (e !== fe || (requestAnimationFrame(A),
+        W) || M < g)
+            return;
+        const x = y.shift();
+        if (!x) {
+            g = M + w;
+            return
+        }
+        p.getContext("2d").putImageData(x, 0, 0);
+        const j = t.getContext("2d");
+        j.imageSmoothingEnabled = !1,
+        j.drawImage(p, 0, 0, t.width, t.height),
+        g += w,
+        M - g > 3 * w && (g = M + w)
+    }
+    ;
+    requestAnimationFrame(A)
+}
+const Qr = () => void Pa();
+function za() {
+    if (nr)
+        return;
+    nr = !0;
+    const e = z("drop-zone")
+      , t = z("cfg-payload");
+    if (!e || !t)
+        return;
+    const n = r => e.classList.toggle("is-dragover", r);
+    e.addEventListener("dragover", r => {
+        r.preventDefault(),
+        n(!0)
+    }
+    ),
+    e.addEventListener("dragleave", () => n(!1)),
+    e.addEventListener("drop", r => {
+        var o;
+        r.preventDefault(),
+        n(!1);
+        const i = (o = r.dataTransfer) == null ? void 0 : o.files;
+        if (!(i != null && i.length))
+            return;
+        const a = new DataTransfer;
+        for (const s of Array.from(i))
+            a.items.add(s);
+        t.files = a.files,
+        t.dispatchEvent(new Event("change",{
+            bubbles: !0
+        }))
+    }
+    )
+}
+function xa() {
+    var e, t, n;
+    rr || (rr = !0,
+    (e = z("send-pause")) == null || e.addEventListener("click", () => or(!0)),
+    (t = z("send-resume")) == null || t.addEventListener("click", () => or(!1)),
+    (n = z("send-stop")) == null || n.addEventListener("click", () => Fa()))
+}
+function Na() {
+    var t, n;
+    const e = ["cfg-payload", "cfg-fps", "cfg-bytes", "cfg-ecc", "cfg-size"];
+    for (const r of e)
+        (t = document.getElementById(r)) == null || t.addEventListener("change", Qr);
+    if (za(),
+    xa(),
+    Zn || (Zn = !0,
+    Yt( () => {
+        var r, i;
+        if (ae)
+            Or(ae);
+        else {
+            const a = z("cfg-payload");
+            on(an ?? ((r = a == null ? void 0 : a.files) == null ? void 0 : r[0]), st || ((i = a == null ? void 0 : a.files) == null ? void 0 : i.length) || 0)
+        }
+        Me()
+    }
+    )),
+    ir || (ir = !0,
+    window.addEventListener("pagehide", () => {
+        fe++,
+        $ = !1,
+        Y = !1,
+        W = !1
+    }
+    )),
+    $ || Y) {
+        Wr();
+        return
+    }
+    sn(),
+    (n = navigator.wakeLock) == null || n.request("screen").catch( () => {}
+    )
+}
+function Da() {
+    var t;
+    if ($) {
+        Vr();
+        return
+    }
+    fe++;
+    const e = ["cfg-payload", "cfg-fps", "cfg-bytes", "cfg-ecc", "cfg-size"];
+    for (const n of e)
+        (t = document.getElementById(n)) == null || t.removeEventListener("change", Qr);
+    ae = null,
+    $ = !1,
+    W = !1,
+    Y = !1
+}
+let H = "home"
+  , Ze = !1
+  , et = !1;
+function qa() { return false
+}
+function Ua(e) { return e === "home" ? "#home" : `#${e}`
+}
+function Gr() { const e=(location.hash||"#home").slice(1); return e === "receive" ? "receive" : e === "send" ? "send" : "home"
+}
+function $r() {
+    H === "send" ? document.title = I("page.send") : H === "receive" ? document.title = I("page.receive") : document.title = I("page.home")
+}
+function Ht(e, t) {
+    if (!e)
+        return;
+    if (e.classList.remove("is-entering"),
+    !t) {
+        e.hidden = !0;
+        return
+    }
+    const n = e.hidden;
+    if (e.hidden = !1,
+    n) {
+        e.offsetWidth,
+        e.classList.add("is-entering");
+        const r = () => e.classList.remove("is-entering");
+        e.addEventListener("animationend", r, {
+            once: !0
+        }),
+        window.setTimeout(r, 280)
+    }
+}
+function ct() {
+    document.body.dataset.mode = H,
+    document.body.classList.toggle("role-home", H === "home"),
+    document.body.classList.toggle("role-send", H === "send"),
+    document.body.classList.toggle("role-receive", H === "receive"),
+    Ht(document.getElementById("view-home"), H === "home"),
+    Ht(document.getElementById("view-send"), H === "send"),
+    Ht(document.getElementById("view-receive"), H === "receive"),
+    document.querySelectorAll("[data-mode-btn]").forEach(t => {
+        t.classList.toggle("is-active", t.dataset.modeBtn === H),
+        t.setAttribute("aria-pressed", t.dataset.modeBtn === H ? "true" : "false")
+    }
+    );
+    const e = document.getElementById("mode-nav");
+    e && (e.hidden = !1),
+    $r()
+}
+function lt(e) {
+    e === "send" ? Ze ? Wr() : (Na(),
+    Ze = !0) : Ze && (e === "home" && !Ma() ? (Da(),
+    Ze = !1) : Vr()),
+    e === "receive" ? et || (Ji(),
+    et = !0) : et && (Xi(),
+    et = !1)
+}
+function sr(e, t=!0) {
+    if (e === H && (e === "home" || document.body.dataset.mode === e)) {
+        lt(e),
+        ct();
+        return
+    }
+    H = e,
+    lt(e),
+    ct(),
+    t && history.pushState({
+        mode: e
+    }, "", Ua(e))
+}
+function _a() {
+    document.querySelectorAll("[data-mode-btn]").forEach(e => {
+        e.addEventListener("click", t => {
+            t.preventDefault(),
+            t.currentTarget.blur();
+            const n = e.dataset.modeBtn;
+            (n === "send" || n === "receive" || n === "home") && sr(n)
+        }
+        )
+    }
+    ),
+    document.querySelectorAll("a[data-mode-link]").forEach(e => {
+        e.addEventListener("click", t => {
+            t.preventDefault(),
+            t.currentTarget.blur();
+            const n = e.dataset.modeLink;
+            (n === "send" || n === "receive" || n === "home") && sr(n)
+        }
+        )
+    }
+    ),
+    window.addEventListener("popstate", () => {
+        H = Gr(),
+        lt(H),
+        ct()
+    }
+    )
+}
+async function Ha() {
+    var r;
+    const e = document.getElementById("ld");
+    if (!e)
+        return;
+    const t = 850;
+    try {
+        (r = document.fonts) != null && r.ready && await document.fonts.ready
+    } catch {}
+    const n = Math.max(0, t - performance.now());
+    n > 0 && await new Promise(i => {
+        window.setTimeout(i, n)
+    }
+    ),
+    e.classList.add("gone")
+}
+hi();
+_a();
+H = Gr();
+lt(H);
+ct();
+Yt( () => {
+    jt(),
+    $r()
+}
+);
+Ha();
+ui();
+
+</script>
+</body>
+</html>
