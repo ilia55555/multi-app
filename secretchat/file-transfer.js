@@ -45,7 +45,6 @@
   let frameIndex = 0;
   let playTimer = null;
   let nextFrameAt = 0;
-  let frameJumpTimer = null;
   const viewportPointers = new Map();
   let panStart = null;
   let viewportResizeStart = null;
@@ -277,7 +276,10 @@
   }
 
   function updateSendControls(enabled) {
-    ['transferPlayPause', 'transferPrevious', 'transferNext', 'transferModalPlayPause', 'transferModalPrevious', 'transferModalNext', 'transferFrameNumber'].forEach((id) => { $(id).disabled = !enabled; });
+    ['transferPlayPause', 'transferPrevious', 'transferNext', 'transferModalPlayPause', 'transferModalPrevious', 'transferModalNext'].forEach((id) => {
+      const button = $(id);
+      if (button) button.disabled = !enabled;
+    });
   }
 
   function frameRate() { return Number($('transferSpeed').value); }
@@ -516,10 +518,6 @@
       if (!frame) return;
       window.drawQrBytesToCanvas(frame, $('transferQrCanvas'));
       frameIndex = sequence;
-      $('transferFrameNumber').value = String(sequence + 1);
-      $('transferFrameNumber').max = String(0xffffffff);
-      $('transferFrameTotal').textContent = '∞';
-      $('transferSendProgress').value = 0;
     } catch (error) {
       pauseFrames();
       setStatus('transferSendStatus', error.message || tr('badFile'), 'error');
@@ -566,14 +564,6 @@
   function toggleFrames() {
     if (playTimer !== null) pauseFrames();
     else playFrames();
-  }
-
-  function jumpToTypedFrame() {
-    clearTimeout(frameJumpTimer);
-    if (!$('transferFrameNumber').value || !senderState) return;
-    const requested = Math.max(1, Math.min(0x100000000, Math.trunc(Number($('transferFrameNumber').value)) || 1));
-    pauseFrames();
-    drawFrame(requested - 1);
   }
 
   async function prepareFile(file) {
@@ -674,7 +664,7 @@
     const readyChecks = {
       html5qrcode: () => Boolean(window.Html5Qrcode),
       jsqr: () => Boolean(window.jsQR),
-      zxing: () => Boolean(window.ZXing?.BrowserMultiFormatReader),
+      zxing: () => Boolean(window.ZXing?.BrowserQRCodeReader),
       qrscanner: () => Boolean(window.QrScanner)
     };
     const files = {
@@ -791,8 +781,10 @@
     const targetFrames = k * 1.12;
     const completeTarget = k * 1.06;
     const solvedRatio = solved / k;
-    const frameRatio = Math.min(1.05, framesNew / targetFrames);
-    const percent = Math.min(99, Math.max(solvedRatio, frameRatio) * 100);
+    const frameRatio = Math.min(1, framesNew / targetFrames);
+    const percent = decoderState.isComplete
+      ? 100
+      : Math.min(99.5, Math.max(solvedRatio, frameRatio) * 99.5);
     const elapsedSeconds = Math.max(0.08, (now - received.startedAt) / 1000);
     const estimatedBytes = Math.min(
       header.totalLen,
@@ -815,8 +807,8 @@
       : `${Math.max(1, Math.round(eta / 60))} min`;
 
     const progressText = language() === 'fa'
-      ? `${Math.min(99, Math.round(percent))}٪ · ${formatTransferRate(rate)} · حدود ${etaText} باقی‌مانده`
-      : `${Math.min(99, Math.round(percent))}% · ${formatTransferRate(rate)} · ~${etaText} left`;
+      ? `${Math.min(99.5, percent).toFixed(1)}٪ · ${formatTransferRate(rate)} · حدود ${etaText} باقی‌مانده`
+      : `${Math.min(99.5, percent).toFixed(1)}% · ${formatTransferRate(rate)} · ~${etaText} left`;
 
     setStatus('transferReceiveStatus', progressText);
     updateScannerProgress(progressText);
@@ -891,14 +883,26 @@
   }
 
   function syncTransferScannerControls() {
-    const pauseButton = $('transferPauseScanner');
-    const resumeButton = $('transferResumeScanner');
-    if (pauseButton) pauseButton.hidden = !transferScannerRunning;
-    if (resumeButton) resumeButton.hidden = !transferScannerPaused;
+    const button = $('transferCameraToggle');
+    if (!button) return;
+
+    const isOn = transferScannerRunning || transferScannerStarting;
+    button.textContent = isOn
+      ? (language() === 'fa' ? 'خاموش کردن دوربین' : 'Turn camera off')
+      : (language() === 'fa' ? 'روشن کردن دوربین' : 'Turn camera on');
+    button.classList.toggle('danger', isOn);
+    button.classList.toggle('primary', !isOn);
+    button.disabled = false;
   }
 
-  async function pauseTransferScanner(background = false) {
-    if (!transferScannerRunning && !transferScannerStarting) return;
+  async function turnTransferCameraOff(background = false) {
+    if (!transferScannerRunning && !transferScannerStarting) {
+      transferScannerPaused = true;
+      transferScannerBackgroundPaused = background;
+      syncTransferScannerControls();
+      return;
+    }
+
     await stopTransferScanner();
     transferScannerPaused = true;
     transferScannerBackgroundPaused = background;
@@ -906,21 +910,29 @@
 
     const message = background
       ? (language() === 'fa'
-          ? 'دوربین در پس‌زمینه متوقف شد. برای ادامه «ادامه» را بزنید.'
-          : 'Camera paused in the background. Tap Resume to continue.')
-      : (language() === 'fa' ? 'دریافت موقتاً متوقف شد.' : 'Receiving paused.');
+          ? 'دوربین در پس‌زمینه خاموش شد.'
+          : 'Camera turned off in the background.')
+      : (language() === 'fa' ? 'دوربین خاموش است.' : 'Camera is off.');
 
     $('transferCameraStatus').textContent = message;
     setStatus('transferReceiveStatus', message);
   }
 
-  async function resumeTransferScanner() {
-    if (!transferScannerPaused || transferScannerStarting || transferScannerRunning) return;
+  async function turnTransferCameraOn() {
+    if (transferScannerRunning || transferScannerStarting) return;
     transferScannerPaused = false;
     transferScannerBackgroundPaused = false;
     if (received.decoder) received.lastProgressAt = performance.now();
     syncTransferScannerControls();
-    await openTransferScanner(new Set(), true);
+    await openTransferScanner(new Set(), Boolean(received.decoder));
+  }
+
+  async function toggleTransferCamera() {
+    if (transferScannerRunning || transferScannerStarting) {
+      await turnTransferCameraOff(false);
+    } else {
+      await turnTransferCameraOn();
+    }
   }
 
   async function stopTransferScanner() {
@@ -1026,7 +1038,11 @@
 
   async function startZxingScanner() {
     const video = createTransferVideo();
-    const reader = new ZXing.BrowserMultiFormatReader();
+
+    // BrowserQRCodeReader defaults to a 500 ms delay after every successful scan.
+    // WayFold changes QR frames much faster, so force the delay to zero.
+    const reader = new ZXing.BrowserQRCodeReader(0);
+    reader.timeBetweenDecodingAttempts = 0;
     let controls = null;
 
     const maybeControls = await reader.decodeFromConstraints(
@@ -1170,7 +1186,13 @@
     transferScannerStarting = true;
 
     try {
-      if (!preserveDecoder) resetWayFoldDecoder(false);
+      if (!preserveDecoder) {
+        resetWayFoldDecoder(false);
+        $('transferReceiveProgress').value = 0;
+      } else if (received.decoder) {
+        received.lastProgressAt = performance.now();
+        updateWayFoldProgress();
+      }
       const candidates = [
         selectedScannerEngine,
         ...SCANNER_ENGINE_VALUES.filter((engine) => engine !== selectedScannerEngine)
@@ -1476,13 +1498,7 @@
   $('transferModalNext').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex + 1); });
   $('transferPrevious').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex - 1); });
   $('transferNext').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex + 1); });
-  $('transferFrameNumber').addEventListener('input', () => {
-    clearTimeout(frameJumpTimer);
-    frameJumpTimer = setTimeout(jumpToTypedFrame, 450);
-  });
-  $('transferFrameNumber').addEventListener('change', jumpToTypedFrame);
-  $('transferFrameNumber').addEventListener('keydown', (event) => { if (event.key === 'Enter') jumpToTypedFrame(); });
-  $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), false));
+  $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), Boolean(received.decoder)));
   $('transferScannerEngine').value = selectedScannerEngine;
   $('transferScannerEngine').addEventListener('change', async () => {
     selectedScannerEngine = $('transferScannerEngine').value;
@@ -1493,10 +1509,8 @@
     await stopTransferScanner();
     if (wasOpen) openTransferScanner(new Set(), preserveDecoder);
   });
-  $('transferPauseScanner').addEventListener('click', () => pauseTransferScanner(false));
-  $('transferResumeScanner').addEventListener('click', resumeTransferScanner);
+  $('transferCameraToggle').addEventListener('click', toggleTransferCamera);
   $('transferCloseScanner').addEventListener('click', closeTransferScanner);
-  $('transferStopScanner').addEventListener('click', closeTransferScanner);
   $('transferScannerModal').addEventListener('click', (event) => { if (event.target === $('transferScannerModal')) closeTransferScanner(); });
   $('transferResetReceive').addEventListener('click', resetReceive);
   $('transferSaveFile').addEventListener('click', saveReceivedFile);
@@ -1506,15 +1520,15 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if ($('transferScannerModal').classList.contains('active') && transferScannerRunning) {
-        pauseTransferScanner(true);
+        turnTransferCameraOff(true);
       }
       return;
     }
 
     if (transferScannerBackgroundPaused && transferScannerPaused) {
       const message = language() === 'fa'
-        ? 'دوربین در پس‌زمینه متوقف شده است. برای ادامه «ادامه» را بزنید.'
-        : 'Camera is paused after backgrounding. Tap Resume to continue.';
+        ? 'دوربین در پس‌زمینه خاموش شده است. برای ادامه، دوربین را روشن کنید.'
+        : 'Camera was turned off in the background. Turn it on to continue.';
       $('transferCameraStatus').textContent = message;
       setStatus('transferReceiveStatus', message);
     }
