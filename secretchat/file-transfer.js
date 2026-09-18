@@ -1449,6 +1449,10 @@
     }
   }
 
+  const HISTORY_MAX_FILE_BYTES = 50 * 1024 * 1024;
+  const HISTORY_ZIP_ENTRY_LIMIT = 2000;
+  const HISTORY_ZIP_EXPANDED_LIMIT = 200 * 1024 * 1024;
+
   function openTransferHistoryDb() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(TRANSFER_HISTORY_DB, TRANSFER_HISTORY_VERSION);
@@ -1487,7 +1491,7 @@
       return await new Promise((resolve, reject) => {
         const transaction = db.transaction(TRANSFER_HISTORY_STORE, 'readonly');
         const request = transaction.objectStore(TRANSFER_HISTORY_STORE).getAll();
-        request.onsuccess = () => resolve((request.result || []).sort((a, b) => b.receivedAt - a.receivedAt));
+        request.onsuccess = () => resolve(request.result || []);
         request.onerror = () => reject(request.error || new Error('INDEXEDDB_READ_FAILED'));
       });
     } finally {
@@ -1508,8 +1512,32 @@
     const link = document.createElement('a');
     link.href = url;
     link.download = safeName;
+    document.body.append(link);
     link.click();
+    link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  async function openHistoryFile(record) {
+    if (!record?.blob) return;
+
+    const type = record.type || record.blob.type || 'application/octet-stream';
+    const safeInline = /^(?:image\/(?:png|jpeg|gif|webp|svg\+xml)|application\/pdf|audio\/|video\/)/iu.test(type);
+    const safeText = /^(?:text\/|application\/(?:json|javascript))(?:$|;)/iu.test(type);
+    const previewBlob = safeText
+      ? new Blob([await record.blob.text()], { type: 'text/plain;charset=utf-8' })
+      : record.blob;
+
+    const url = URL.createObjectURL(previewBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    if (!safeInline && !safeText) link.download = safeFileName(record.name);
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   function formatHistoryDate(timestamp) {
@@ -1524,6 +1552,250 @@
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KiB`;
     return `${(size / (1024 * 1024)).toFixed(2)} MiB`;
+  }
+
+  function historyMimeType(name, fallback = '') {
+    if (fallback) return fallback;
+    const extension = String(name).split('.').pop()?.toLowerCase() || '';
+    return ({
+      txt: 'text/plain', html: 'text/html', htm: 'text/html', css: 'text/css',
+      js: 'text/javascript', mjs: 'text/javascript', json: 'application/json',
+      svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', pdf: 'application/pdf',
+      mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
+      mp4: 'video/mp4', webm: 'video/webm', zip: 'application/zip'
+    })[extension] || 'application/octet-stream';
+  }
+
+  function isZipRecord(record) {
+    return /\.zip$/iu.test(record?.name || '') || /(?:application|x)-?zip/iu.test(record?.type || '');
+  }
+
+  function normalizeHistoryZipPath(path) {
+    const parts = String(path).replaceAll('\\', '/').split('/');
+    const clean = [];
+    for (const part of parts) {
+      if (!part || part === '.') continue;
+      if (part === '..') throw new Error('ZIP_PATH_TRAVERSAL');
+      clean.push(part);
+    }
+    return clean.join('/');
+  }
+
+  async function unzipHistoryBlob(blob) {
+    if (!blob || blob.size > HISTORY_MAX_FILE_BYTES) throw new Error('ZIP_TOO_LARGE');
+    const buffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const view = new DataView(buffer);
+
+    let end = -1;
+    for (let offset = Math.max(0, bytes.length - 65557); offset <= bytes.length - 22; offset += 1) {
+      if (view.getUint32(offset, true) === 0x06054b50) end = offset;
+    }
+    if (end < 0) throw new Error('INVALID_ZIP');
+
+    const count = view.getUint16(end + 10, true);
+    let offset = view.getUint32(end + 16, true);
+    if (!count || count === 0xffff || count > HISTORY_ZIP_ENTRY_LIMIT) throw new Error('ZIP_ENTRY_LIMIT');
+
+    const files = new Map();
+    let expandedSize = 0;
+
+    for (let index = 0; index < count; index += 1) {
+      if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) throw new Error('INVALID_DIRECTORY');
+
+      const flags = view.getUint16(offset + 8, true);
+      const method = view.getUint16(offset + 10, true);
+      const compressedSize = view.getUint32(offset + 20, true);
+      const size = view.getUint32(offset + 24, true);
+      const nameLength = view.getUint16(offset + 28, true);
+      const extraLength = view.getUint16(offset + 30, true);
+      const commentLength = view.getUint16(offset + 32, true);
+      const externalAttributes = view.getUint32(offset + 38, true);
+      const localOffset = view.getUint32(offset + 42, true);
+      const nameEnd = offset + 46 + nameLength;
+
+      if (nameEnd > bytes.length) throw new Error('INVALID_ZIP_NAME');
+      const rawName = decoder.decode(bytes.subarray(offset + 46, nameEnd));
+      const name = normalizeHistoryZipPath(rawName);
+      offset = nameEnd + extraLength + commentLength;
+
+      if (!name || rawName.replaceAll('\\', '/').endsWith('/')) continue;
+      const unixMode = externalAttributes >>> 16;
+      if ((unixMode & 0xf000) === 0xa000) throw new Error('ZIP_SYMLINK');
+      if ((flags & 1) || ![0, 8].includes(method) || size === 0xffffffff || compressedSize === 0xffffffff) {
+        throw new Error('UNSUPPORTED_ZIP');
+      }
+
+      expandedSize += size;
+      if (expandedSize > HISTORY_ZIP_EXPANDED_LIMIT || (compressedSize > 0 && size / compressedSize > 200)) {
+        throw new Error('ZIP_BOMB');
+      }
+
+      if (localOffset + 30 > bytes.length || view.getUint32(localOffset, true) !== 0x04034b50) {
+        throw new Error('INVALID_LOCAL_ENTRY');
+      }
+
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const dataEnd = dataStart + compressedSize;
+      if (dataEnd > bytes.length) throw new Error('INVALID_ENTRY_DATA');
+
+      const compressed = bytes.slice(dataStart, dataEnd);
+      let content = compressed;
+
+      if (method === 8) {
+        if (typeof DecompressionStream !== 'function') throw new Error('DEFLATE_UNSUPPORTED');
+        const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        content = new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+
+      if (content.length !== size) throw new Error('INVALID_ENTRY_SIZE');
+      files.set(name, content);
+    }
+
+    if (!files.size) throw new Error('EMPTY_ZIP');
+    return files;
+  }
+
+  function historyActionButton(icon, label, className = 'ghost') {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `transfer-history-icon ${className}`.trim();
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.append(materialIcon(icon));
+    return button;
+  }
+
+  function collectHistoryDescendantIds(records, parentId) {
+    const ids = new Set();
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const record of records) {
+        if (record.parentId && (record.parentId === parentId || ids.has(record.parentId)) && !ids.has(record.id)) {
+          ids.add(record.id);
+          changed = true;
+        }
+      }
+    }
+    return ids;
+  }
+
+  async function deleteHistoryRecord(record) {
+    const records = await listTransferHistory();
+    const ids = collectHistoryDescendantIds(records, record.id);
+    ids.add(record.id);
+
+    const db = await openTransferHistoryDb();
+    try {
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction(TRANSFER_HISTORY_STORE, 'readwrite');
+        const store = transaction.objectStore(TRANSFER_HISTORY_STORE);
+        ids.forEach((id) => store.delete(id));
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error || new Error('DELETE_HISTORY_FAILED'));
+        transaction.onabort = () => reject(transaction.error || new Error('DELETE_HISTORY_ABORTED'));
+      });
+    } finally {
+      db.close();
+    }
+
+    await renderTransferHistory();
+  }
+
+  async function extractHistoryZip(record) {
+    try {
+      const entries = await unzipHistoryBlob(record.blob);
+      const records = await listTransferHistory();
+      const oldDescendants = collectHistoryDescendantIds(records, record.id);
+      const now = Date.now();
+
+      const db = await openTransferHistoryDb();
+      try {
+        await new Promise((resolve, reject) => {
+          const transaction = db.transaction(TRANSFER_HISTORY_STORE, 'readwrite');
+          const store = transaction.objectStore(TRANSFER_HISTORY_STORE);
+
+          oldDescendants.forEach((id) => store.delete(id));
+
+          let index = 0;
+          for (const [path, bytes] of entries) {
+            const id = crypto.randomUUID?.() || `${now}-${index}-${Math.random().toString(16).slice(2)}`;
+            const name = path.split('/').pop() || path;
+            const type = historyMimeType(name);
+            store.put({
+              id,
+              parentId: record.id,
+              sourceZipName: record.name,
+              extracted: true,
+              extractedPath: path,
+              name,
+              type,
+              size: bytes.length,
+              receivedAt: now + index,
+              blob: new Blob([bytes], { type })
+            });
+            index += 1;
+          }
+
+          transaction.oncomplete = resolve;
+          transaction.onerror = () => reject(transaction.error || new Error('EXTRACT_HISTORY_FAILED'));
+          transaction.onabort = () => reject(transaction.error || new Error('EXTRACT_HISTORY_ABORTED'));
+        });
+      } finally {
+        db.close();
+      }
+
+      setStatus('transferReceiveStatus', tr('zipExtracted', entries.size), 'ok');
+      await renderTransferHistory();
+    } catch (_) {
+      setStatus('transferReceiveStatus', tr('zipExtractFailed'), 'error');
+    }
+  }
+
+  async function importHistoryFiles(fileList) {
+    const files = [...(fileList || [])];
+    if (!files.length) return;
+
+    try {
+      const now = Date.now();
+      const db = await openTransferHistoryDb();
+      try {
+        await new Promise((resolve, reject) => {
+          const transaction = db.transaction(TRANSFER_HISTORY_STORE, 'readwrite');
+          const store = transaction.objectStore(TRANSFER_HISTORY_STORE);
+
+          files.forEach((file, index) => {
+            if (!file.size || file.size > HISTORY_MAX_FILE_BYTES) throw new Error('HISTORY_FILE_SIZE');
+            store.put({
+              id: crypto.randomUUID?.() || `${now}-${index}-${Math.random().toString(16).slice(2)}`,
+              name: file.name || `imported-${index + 1}`,
+              type: historyMimeType(file.name, file.type),
+              size: file.size,
+              receivedAt: now + index,
+              imported: true,
+              blob: file
+            });
+          });
+
+          transaction.oncomplete = resolve;
+          transaction.onerror = () => reject(transaction.error || new Error('IMPORT_HISTORY_FAILED'));
+          transaction.onabort = () => reject(transaction.error || new Error('IMPORT_HISTORY_ABORTED'));
+        });
+      } finally {
+        db.close();
+      }
+
+      setStatus('transferReceiveStatus', tr('historyImported'), 'ok');
+      await renderTransferHistory();
+    } catch (_) {
+      setStatus('transferReceiveStatus', tr('badFile'), 'error');
+    } finally {
+      if ($('transferHistoryImport')) $('transferHistoryImport').value = '';
+    }
   }
 
   async function renderTransferHistory() {
@@ -1543,49 +1815,84 @@
       return;
     }
 
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const children = new Map();
+
+    for (const record of records) {
+      if (!record.parentId || !byId.has(record.parentId)) continue;
+      if (!children.has(record.parentId)) children.set(record.parentId, []);
+      children.get(record.parentId).push(record);
+    }
+
+    const roots = records
+      .filter((record) => !record.parentId || !byId.has(record.parentId))
+      .sort((a, b) => b.receivedAt - a.receivedAt);
+
+    for (const group of children.values()) {
+      group.sort((a, b) => String(a.extractedPath || a.name).localeCompare(String(b.extractedPath || b.name), undefined, { numeric: true }));
+    }
+
     count.textContent = tr('historyCount', records.length);
     empty.textContent = tr('historyEmpty');
     empty.hidden = records.length > 0;
     list.replaceChildren();
 
-    for (const record of records) {
+    const appendRecord = (record, depth = 0) => {
       const item = document.createElement('article');
       item.className = 'transfer-history-item';
+      if (record.parentId) item.classList.add('is-extracted');
+      item.style.setProperty('--history-depth', String(Math.min(depth, 6)));
 
       const info = document.createElement('div');
       info.className = 'transfer-history-info';
+
       const name = document.createElement('strong');
-      name.textContent = record.name;
+      name.textContent = record.extractedPath || record.name;
+
       const meta = document.createElement('span');
       meta.textContent = `${formatHistorySize(record.size)} · ${formatHistoryDate(record.receivedAt)}`;
+
       info.append(name, meta);
+
+      if (record.parentId) {
+        const source = document.createElement('span');
+        source.className = 'transfer-history-source';
+        source.textContent = tr('extractedFrom', record.sourceZipName || byId.get(record.parentId)?.name || 'ZIP');
+        info.append(source);
+      }
 
       const actions = document.createElement('div');
       actions.className = 'transfer-history-actions';
 
-      const save = document.createElement('button');
-      save.type = 'button';
-      save.className = 'primary';
-      save.textContent = tr('saveFile');
+      const open = historyActionButton('open', tr('openHistory'));
+      open.addEventListener('click', () => openHistoryFile(record));
+
+      const save = historyActionButton('save', tr('saveFile'), 'primary');
       save.addEventListener('click', async () => {
         try { await saveBlobToDevice(record.name, record.blob, record.type); }
         catch (_) { setStatus('transferReceiveStatus', tr('saveError'), 'error'); }
       });
 
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'transfer-history-delete';
-      remove.textContent = tr('deleteHistory');
-      let confirmTimer = null;
+      actions.append(open, save);
 
+      if (isZipRecord(record)) {
+        const extract = historyActionButton('extract', tr('extractHistory'), 'ghost');
+        extract.addEventListener('click', () => extractHistoryZip(record));
+        actions.append(extract);
+      }
+
+      const remove = historyActionButton('delete', tr('deleteHistory'), 'transfer-history-delete');
+      let confirmTimer = null;
       remove.addEventListener('click', async () => {
         if (!remove.classList.contains('is-confirming')) {
           remove.classList.add('is-confirming');
-          remove.textContent = tr('confirmDeleteHistory');
+          remove.setAttribute('aria-label', tr('confirmDeleteHistory'));
+          remove.title = tr('confirmDeleteHistory');
           clearTimeout(confirmTimer);
           confirmTimer = setTimeout(() => {
             remove.classList.remove('is-confirming');
-            remove.textContent = tr('deleteHistory');
+            remove.setAttribute('aria-label', tr('deleteHistory'));
+            remove.title = tr('deleteHistory');
           }, 5000);
           return;
         }
@@ -1593,19 +1900,23 @@
         clearTimeout(confirmTimer);
         remove.disabled = true;
         try {
-          await historyTransaction('readwrite', (store) => store.delete(record.id));
-          await renderTransferHistory();
+          await deleteHistoryRecord(record);
         } catch (_) {
           remove.disabled = false;
           remove.classList.remove('is-confirming');
-          remove.textContent = tr('deleteHistory');
+          remove.setAttribute('aria-label', tr('deleteHistory'));
+          remove.title = tr('deleteHistory');
         }
       });
 
-      actions.append(save, remove);
+      actions.append(remove);
       item.append(info, actions);
       list.append(item);
-    }
+
+      for (const child of children.get(record.id) || []) appendRecord(child, depth + 1);
+    };
+
+    roots.forEach((record) => appendRecord(record, 0));
   }
 
   async function persistCurrentReceivedFile() {
