@@ -170,14 +170,7 @@
     return bytes;
   }
 
-  function base64UrlEncode(value) {
-    return bytesToBase64(encoder.encode(value)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '');
-  }
 
-  function base64UrlDecode(value) {
-    const padded = value.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - value.length % 4) % 4);
-    return decoder.decode(base64ToBytes(padded));
-  }
 
   function crc32(bytes) {
     let crc = 0xFFFFFFFF;
@@ -272,180 +265,6 @@
   function imageMimeType(name) {
     const extension = name.split('.').pop().toLowerCase();
     return extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : `image/${extension === 'svg' ? 'svg+xml' : extension}`;
-  }
-
-  function transferId() {
-    const bytes = crypto.getRandomValues(new Uint8Array(6));
-    return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-  }
-
-  function xorInto(target, source) {
-    const length = Math.min(target.length, source.length);
-    for (let i = 0; i < length; i += 1) target[i] ^= source[i];
-    return target;
-  }
-
-  function makePaddedBlock(bytes, index, blockLen) {
-    const block = new Uint8Array(blockLen);
-    const start = index * blockLen;
-    block.set(bytes.subarray(start, Math.min(bytes.length, start + blockLen)));
-    return block;
-  }
-
-  function seedForFrame(id, sequence) {
-    let seed = 2166136261 >>> 0;
-    const textValue = `${id}:${sequence}`;
-    for (let i = 0; i < textValue.length; i += 1) {
-      seed ^= textValue.charCodeAt(i);
-      seed = Math.imul(seed, 16777619) >>> 0;
-    }
-    return seed || 0x9e3779b9;
-  }
-
-  function nextRandom(state) {
-    let value = state.value >>> 0;
-    value ^= value << 13;
-    value ^= value >>> 17;
-    value ^= value << 5;
-    state.value = value >>> 0;
-    return state.value;
-  }
-
-  const fountainDegreeCache = new Map();
-
-  function fountainDegreeCdf(total) {
-    if (fountainDegreeCache.has(total)) return fountainDegreeCache.get(total);
-
-    if (total <= 1) {
-      const single = [1];
-      fountainDegreeCache.set(total, single);
-      return single;
-    }
-
-    const c = 0.1;
-    const delta = 0.05;
-    const r = c * Math.log(total / delta) * Math.sqrt(total);
-    const spike = Math.max(1, Math.min(total, Math.floor(total / Math.max(r, 1e-9))));
-    const weights = new Float64Array(total);
-    let sum = 0;
-
-    for (let degree = 1; degree <= total; degree += 1) {
-      const rho = degree === 1 ? 1 / total : 1 / (degree * (degree - 1));
-      let tau = 0;
-
-      if (degree < spike) tau = r / (degree * total);
-      else if (degree === spike) tau = r * Math.log(Math.max(r / delta, 1)) / total;
-
-      const weight = rho + tau;
-      weights[degree - 1] = weight;
-      sum += weight;
-    }
-
-    const cdf = new Float64Array(total);
-    let cumulative = 0;
-    for (let index = 0; index < total; index += 1) {
-      cumulative += weights[index] / sum;
-      cdf[index] = cumulative;
-    }
-    cdf[total - 1] = 1;
-    fountainDegreeCache.set(total, cdf);
-    return cdf;
-  }
-
-  function repairIndices(id, sequence, total) {
-    if (sequence < total) return [sequence];
-    if (total <= 1) return [0];
-
-    const state = { value: seedForFrame(id, sequence) };
-    const cdf = fountainDegreeCdf(total);
-    const roll = nextRandom(state) / 0x100000000;
-
-    let low = 0;
-    let high = cdf.length - 1;
-    while (low < high) {
-      const mid = (low + high) >> 1;
-      if (roll <= cdf[mid]) high = mid;
-      else low = mid + 1;
-    }
-
-    const degree = low + 1;
-    const selected = new Set();
-    while (selected.size < degree) selected.add(nextRandom(state) % total);
-    return [...selected].sort((a, b) => a - b);
-  }
-
-  function removeEquation(sequence) {
-    const equation = received.equations.get(sequence);
-    if (!equation) return;
-    for (const index of equation.indices) {
-      const refs = received.byBlock.get(index);
-      if (!refs) continue;
-      refs.delete(sequence);
-      if (!refs.size) received.byBlock.delete(index);
-    }
-    received.equations.delete(sequence);
-  }
-
-  function solveBlock(index, bytes) {
-    const queue = [[index, bytes]];
-
-    while (queue.length) {
-      const [solvedIndex, solvedBytes] = queue.shift();
-      if (received.blocks[solvedIndex]) continue;
-
-      received.blocks[solvedIndex] = solvedBytes;
-      received.solvedCount += 1;
-
-      const refs = [...(received.byBlock.get(solvedIndex) || [])];
-      received.byBlock.delete(solvedIndex);
-
-      for (const sequence of refs) {
-        const equation = received.equations.get(sequence);
-        if (!equation || !equation.indices.has(solvedIndex)) continue;
-
-        equation.indices.delete(solvedIndex);
-        xorInto(equation.data, solvedBytes);
-
-        if (!equation.indices.size) {
-          removeEquation(sequence);
-          continue;
-        }
-
-        if (equation.indices.size === 1) {
-          const nextIndex = equation.indices.values().next().value;
-          const nextBytes = equation.data;
-          removeEquation(sequence);
-          queue.push([nextIndex, nextBytes]);
-        }
-      }
-    }
-  }
-
-  function addEquation(sequence, indices, payload) {
-    if (received.equations.has(sequence)) return;
-
-    const data = payload.slice();
-    const unknown = new Set();
-
-    for (const index of indices) {
-      const known = received.blocks[index];
-      if (known) xorInto(data, known);
-      else unknown.add(index);
-    }
-
-    if (!unknown.size) return;
-    if (unknown.size === 1) {
-      solveBlock(unknown.values().next().value, data);
-      return;
-    }
-
-    const equation = { indices: unknown, data };
-    received.equations.set(sequence, equation);
-
-    for (const index of unknown) {
-      if (!received.byBlock.has(index)) received.byBlock.set(index, new Set());
-      received.byBlock.get(index).add(sequence);
-    }
   }
 
   function formatDuration(milliseconds) {
@@ -1519,6 +1338,7 @@
   }
 
   function resetReceive() {
+    if (transferScannerRunning || transferScannerStarting) closeTransferScanner();
     if (received.previewUrl) URL.revokeObjectURL(received.previewUrl);
     received = freshReceiveState();
     ignoredStreams.clear();
@@ -1568,8 +1388,19 @@
   $('transferChunkSize').addEventListener('input', updateDensityOutput);
   $('transferSpeed').addEventListener('input', () => {
     updateSpeedOutput();
-    if (playTimer) playFrames();
-    if (frames.length) setStatus('transferSendStatus', tr('ready', frames.length, formatDuration(frames.length * frameInterval())), 'ok');
+    if (playTimer !== null) playFrames();
+    if (senderState) {
+      const wrapped = senderState.wrapped;
+      const saved = wrapped.originalLen - wrapped.wireFileLen;
+      const compression = wrapped.compressed && saved > 0
+        ? `gzip −${(saved / wrapped.originalLen * 100).toFixed(1)}%`
+        : 'raw';
+      setStatus(
+        'transferSendStatus',
+        `${(wrapped.originalLen / WF.MiB).toFixed(2)} MiB · ${compression} · ${Math.ceil(wrapped.bytes.length / 1024)} KiB · ${frameRate()} fps`,
+        'ok'
+      );
+    }
   });
   $('transferPlayPause').addEventListener('click', toggleFrames);
   $('transferModalPlayPause').addEventListener('click', toggleFrames);
