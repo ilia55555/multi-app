@@ -15,6 +15,28 @@
   const MAX_GENERATED_PASSWORD_LENGTH = 256;
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
+
+  // Official Google Material Design Icons:
+  // https://github.com/google/material-design-icons
+  // action/delete, file/file_download, action/open_in_new, content/unarchive, file/file_upload
+  const MATERIAL_ICON_PATHS = Object.freeze({
+    delete: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+    save: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
+    open: 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z',
+    extract: 'M20.55 5.22l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.15.55L3.46 5.22C3.17 5.57 3 6.01 3 6.5V19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.49-.17-.93-.45-1.28zM12 9.5l5.5 5.5H14v2h-4v-2H6.5L12 9.5zM5.12 5l.82-1h12l.93 1H5.12z',
+    import: 'M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z'
+  });
+
+  function materialIcon(name) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', MATERIAL_ICON_PATHS[name]);
+    svg.append(path);
+    return svg;
+  }
+
   const $ = (id) => document.getElementById(id);
   const nativeBridge = (method) => window.SecretChatRuntime?.platform === 'android'
     ? window.SecretChatRuntime.nativeBridge(method) : null;
@@ -30,6 +52,8 @@
       scannerTitle: 'دوربین دریافت فایل', scannerEngine: 'موتور اسکن', recommendedEngine: 'ZXing (پیشنهادی)', closeScanner: 'بستن دوربین', scannerStarting: 'در حال راه‌اندازی دوربین اختصاصی…', scannerReady: 'دوربین آماده است؛ QRهای انتقال فایل را داخل کادر بگیرید.', scannerError: 'دوربین انتقال فایل راه‌اندازی نشد.',
       scannerProgress: (done, total) => `دریافت فایل: ${done} از ${total}`, scannerComplete: 'فایل کامل دریافت شد؛ می‌توانید دوربین را ببندید.',
       historyEmpty: 'هنوز فایلی دریافت نشده است.', historyCount: (n) => `${n} فایل`, deleteHistory: 'حذف', confirmDeleteHistory: 'تأیید حذف',
+      openHistory: 'باز کردن فایل', extractHistory: 'استخراج ZIP', importHistory: 'وارد کردن فایل', extractedFrom: (name) => `استخراج‌شده از ${name}`,
+      zipExtracted: (n) => `${n} فایل از ZIP استخراج شد.`, zipExtractFailed: 'استخراج ZIP انجام نشد.', historyImported: 'فایل به سوابق دریافت اضافه شد.',
       newReceiveWarning: 'با شروع دریافت جدید، پیشرفت دریافت فایل فعلی از دست می‌رود. ادامه می‌دهید؟',
       cameraOff: 'خاموش کردن دوربین', cameraOn: 'روشن کردن دوربین'
     },
@@ -44,6 +68,8 @@
       scannerTitle: 'File receiver camera', scannerEngine: 'Scan engine', recommendedEngine: 'ZXing (Recommended)', closeScanner: 'Close camera', scannerStarting: 'Starting the dedicated receiver camera…', scannerReady: 'Camera ready; place the transfer QR codes inside the frame.', scannerError: 'The file-transfer camera could not be started.',
       scannerProgress: (done, total) => `Receiving file: ${done} of ${total}`, scannerComplete: 'File received completely; you can close the camera.',
       historyEmpty: 'No received files yet.', historyCount: (n) => `${n} files`, deleteHistory: 'Delete', confirmDeleteHistory: 'Confirm delete',
+      openHistory: 'Open file', extractHistory: 'Extract ZIP', importHistory: 'Import file', extractedFrom: (name) => `Extracted from ${name}`,
+      zipExtracted: (n) => `${n} files extracted from ZIP.`, zipExtractFailed: 'ZIP extraction failed.', historyImported: 'File added to receive history.',
       newReceiveWarning: 'Starting a new receive will discard the current file progress. Continue?',
       cameraOff: 'Turn camera off', cameraOn: 'Turn camera on'
     }
