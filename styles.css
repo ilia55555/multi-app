@@ -101,6 +101,7 @@ button,input{font:inherit}
   overflow:hidden;
   transition:transform .18s,border-color .18s,box-shadow .18s
 }
+.app-card[hidden]{display:none}
 .app-card:hover,.app-card:focus-visible{
   transform:translateY(-3px);
   border-color:#65a7ff45;
@@ -114,13 +115,12 @@ button,input{font:inherit}
   display:grid;place-items:center;font-weight:700;font-size:17px;
   border:1px solid #ffffff10
 }
-.app-icon.code{background:#388cf51d;color:#64a7ff}
-.app-icon.chat{background:#9a6df21b;color:#b794ff}
-.app-icon.map{background:#ffad4d18;color:#ffc06d;font-size:24px}
-.app-icon.palette{background:linear-gradient(145deg,#f0527d22,#54d8c722);color:#62dcca;font-size:22px}
-.app-icon.elements{background:#4ac6db1a;color:#67d9eb;font-size:22px}
-.app-icon.stream{background:#ef5b6a1a;color:#ff7c88}
-.app-icon.relay{background:#5fd3c61a;color:#70e0d4;font-size:21px}
+.app-card:nth-child(6n+1) .app-icon{background:#388cf51d;color:#64a7ff}
+.app-card:nth-child(6n+2) .app-icon{background:#9a6df21b;color:#b794ff}
+.app-card:nth-child(6n+3) .app-icon{background:#ffad4d18;color:#ffc06d}
+.app-card:nth-child(6n+4) .app-icon{background:linear-gradient(145deg,#f0527d22,#54d8c722);color:#62dcca}
+.app-card:nth-child(6n+5) .app-icon{background:#4ac6db1a;color:#67d9eb}
+.app-card:nth-child(6n) .app-icon{background:#5fd3c61a;color:#70e0d4}
 .status{font-size:8px;color:#718097;padding:5px 8px;border:1px solid #ffffff0d;border-radius:20px;white-space:nowrap}
 .status i{display:inline-block;width:5px;height:5px;margin-left:4px;border-radius:50%;background:#45d5a0}
 
@@ -138,6 +138,9 @@ button,input{font:inherit}
 
 .empty-results{text-align:center;padding:55px 20px;border:1px dashed #ffffff17;border-radius:18px;color:#65758b}
 .empty-results span{font-size:28px}.empty-results h3{color:#c7d4e5;margin:10px 0 4px}.empty-results p{font-size:10px}
+.load-error{padding:18px 20px;border:1px solid #ff7c8845;border-radius:16px;background:#ef5b6a12;color:#ff9aa3}
+.load-error strong,.load-error span{display:block}
+.load-error span{margin-top:4px;color:#b98289;font-size:10px}
 
 @media(max-width:720px){
   .topbar{grid-template-columns:auto minmax(0,1fr);padding:10px 14px;gap:10px}
