@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const PROTOCOL = 'SCF1';
+  const PROTOCOL = 'SCF2';
   const SCANNER_ENGINE_KEY = 'secretchat-transfer-scanner-engine';
   const VIEWPORT_HEIGHT_KEY = 'secretchat-transfer-viewport-height';
   const SCANNER_ENGINE_VALUES = ['zxing', 'html5qrcode', 'jsqr', 'qrscanner'];
@@ -117,7 +117,19 @@
   }
 
   function freshReceiveState() {
-    return { id: '', total: 0, manifest: null, chunks: new Map(), blob: null, bytes: null, assembling: false };
+    return {
+      id: '',
+      total: 0,
+      blockLen: 0,
+      manifest: null,
+      blocks: [],
+      equations: new Map(),
+      byBlock: new Map(),
+      solvedCount: 0,
+      blob: null,
+      bytes: null,
+      assembling: false
+    };
   }
 
   function setStatus(id, message, type = '') {
@@ -258,6 +270,124 @@
   function transferId() {
     const bytes = crypto.getRandomValues(new Uint8Array(6));
     return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  function xorInto(target, source) {
+    const length = Math.min(target.length, source.length);
+    for (let i = 0; i < length; i += 1) target[i] ^= source[i];
+    return target;
+  }
+
+  function makePaddedBlock(bytes, index, blockLen) {
+    const block = new Uint8Array(blockLen);
+    const start = index * blockLen;
+    block.set(bytes.subarray(start, Math.min(bytes.length, start + blockLen)));
+    return block;
+  }
+
+  function seedForFrame(id, sequence) {
+    let seed = 2166136261 >>> 0;
+    const textValue = `${id}:${sequence}`;
+    for (let i = 0; i < textValue.length; i += 1) {
+      seed ^= textValue.charCodeAt(i);
+      seed = Math.imul(seed, 16777619) >>> 0;
+    }
+    return seed || 0x9e3779b9;
+  }
+
+  function nextRandom(state) {
+    let value = state.value >>> 0;
+    value ^= value << 13;
+    value ^= value >>> 17;
+    value ^= value << 5;
+    state.value = value >>> 0;
+    return state.value;
+  }
+
+  function repairIndices(id, sequence, total) {
+    if (sequence < total) return [sequence];
+    if (total <= 1) return [0];
+
+    const state = { value: seedForFrame(id, sequence) };
+    const roll = nextRandom(state) % 100;
+    const degree = Math.min(total, roll < 48 ? 2 : roll < 78 ? 3 : roll < 94 ? 4 : 5);
+    const selected = new Set();
+    while (selected.size < degree) selected.add(nextRandom(state) % total);
+    return [...selected].sort((a, b) => a - b);
+  }
+
+  function removeEquation(sequence) {
+    const equation = received.equations.get(sequence);
+    if (!equation) return;
+    for (const index of equation.indices) {
+      const refs = received.byBlock.get(index);
+      if (!refs) continue;
+      refs.delete(sequence);
+      if (!refs.size) received.byBlock.delete(index);
+    }
+    received.equations.delete(sequence);
+  }
+
+  function solveBlock(index, bytes) {
+    const queue = [[index, bytes]];
+
+    while (queue.length) {
+      const [solvedIndex, solvedBytes] = queue.shift();
+      if (received.blocks[solvedIndex]) continue;
+
+      received.blocks[solvedIndex] = solvedBytes;
+      received.solvedCount += 1;
+
+      const refs = [...(received.byBlock.get(solvedIndex) || [])];
+      received.byBlock.delete(solvedIndex);
+
+      for (const sequence of refs) {
+        const equation = received.equations.get(sequence);
+        if (!equation || !equation.indices.has(solvedIndex)) continue;
+
+        equation.indices.delete(solvedIndex);
+        xorInto(equation.data, solvedBytes);
+
+        if (!equation.indices.size) {
+          removeEquation(sequence);
+          continue;
+        }
+
+        if (equation.indices.size === 1) {
+          const nextIndex = equation.indices.values().next().value;
+          const nextBytes = equation.data;
+          removeEquation(sequence);
+          queue.push([nextIndex, nextBytes]);
+        }
+      }
+    }
+  }
+
+  function addEquation(sequence, indices, payload) {
+    if (received.equations.has(sequence)) return;
+
+    const data = payload.slice();
+    const unknown = new Set();
+
+    for (const index of indices) {
+      const known = received.blocks[index];
+      if (known) xorInto(data, known);
+      else unknown.add(index);
+    }
+
+    if (!unknown.size) return;
+    if (unknown.size === 1) {
+      solveBlock(unknown.values().next().value, data);
+      return;
+    }
+
+    const equation = { indices: unknown, data };
+    received.equations.set(sequence, equation);
+
+    for (const index of unknown) {
+      if (!received.byBlock.has(index)) received.byBlock.set(index, new Set());
+      received.byBlock.get(index).add(sequence);
+    }
   }
 
   function formatDuration(milliseconds) {
@@ -559,29 +689,71 @@
     $('transferQrStage').hidden = true;
     if (!file) return;
     setStatus('transferSendStatus', tr('preparing'));
+
     try {
       const plainBytes = new Uint8Array(await file.arrayBuffer());
       const password = $('transferSendPassword').value;
-      if (password && password.length < MIN_FILE_PASSWORD_LENGTH) throw new Error(tr('shortPassword', MIN_FILE_PASSWORD_LENGTH - password.length));
+      if (password && password.length < MIN_FILE_PASSWORD_LENGTH) {
+        throw new Error(tr('shortPassword', MIN_FILE_PASSWORD_LENGTH - password.length));
+      }
+
       const protectedFile = password ? await encryptFileBytes(plainBytes, password) : null;
       const bytes = protectedFile?.bytes || plainBytes;
-      const chunkSize = Number($('transferChunkSize').value);
-      const total = Math.ceil(bytes.length / chunkSize) || 1;
+      const blockLen = Number($('transferChunkSize').value);
+      const total = Math.ceil(bytes.length / blockLen) || 1;
       if (total > 99999) throw new Error(tr('badFile'));
+
       const id = transferId();
       const hash = await sha256(bytes);
-      const manifest = { name: file.name.slice(0, 160), type: (file.type || 'application/octet-stream').slice(0, 100), size: bytes.length, chunkSize, hash };
-      if (protectedFile) Object.assign(manifest, { encrypted: true, salt: protectedFile.salt, iv: protectedFile.iv, plainSize: plainBytes.length, plainHash: await sha256(plainBytes) });
-      frames.push(`${PROTOCOL}|${id}|M|${total}|${base64UrlEncode(JSON.stringify(manifest))}`);
-      for (let index = 0; index < total; index += 1) {
-        const chunk = bytes.subarray(index * chunkSize, Math.min(bytes.length, (index + 1) * chunkSize));
-        frames.push(`${PROTOCOL}|${id}|D|${index}|${total}|${crc32(chunk)}|${bytesToBase64(chunk)}`);
+      const manifest = {
+        name: file.name.slice(0, 160),
+        type: (file.type || 'application/octet-stream').slice(0, 100),
+        size: bytes.length,
+        blockLen,
+        total,
+        hash
+      };
+
+      if (protectedFile) {
+        Object.assign(manifest, {
+          encrypted: true,
+          salt: protectedFile.salt,
+          iv: protectedFile.iv,
+          plainSize: plainBytes.length,
+          plainHash: await sha256(plainBytes)
+        });
       }
+
+      const sourceBlocks = Array.from({ length: total }, (_, index) => makePaddedBlock(bytes, index, blockLen));
+      const manifestFrame = `${PROTOCOL}|${id}|M|${total}|${blockLen}|${base64UrlEncode(JSON.stringify(manifest))}`;
+      const dataFrames = [];
+
+      for (let sequence = 0; sequence < total; sequence += 1) {
+        const payload = sourceBlocks[sequence];
+        dataFrames.push(`${PROTOCOL}|${id}|F|${sequence}|${total}|${crc32(payload)}|${sequence}|${bytesToBase64(payload)}`);
+      }
+
+      const repairCount = Math.max(12, Math.ceil(total * 0.4));
+      for (let repair = 0; repair < repairCount; repair += 1) {
+        const sequence = total + repair;
+        const indices = repairIndices(id, sequence, total);
+        const payload = new Uint8Array(blockLen);
+        for (const index of indices) xorInto(payload, sourceBlocks[index]);
+        dataFrames.push(`${PROTOCOL}|${id}|F|${sequence}|${total}|${crc32(payload)}|${indices.join('.')}|${bytesToBase64(payload)}`);
+      }
+
+      frames = [];
+      dataFrames.forEach((frame, index) => {
+        if (index % 12 === 0) frames.push(manifestFrame);
+        frames.push(frame);
+      });
+
       frameIndex = 0;
       $('transferQrStage').hidden = false;
       updateSendControls(true);
       $('transferDownloadZip').disabled = false;
       drawFrame(0);
+
       const cycleTime = frames.length * frameInterval();
       setStatus('transferSendStatus', tr('ready', frames.length, formatDuration(cycleTime)), 'ok');
     } catch (error) {
@@ -756,25 +928,48 @@
   function parseFrame(value) {
     if (typeof value !== 'string' || !value.startsWith(`${PROTOCOL}|`)) return null;
     const parts = value.split('|');
-    if (parts[2] === 'M' && parts.length === 5) return { id: parts[1], kind: 'M', total: Number(parts[3]), payload: parts[4] };
-    if (parts[2] === 'D' && parts.length === 7) return { id: parts[1], kind: 'D', index: Number(parts[3]), total: Number(parts[4]), crc: parts[5], payload: parts[6] };
+
+    if (parts[2] === 'M' && parts.length === 6) {
+      return {
+        id: parts[1],
+        kind: 'M',
+        total: Number(parts[3]),
+        blockLen: Number(parts[4]),
+        payload: parts[5]
+      };
+    }
+
+    if (parts[2] === 'F' && parts.length === 8) {
+      return {
+        id: parts[1],
+        kind: 'F',
+        sequence: Number(parts[3]),
+        total: Number(parts[4]),
+        crc: parts[5],
+        indices: parts[6].split('.').map(Number),
+        payload: parts[7]
+      };
+    }
+
     throw new Error('INVALID_FRAME');
   }
 
   async function finishReceive() {
-    if (received.assembling || !received.manifest || received.chunks.size !== received.total) return;
+    if (received.assembling || !received.manifest || received.solvedCount !== received.total) return;
     received.assembling = true;
     setStatus('transferReceiveStatus', tr('verifying'));
+
     try {
-      const bytes = new Uint8Array(received.manifest.size);
-      let offset = 0;
+      const padded = new Uint8Array(received.total * received.blockLen);
       for (let index = 0; index < received.total; index += 1) {
-        const chunk = received.chunks.get(index);
-        if (!chunk) throw new Error('MISSING_CHUNK');
-        bytes.set(chunk, offset);
-        offset += chunk.length;
+        const block = received.blocks[index];
+        if (!block) throw new Error('MISSING_BLOCK');
+        padded.set(block, index * received.blockLen);
       }
-      if (offset !== received.manifest.size || await sha256(bytes) !== received.manifest.hash) throw new Error('HASH_MISMATCH');
+
+      const bytes = padded.slice(0, received.manifest.size);
+      if (await sha256(bytes) !== received.manifest.hash) throw new Error('HASH_MISMATCH');
+
       if (received.manifest.encrypted) {
         received.encryptedBytes = bytes;
         $('transferPasswordUnlock').hidden = false;
@@ -784,6 +979,7 @@
         $('transferReceivePassword').focus();
         return;
       }
+
       showReceivedFile(bytes);
       await closeTransferScanner();
     } catch (error) {
@@ -793,29 +989,33 @@
   }
 
   function showReceivedFile(bytes) {
-      received.bytes = bytes;
-      received.blob = new Blob([bytes], { type: received.manifest.type });
-      if (received.manifest.type.startsWith('image/')) {
-        received.previewUrl = URL.createObjectURL(received.blob);
-        $('transferImagePreview').src = received.previewUrl;
-        $('transferImagePreview').alt = received.manifest.name;
-        $('transferImagePreview').hidden = false;
-      } else {
-        $('transferImagePreview').removeAttribute('src');
-        $('transferImagePreview').hidden = true;
-      }
-      $('transferReceivedName').textContent = received.manifest.name;
-      $('transferReceivedSize').textContent = `${bytes.length.toLocaleString()} bytes`;
-      $('transferFileReady').hidden = false;
-      setStatus('transferReceiveStatus', tr('complete'), 'ok');
-      updateScannerProgress(tr('scannerComplete'));
+    received.bytes = bytes;
+    received.blob = new Blob([bytes], { type: received.manifest.type });
+
+    if (received.manifest.type.startsWith('image/')) {
+      received.previewUrl = URL.createObjectURL(received.blob);
+      $('transferImagePreview').src = received.previewUrl;
+      $('transferImagePreview').alt = received.manifest.name;
+      $('transferImagePreview').hidden = false;
+    } else {
+      $('transferImagePreview').removeAttribute('src');
+      $('transferImagePreview').hidden = true;
+    }
+
+    $('transferReceivedName').textContent = received.manifest.name;
+    $('transferReceivedSize').textContent = `${bytes.length.toLocaleString()} bytes`;
+    $('transferFileReady').hidden = false;
+    setStatus('transferReceiveStatus', tr('complete'), 'ok');
+    updateScannerProgress(tr('scannerComplete'));
   }
 
   async function unlockReceivedFile() {
     if (!received.encryptedBytes || !received.manifest) return;
     try {
       const bytes = await decryptFileBytes(received.encryptedBytes, $('transferReceivePassword').value, received.manifest);
-      if (bytes.length !== received.manifest.plainSize || await sha256(bytes) !== received.manifest.plainHash) throw new Error('BAD_PASSWORD');
+      if (bytes.length !== received.manifest.plainSize || await sha256(bytes) !== received.manifest.plainHash) {
+        throw new Error('BAD_PASSWORD');
+      }
       $('transferPasswordUnlock').hidden = true;
       $('transferReceivePassword').value = '';
       showReceivedFile(bytes);
@@ -826,30 +1026,78 @@
 
   async function receiveFrame(value) {
     let frame;
-    try { frame = parseFrame(value); } catch (error) {
+    try {
+      frame = parseFrame(value);
+    } catch (error) {
       setStatus('transferReceiveStatus', tr('invalid'), 'error');
       return;
     }
+
     if (!frame) return;
-    if (!frame.id || !Number.isInteger(frame.total) || frame.total < 1 || frame.total > 99999) return setStatus('transferReceiveStatus', tr('invalid'), 'error');
-    if (received.id && received.id !== frame.id) return setStatus('transferReceiveStatus', tr('different'), 'error');
-    if (!received.id) { received.id = frame.id; received.total = frame.total; }
-    if (received.total !== frame.total) return setStatus('transferReceiveStatus', tr('invalid'), 'error');
+    if (!frame.id || !Number.isInteger(frame.total) || frame.total < 1 || frame.total > 99999) {
+      setStatus('transferReceiveStatus', tr('invalid'), 'error');
+      return;
+    }
+
+    if (received.id && received.id !== frame.id) {
+      setStatus('transferReceiveStatus', tr('different'), 'error');
+      return;
+    }
+
+    if (!received.id) {
+      received.id = frame.id;
+      received.total = frame.total;
+      received.blocks = new Array(frame.total);
+    }
+
+    if (received.total !== frame.total) {
+      setStatus('transferReceiveStatus', tr('invalid'), 'error');
+      return;
+    }
+
     try {
       if (frame.kind === 'M') {
         const manifest = JSON.parse(base64UrlDecode(frame.payload));
-        if (!manifest.name || !Number.isInteger(manifest.size) || manifest.size < 0 || !/^[a-f0-9]{64}$/u.test(manifest.hash)) throw new Error('INVALID_MANIFEST');
-        if (manifest.encrypted && (!manifest.salt || !manifest.iv || !Number.isInteger(manifest.plainSize) || !/^[a-f0-9]{64}$/u.test(manifest.plainHash))) throw new Error('INVALID_ENCRYPTED_MANIFEST');
+        if (
+          !manifest.name ||
+          !Number.isInteger(manifest.size) ||
+          manifest.size < 0 ||
+          !Number.isInteger(manifest.blockLen) ||
+          manifest.blockLen < 1 ||
+          !Number.isInteger(manifest.total) ||
+          manifest.total !== received.total ||
+          manifest.blockLen !== frame.blockLen ||
+          !/^[a-f0-9]{64}$/u.test(manifest.hash)
+        ) {
+          throw new Error('INVALID_MANIFEST');
+        }
+
+        if (
+          manifest.encrypted &&
+          (!manifest.salt || !manifest.iv || !Number.isInteger(manifest.plainSize) || !/^[a-f0-9]{64}$/u.test(manifest.plainHash))
+        ) {
+          throw new Error('INVALID_ENCRYPTED_MANIFEST');
+        }
+
+        if (received.blockLen && received.blockLen !== manifest.blockLen) throw new Error('BLOCK_LENGTH_MISMATCH');
+        received.blockLen = manifest.blockLen;
         received.manifest = manifest;
       } else {
-        if (!Number.isInteger(frame.index) || frame.index < 0 || frame.index >= received.total) throw new Error('INVALID_INDEX');
-        if (!received.chunks.has(frame.index)) {
-          const chunk = base64ToBytes(frame.payload);
-          if (crc32(chunk) !== frame.crc) throw new Error('CRC_MISMATCH');
-          received.chunks.set(frame.index, chunk);
+        if (!Number.isInteger(frame.sequence) || frame.sequence < 0) throw new Error('INVALID_SEQUENCE');
+        if (!frame.indices.length || frame.indices.length > 5 || frame.indices.some((index) => !Number.isInteger(index) || index < 0 || index >= received.total)) {
+          throw new Error('INVALID_INDICES');
         }
+
+        const payload = base64ToBytes(frame.payload);
+        if (crc32(payload) !== frame.crc) throw new Error('CRC_MISMATCH');
+
+        if (received.blockLen && received.blockLen !== payload.length) throw new Error('BLOCK_LENGTH_MISMATCH');
+        if (!received.blockLen) received.blockLen = payload.length;
+
+        addEquation(frame.sequence, frame.indices, payload);
       }
-      const done = received.chunks.size;
+
+      const done = received.solvedCount;
       $('transferReceiveProgress').value = done / received.total;
       setStatus('transferReceiveStatus', tr('receiving', done, received.total));
       updateScannerProgress(tr('scannerProgress', done, received.total));
