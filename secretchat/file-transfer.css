@@ -175,9 +175,12 @@ input[type="range"]::-moz-range-thumb {
 .transfer-qr-stage {
   position: relative;
   display: grid;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: center;
   justify-items: center;
   gap: 8px;
-  margin-top: 13px;
+  margin: 13px auto 0;
   padding: 12px;
   border-radius: 18px;
   background: #fff;
@@ -186,9 +189,12 @@ input[type="range"]::-moz-range-thumb {
 
 .transfer-qr-viewport {
   display: grid;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   min-width: 0;
+  padding: 2px;
   place-items: center;
+  overflow: visible;
 }
 
 .transfer-qr-box canvas {
@@ -202,13 +208,13 @@ input[type="range"]::-moz-range-thumb {
 
 .transfer-qr-box {
   display: grid;
-  width: min(100%, 1000px);
-  aspect-ratio: 1;
+  width: fit-content;
+  max-width: 100%;
   flex: none;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #dbe3ec;
-  border-radius: 16px;
+  border-radius: 10px;
   background: #fff;
   box-shadow: 0 8px 28px rgba(15, 23, 42, .12);
 }
@@ -352,8 +358,10 @@ html.transfer-fullscreen-fallback-open { overflow: hidden; }
 
 #transferQrCanvas {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   height: auto;
+  box-sizing: border-box;
   image-rendering: pixelated;
 }
 
@@ -626,4 +634,110 @@ html.transfer-fullscreen-fallback-open { overflow: hidden; }
   font-size: 1.4rem;
   line-height: 1;
   font-weight: 500;
+}
+
+
+.transfer-history-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transfer-icon-button,
+.transfer-history-icon {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px;
+  place-items: center;
+  flex: 0 0 40px;
+}
+
+.transfer-icon-button svg,
+.transfer-history-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+.transfer-history-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.transfer-history-actions button {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 7px;
+  flex: 0 0 38px;
+}
+
+.transfer-history-item.is-extracted {
+  position: relative;
+  margin-inline-start: calc(var(--history-depth, 1) * 16px);
+  border-inline-start-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+
+.transfer-history-item.is-extracted::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -11px;
+  top: -10px;
+  width: 10px;
+  height: calc(50% + 10px);
+  border-inline-start: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-end-start-radius: 8px;
+  pointer-events: none;
+}
+
+.transfer-history-source {
+  color: color-mix(in srgb, var(--accent) 78%, var(--text)) !important;
+  direction: inherit !important;
+  text-align: start !important;
+  font-weight: 650;
+}
+
+.transfer-history-delete svg {
+  fill: currentColor;
+}
+
+@media (max-width: 720px) {
+  .transfer-qr-stage {
+    width: fit-content;
+    max-width: 100%;
+    padding: 8px;
+  }
+
+  .transfer-qr-viewport,
+  .transfer-qr-box,
+  #transferQrCanvas {
+    max-width: 100%;
+  }
+
+  .transfer-history-actions {
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .transfer-history-actions button {
+    flex: 0 0 38px;
+  }
+
+  .transfer-history-item.is-extracted {
+    margin-inline-start: calc(var(--history-depth, 1) * 10px);
+  }
+}
+
+
+.transfer-file-ready-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
 }
