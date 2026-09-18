@@ -180,7 +180,7 @@ input[type="range"]::-moz-range-thumb {
   justify-self: center;
   justify-items: center;
   gap: 8px;
-  margin-top: 13px;
+  margin: 13px auto 0;
   padding: 12px;
   border-radius: 18px;
   background: #fff;
