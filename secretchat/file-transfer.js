@@ -93,6 +93,7 @@
     });
     updatePlaybackButton();
     updateTransferPasswordStrength();
+    renderTransferHistory();
   }
 
   function transferPasswordScore(password) {
@@ -154,17 +155,6 @@
     const element = $(id);
     element.textContent = message;
     element.className = `transfer-status ${type}`.trim();
-  }
-
-  function showZipReadyStatus(showFolderButton) {
-    setStatus('transferSendStatus', tr('zipReady'), 'ok');
-    if (!showFolderButton) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'transfer-open-folder-button';
-    button.textContent = tr('openZipFolder');
-    button.addEventListener('click', () => nativeBridge('openZipDirectory')?.());
-    $('transferSendStatus').append(button);
   }
 
   function bytesToBase64(bytes) {
@@ -231,22 +221,6 @@
     return output;
   }
 
-  function createStoreZip(files) {
-    const locals = [];
-    const central = [];
-    let offset = 0;
-    files.forEach(({ name, bytes }) => {
-      const nameBytes = encoder.encode(name);
-      const crc = parseInt(crc32(bytes), 16) >>> 0;
-      const local = concatBytes([uint32(0x04034b50), uint16(20), uint16(0), uint16(0), uint16(0), uint16(0), uint32(crc), uint32(bytes.length), uint32(bytes.length), uint16(nameBytes.length), uint16(0), nameBytes, bytes]);
-      locals.push(local);
-      central.push(concatBytes([uint32(0x02014b50), uint16(20), uint16(20), uint16(0), uint16(0), uint16(0), uint16(0), uint32(crc), uint32(bytes.length), uint32(bytes.length), uint16(nameBytes.length), uint16(0), uint16(0), uint16(0), uint16(0), uint32(0), uint32(offset), nameBytes]));
-      offset += local.length;
-    });
-    const directory = concatBytes(central);
-    return concatBytes([...locals, directory, uint32(0x06054b50), uint16(0), uint16(0), uint16(files.length), uint16(files.length), uint32(directory.length), uint32(offset), uint16(0)]);
-  }
-
   function zipImageFiles(file) {
     return file.arrayBuffer().then((buffer) => {
       const bytes = new Uint8Array(buffer);
@@ -278,15 +252,8 @@
     return extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : `image/${extension === 'svg' ? 'svg+xml' : extension}`;
   }
 
-  function formatDuration(milliseconds) {
-    const seconds = Math.ceil(milliseconds / 1000);
-    if (seconds < 60) return language() === 'fa' ? `${seconds} ثانیه` : `${seconds}s`;
-    const minutes = Math.ceil(seconds / 60);
-    return language() === 'fa' ? `${minutes} دقیقه` : `${minutes} min`;
-  }
-
   function updateSendControls(enabled) {
-    ['transferPlayPause', 'transferPrevious', 'transferNext', 'transferModalPlayPause', 'transferModalPrevious', 'transferModalNext'].forEach((id) => {
+    ['transferPlayPause', 'transferModalPlayPause'].forEach((id) => {
       const button = $(id);
       if (button) button.disabled = !enabled;
     });
