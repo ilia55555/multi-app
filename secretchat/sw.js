@@ -1,4 +1,4 @@
-const CACHE_NAME = 'secretchat-v34';
+const CACHE_NAME = 'secretchat-v35';
 const APP_ASSETS = [
   './',
   './index.html',
