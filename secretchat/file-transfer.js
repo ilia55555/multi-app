@@ -816,15 +816,29 @@
     await stopTransferScanner();
   }
 
-  async function openTransferScanner() {
+  async function openTransferScanner(attemptedEngines = new Set()) {
     if (transferScannerStarting || transferScannerRunning) return;
     $('transferScannerModal').classList.add('active');
     $('transferCameraStatus').textContent = tr('scannerStarting');
     $('transferCameraStatus').className = 'transfer-status';
     transferScannerStarting = true;
+    let engine = selectedScannerEngine;
     try {
-      const engine = selectedScannerEngine;
-      if (!(await loadTransferScannerEngine(engine))) throw new Error(`${engine.toUpperCase()}_MISSING`);
+      const candidates = [selectedScannerEngine, ...SCANNER_ENGINE_VALUES.filter((value) => value !== selectedScannerEngine && !attemptedEngines.has(value))];
+      engine = '';
+      for (const candidate of candidates) {
+        if (attemptedEngines.has(candidate)) continue;
+        if (await loadTransferScannerEngine(candidate)) {
+          engine = candidate;
+          break;
+        }
+        attemptedEngines.add(candidate);
+      }
+      if (!engine) throw new Error('NO_SCANNER_ENGINE');
+      if (engine !== selectedScannerEngine) {
+        selectedScannerEngine = engine;
+        $('transferScannerEngine').value = engine;
+      }
       if (!$('transferScannerModal').classList.contains('active') || !transferScannerStarting) return;
       let scanner;
       if (engine === 'jsqr') {
@@ -918,6 +932,18 @@
       $('transferCameraStatus').textContent = tr('scannerReady');
     } catch (error) {
       await stopTransferScanner();
+      attemptedEngines.add(engine);
+
+      const permissionError = /NotAllowedError|Permission denied|SecurityError/iu.test(String(error?.name || '') + ' ' + String(error?.message || ''));
+      const nextEngine = permissionError ? '' : SCANNER_ENGINE_VALUES.find((candidate) => !attemptedEngines.has(candidate));
+
+      if (nextEngine && $('transferScannerModal').classList.contains('active')) {
+        selectedScannerEngine = nextEngine;
+        $('transferScannerEngine').value = nextEngine;
+        transferScannerStarting = false;
+        return openTransferScanner(attemptedEngines);
+      }
+
       $('transferCameraStatus').textContent = `${tr('scannerError')} ${error.message || ''}`.trim();
       $('transferCameraStatus').className = 'transfer-status error';
     } finally {
