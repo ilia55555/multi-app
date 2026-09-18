@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v3';
+const CACHE_NAME = 'multi-app-hub-v4';
 const APP_FILES = [
   './',
   './index.html',
