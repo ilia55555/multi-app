@@ -5,8 +5,8 @@ const manifest = {
   start_url: './index.html',
   scope: './',
   display: 'standalone',
-  background_color: '#090a0f',
-  theme_color: '#090a0f',
+  background_color: '#07111f',
+  theme_color: '#07111f',
   lang: 'fa',
   dir: 'rtl',
   icons: [{
@@ -17,26 +17,47 @@ const manifest = {
   }]
 };
 
-document.querySelector('#app-manifest').href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
+const manifestLink = document.querySelector('#app-manifest');
+if (manifestLink) {
+  manifestLink.href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
+}
 
 const search = document.querySelector('#search');
 const resultCount = document.querySelector('#resultCount');
 const emptyResults = document.querySelector('#emptyResults');
-search.addEventListener('input', () => {
+const toolCount = document.querySelector('#toolCount');
+const cards = [...document.querySelectorAll('.app-card[data-search]')];
+
+const setCount = visible => {
+  const text = `${visible.toLocaleString('fa-IR')} ابزار برای استفاده آماده است`;
+  if (resultCount) resultCount.textContent = text;
+};
+
+if (toolCount) toolCount.textContent = cards.length.toLocaleString('fa-IR');
+setCount(cards.length);
+
+search?.addEventListener('input', () => {
   const value = search.value.trim().toLowerCase();
-  let visibleCount = 0;
-  document.querySelectorAll('[data-search]').forEach(card => {
-    card.hidden = !card.dataset.search.toLowerCase().includes(value);
-    if (!card.hidden) visibleCount += 1;
-  });
-  resultCount.textContent = value ? `${visibleCount.toLocaleString('fa-IR')} نتیجه پیدا شد` : '۷ ابزار برای استفاده آماده است';
-  emptyResults.hidden = visibleCount !== 0;
+  let visible = 0;
+
+  for (const card of cards) {
+    const matched = card.dataset.search.toLowerCase().includes(value);
+    card.hidden = !matched;
+    if (matched) visible += 1;
+  }
+
+  if (resultCount) {
+    resultCount.textContent = value
+      ? `${visible.toLocaleString('fa-IR')} نتیجه پیدا شد`
+      : `${cards.length.toLocaleString('fa-IR')} ابزار برای استفاده آماده است`;
+  }
+  if (emptyResults) emptyResults.hidden = visible !== 0;
 });
 
 window.addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault();
-    search.focus();
+    search?.focus();
   }
 });
 
@@ -46,10 +67,10 @@ let installPrompt;
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
   installPrompt = event;
-  installButton.hidden = false;
+  if (installButton) installButton.hidden = false;
 });
 
-installButton.addEventListener('click', async () => {
+installButton?.addEventListener('click', async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice;
@@ -59,8 +80,13 @@ installButton.addEventListener('click', async () => {
 
 window.addEventListener('appinstalled', () => {
   installPrompt = null;
-  installButton.hidden = true;
+  if (installButton) installButton.hidden = true;
 });
 
-if (window.matchMedia('(display-mode: standalone)').matches) installButton.hidden = true;
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+if (window.matchMedia('(display-mode: standalone)').matches && installButton) {
+  installButton.hidden = true;
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+}
