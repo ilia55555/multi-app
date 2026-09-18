@@ -59,6 +59,8 @@
   let transferScanner = null;
   let transferScannerRunning = false;
   let transferScannerStarting = false;
+  let transferScannerPaused = false;
+  let transferScannerBackgroundPaused = false;
   const scannerEnginePromises = {};
   let selectedScannerEngine = localStorage.getItem(SCANNER_ENGINE_KEY) || 'zxing';
   if (!SCANNER_ENGINE_VALUES.includes(selectedScannerEngine)) selectedScannerEngine = 'zxing';
@@ -888,6 +890,39 @@
     return video;
   }
 
+  function syncTransferScannerControls() {
+    const pauseButton = $('transferPauseScanner');
+    const resumeButton = $('transferResumeScanner');
+    if (pauseButton) pauseButton.hidden = !transferScannerRunning;
+    if (resumeButton) resumeButton.hidden = !transferScannerPaused;
+  }
+
+  async function pauseTransferScanner(background = false) {
+    if (!transferScannerRunning && !transferScannerStarting) return;
+    await stopTransferScanner();
+    transferScannerPaused = true;
+    transferScannerBackgroundPaused = background;
+    syncTransferScannerControls();
+
+    const message = background
+      ? (language() === 'fa'
+          ? 'دوربین در پس‌زمینه متوقف شد. برای ادامه «ادامه» را بزنید.'
+          : 'Camera paused in the background. Tap Resume to continue.')
+      : (language() === 'fa' ? 'دریافت موقتاً متوقف شد.' : 'Receiving paused.');
+
+    $('transferCameraStatus').textContent = message;
+    setStatus('transferReceiveStatus', message);
+  }
+
+  async function resumeTransferScanner() {
+    if (!transferScannerPaused || transferScannerStarting || transferScannerRunning) return;
+    transferScannerPaused = false;
+    transferScannerBackgroundPaused = false;
+    if (received.decoder) received.lastProgressAt = performance.now();
+    syncTransferScannerControls();
+    await openTransferScanner(new Set(), true);
+  }
+
   async function stopTransferScanner() {
     const scanner = transferScanner;
     transferScanner = null;
@@ -897,6 +932,7 @@
     try { if (scanner) await scanner.clear?.(); } catch (_) {}
 
     transferScannerRunning = false;
+    syncTransferScannerControls();
     if (receiveWatchdog !== null) {
       clearInterval(receiveWatchdog);
       receiveWatchdog = null;
@@ -906,8 +942,11 @@
   }
 
   async function closeTransferScanner() {
+    transferScannerPaused = false;
+    transferScannerBackgroundPaused = false;
     $('transferScannerModal').classList.remove('active');
     await stopTransferScanner();
+    syncTransferScannerControls();
   }
 
   async function startJsQrWorkerScanner() {
@@ -1116,7 +1155,7 @@
     throw new Error('UNKNOWN_SCANNER_ENGINE');
   }
 
-  async function openTransferScanner(attemptedEngines = new Set()) {
+  async function openTransferScanner(attemptedEngines = new Set(), preserveDecoder = false) {
     if (transferScannerStarting || transferScannerRunning) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus('transferReceiveStatus', language() === 'fa'
@@ -1131,7 +1170,7 @@
     transferScannerStarting = true;
 
     try {
-      resetWayFoldDecoder(false);
+      if (!preserveDecoder) resetWayFoldDecoder(false);
       const candidates = [
         selectedScannerEngine,
         ...SCANNER_ENGINE_VALUES.filter((engine) => engine !== selectedScannerEngine)
@@ -1163,10 +1202,14 @@
       transferScanner = scanner;
       transferScannerRunning = true;
       transferScannerStarting = false;
+      transferScannerPaused = false;
+      transferScannerBackgroundPaused = false;
+      if (preserveDecoder && received.decoder) received.lastProgressAt = performance.now();
       selectedScannerEngine = startedEngine;
       $('transferScannerEngine').value = startedEngine;
       localStorage.setItem(SCANNER_ENGINE_KEY, startedEngine);
       $('transferCameraStatus').textContent = tr('scannerReady');
+      syncTransferScannerControls();
       startReceiveWatchdog();
       await acquireWakeLock();
     } catch (error) {
@@ -1174,6 +1217,8 @@
       await stopTransferScanner();
       $('transferCameraStatus').textContent = `${tr('scannerError')} ${error?.message || error || ''}`.trim();
       $('transferCameraStatus').className = 'transfer-status error';
+      transferScannerPaused = false;
+      syncTransferScannerControls();
     }
   }
 
@@ -1437,15 +1482,19 @@
   });
   $('transferFrameNumber').addEventListener('change', jumpToTypedFrame);
   $('transferFrameNumber').addEventListener('keydown', (event) => { if (event.key === 'Enter') jumpToTypedFrame(); });
-  $('transferOpenScanner').addEventListener('click', openTransferScanner);
+  $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), false));
   $('transferScannerEngine').value = selectedScannerEngine;
   $('transferScannerEngine').addEventListener('change', async () => {
     selectedScannerEngine = $('transferScannerEngine').value;
     localStorage.setItem(SCANNER_ENGINE_KEY, selectedScannerEngine);
     const wasOpen = $('transferScannerModal').classList.contains('active');
+    const preserveDecoder = Boolean(received.decoder);
+    transferScannerPaused = false;
     await stopTransferScanner();
-    if (wasOpen) openTransferScanner();
+    if (wasOpen) openTransferScanner(new Set(), preserveDecoder);
   });
+  $('transferPauseScanner').addEventListener('click', () => pauseTransferScanner(false));
+  $('transferResumeScanner').addEventListener('click', resumeTransferScanner);
   $('transferCloseScanner').addEventListener('click', closeTransferScanner);
   $('transferStopScanner').addEventListener('click', closeTransferScanner);
   $('transferScannerModal').addEventListener('click', (event) => { if (event.target === $('transferScannerModal')) closeTransferScanner(); });
@@ -1454,6 +1503,27 @@
   $('transferUnlockFile').addEventListener('click', unlockReceivedFile);
   $('transferReceivePassword').addEventListener('keydown', (event) => { if (event.key === 'Enter') unlockReceivedFile(); });
   $('transferQrImages').addEventListener('change', () => scanTransferImages($('transferQrImages').files));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if ($('transferScannerModal').classList.contains('active') && transferScannerRunning) {
+        pauseTransferScanner(true);
+      }
+      return;
+    }
+
+    if (transferScannerBackgroundPaused && transferScannerPaused) {
+      const message = language() === 'fa'
+        ? 'دوربین در پس‌زمینه متوقف شده است. برای ادامه «ادامه» را بزنید.'
+        : 'Camera is paused after backgrounding. Tap Resume to continue.';
+      $('transferCameraStatus').textContent = message;
+      setStatus('transferReceiveStatus', message);
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (transferScannerRunning || transferScannerStarting) stopTransferScanner();
+  });
+
   window.addEventListener('secretchat:tabchange', (event) => {
     if (event.detail?.tab !== 'transfer') {
       pauseFrames();
@@ -1468,5 +1538,6 @@
   setViewportHeight(window.innerHeight * (savedViewportHeight > 0 ? savedViewportHeight : 55) / 100, false);
   setQrZoom(1);
   updateFullscreenButton();
+  syncTransferScannerControls();
   resetReceive();
 })();
