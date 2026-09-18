@@ -148,67 +148,120 @@
     </section>
 
     <section class="panel transfer-panel" id="transferPanel">
-      <div class="transfer-grid">
-        <section class="transfer-card" aria-labelledby="transferSendTitle">
-          <h2 id="transferSendTitle" data-transfer-i18n="sendTitle">ارسال</h2>
-          <label for="transferFile" data-transfer-i18n="chooseFile">انتخاب فایل</label>
-          <input class="transfer-file-input" id="transferFile" type="file" />
-          <div class="transfer-password-field">
-            <div class="label-row"><label for="transferSendPassword" data-transfer-i18n="optionalPassword">رمز اختیاری فایل</label><button class="primary" type="button" id="transferGeneratePassword" data-transfer-i18n="generatePassword">ساخت رمز سخت</button></div>
-            <div class="password-wrap"><input id="transferSendPassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" minlength="4" data-transfer-placeholder-fa="بدون رمز خالی بگذارید" data-transfer-placeholder-en="Leave empty for no password" placeholder="بدون رمز خالی بگذارید" /><button class="toggle-password" type="button" data-toggle-password="transferSendPassword" aria-label="show password"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg></button></div>
-            <div class="strength" id="transferPasswordStrength">حداقل رمز: ۴ کاراکتر؛ حداکثر ندارد.</div>
-            <div class="meter" aria-hidden="true"><span id="transferPasswordMeter"></span></div>
-          </div>
-          <div class="transfer-settings">
-            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="1" max="120" step="1" value="15" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">15</output><span data-transfer-i18n="fast">سریع</span></span></label>
-            <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="256" max="2048" step="1" value="1465" /><span class="range-labels" dir="ltr"><span>256</span><output id="transferChunkSizeValue" for="transferChunkSize">1465</output><span>2048</span></span></label>
-          </div>
-          <p class="transfer-status" id="transferSendStatus" aria-live="polite"></p>
-          <div class="transfer-qr-stage" id="transferQrStage" hidden>
-            <button class="transfer-fullscreen-button" type="button" id="transferFullscreen" data-transfer-i18n="fullscreen">تمام صفحه</button>
-            <label class="transfer-zoom-control" for="transferQrZoom"><span data-transfer-i18n="zoom">زوم</span><input id="transferQrZoom" type="range" min="0.5" max="12" step="0.1" value="1" /><span class="range-labels" dir="ltr"><span>0.5×</span><output id="transferQrZoomValue" for="transferQrZoom">1.0×</output><span>12×</span></span></label>
-            <div class="transfer-qr-viewport" id="transferQrViewport">
-              <div class="transfer-qr-box"><canvas id="transferQrCanvas" aria-label="File transfer QR"></canvas></div>
-            </div>
-            <div class="transfer-viewport-resize-handle" id="transferViewportResizeHandle" role="separator" aria-orientation="horizontal" tabindex="0" data-transfer-i18n-aria="resizeViewport" aria-label="برای تغییر ارتفاع کادر QR بکشید"><span aria-hidden="true"></span></div>
-            <div class="transfer-actions transfer-modal-playback-actions">
-              <button class="primary" type="button" id="transferModalPlayPause" disabled data-transfer-i18n="play">پخش</button>
-              <button class="ghost" type="button" id="transferModalNext" disabled data-transfer-i18n="next">بعدی</button>
-              <button class="ghost" type="button" id="transferModalPrevious" disabled data-transfer-i18n="previous">قبلی</button>
-            </div>
-            <button class="ghost transfer-zip-button" type="button" id="transferDownloadZip" hidden disabled data-transfer-i18n="downloadQrZip">دانلود ZIP همه QRها</button>
-          </div>
-          <div class="transfer-actions transfer-page-playback-actions">
-            <button class="primary" type="button" id="transferPlayPause" disabled data-transfer-i18n="play">پخش</button>
-            <button class="ghost" type="button" id="transferNext" disabled data-transfer-i18n="next">بعدی</button>
-            <button class="ghost" type="button" id="transferPrevious" disabled data-transfer-i18n="previous">قبلی</button>
-          </div>
-        </section>
+      <div class="transfer-mode-tabs" role="tablist" aria-label="بخش انتقال فایل">
+        <button class="transfer-mode-tab active" type="button" id="transferReceiveTab" data-transfer-mode="receive" data-transfer-i18n="receiveTitle">دریافت</button>
+        <button class="transfer-mode-tab" type="button" id="transferSendTab" data-transfer-mode="send" data-transfer-i18n="sendTitle">ارسال</button>
+      </div>
 
+      <section class="transfer-mode-panel active" id="transferReceiveMode" data-transfer-mode-panel="receive" aria-labelledby="transferReceiveTab">
         <section class="transfer-card" aria-labelledby="transferReceiveTitle">
           <h2 id="transferReceiveTitle" data-transfer-i18n="receiveTitle">دریافت</h2>
           <div class="transfer-actions">
             <button class="primary" type="button" id="transferOpenScanner" data-transfer-i18n="openScanner">بازکردن اسکنر</button>
-            <button class="danger" type="button" id="transferResetReceive" data-transfer-i18n="reset">شروع دوباره</button>
           </div>
-          <label class="transfer-offline-input" hidden><span data-transfer-i18n="scanImages">اسکن دسته‌ای عکس‌های QR یا فایل ZIP</span><input class="transfer-file-input" id="transferQrImages" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple /></label>
+
+          <label class="transfer-offline-input">
+            <span data-transfer-i18n="scanImages">اسکن دسته‌ای عکس‌های QR یا فایل ZIP</span>
+            <input class="transfer-file-input" id="transferQrImages" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple />
+          </label>
+
           <p class="transfer-status" id="transferReceiveStatus" aria-live="polite"></p>
           <progress id="transferReceiveProgress" max="1" value="0"></progress>
+
           <div class="transfer-file-ready" id="transferFileReady" hidden>
             <img class="transfer-image-preview" id="transferImagePreview" alt="" hidden />
             <strong id="transferReceivedName"></strong>
             <span id="transferReceivedSize" dir="ltr"></span>
             <button class="primary" type="button" id="transferSaveFile" data-transfer-i18n="saveFile">ذخیره فایل</button>
           </div>
+
           <div class="transfer-password-unlock" id="transferPasswordUnlock" hidden>
             <label for="transferReceivePassword" data-transfer-i18n="enterPassword">رمز فایل را وارد کنید</label>
-            <div class="password-wrap"><input id="transferReceivePassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" /><button class="toggle-password" type="button" data-toggle-password="transferReceivePassword" aria-label="show password"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg></button></div>
+            <div class="password-wrap">
+              <input id="transferReceivePassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" />
+              <button class="toggle-password" type="button" data-toggle-password="transferReceivePassword" aria-label="show password">
+                <svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg>
+              </button>
+            </div>
             <button class="primary" type="button" id="transferUnlockFile" data-transfer-i18n="unlockFile">باز کردن فایل</button>
           </div>
         </section>
-      </div>
+
+        <section class="transfer-history" aria-labelledby="transferHistoryTitle">
+          <div class="transfer-history-head">
+            <div>
+              <small>Received files</small>
+              <h2 id="transferHistoryTitle">سوابق دریافت</h2>
+            </div>
+            <span id="transferHistoryCount">۰ فایل</span>
+          </div>
+          <div id="transferHistoryList" class="transfer-history-list" aria-live="polite"></div>
+          <p id="transferHistoryEmpty" class="transfer-history-empty">هنوز فایلی دریافت نشده است.</p>
+        </section>
+      </section>
+
+      <section class="transfer-mode-panel" id="transferSendMode" data-transfer-mode-panel="send" aria-labelledby="transferSendTab" hidden>
+        <section class="transfer-card" aria-labelledby="transferSendTitle">
+          <h2 id="transferSendTitle" data-transfer-i18n="sendTitle">ارسال</h2>
+          <label for="transferFile" data-transfer-i18n="chooseFile">انتخاب فایل</label>
+          <input class="transfer-file-input" id="transferFile" type="file" />
+
+          <div class="transfer-password-field">
+            <div class="label-row">
+              <label for="transferSendPassword" data-transfer-i18n="optionalPassword">رمز اختیاری فایل</label>
+              <button class="primary" type="button" id="transferGeneratePassword" data-transfer-i18n="generatePassword">ساخت رمز سخت</button>
+            </div>
+            <div class="password-wrap">
+              <input id="transferSendPassword" type="password" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autocorrect="off" autocapitalize="none" spellcheck="false" minlength="4" data-transfer-placeholder-fa="بدون رمز خالی بگذارید" data-transfer-placeholder-en="Leave empty for no password" placeholder="بدون رمز خالی بگذارید" />
+              <button class="toggle-password" type="button" data-toggle-password="transferSendPassword" aria-label="show password">
+                <svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 -960 960 960" aria-hidden="true"><path d="m634-422-48.67-48.67q20.34-63-27-108-47.33-45-107.66-26.66L402-654q17-10 36.83-14.67 19.84-4.66 41.17-4.66 72.33 0 122.83 50.5T653.33-500q0 21.33-5 41.5T634-422Zm128.67 128-46-45.33Q762-373 796.17-414.17q34.16-41.16 52.5-85.83-50-107.67-147.84-170.5-97.83-62.83-214.16-62.83-37.67 0-76.34 6.66Q371.67-720 346-710l-51.33-52q37-16.33 87.66-27.17Q433-800 483.33-800q145.67 0 264 82.17Q865.67-635.67 920-500q-25 62.33-64.83 114.5-39.84 52.17-92.5 91.5ZM808-61.33 640-226.67q-35 13-76.17 19.84Q522.67-200 480-200q-147.67 0-266.33-82.17Q95-364.33 40-500q20.33-52.33 54.67-100.5 34.33-48.17 82-90.17L56-812l46.67-47.33 750 750-44.67 48ZM222.67-644q-34.34 26.67-65.34 66.33-31 39.67-46.66 77.67 50.66 107.67 150.16 170.5t224.5 62.83q28.67 0 56.34-3.5 27.66-3.5 45-9.83L532-335.33q-11 4.33-25 6.5-14 2.16-27 2.16-71.67 0-122.5-50.16Q306.67-427 306.67-500q0-13.67 2.16-27 2.17-13.33 6.5-25l-92.66-92Zm309.66 125.67Zm-127.66 63.66Z"/></svg>
+              </button>
+            </div>
+            <div class="strength" id="transferPasswordStrength">حداقل رمز: ۴ کاراکتر؛ حداکثر ندارد.</div>
+            <div class="meter" aria-hidden="true"><span id="transferPasswordMeter"></span></div>
+          </div>
+
+          <div class="transfer-settings">
+            <label class="transfer-speed-control">
+              <span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span>
+              <input id="transferSpeed" type="range" min="1" max="120" step="1" value="15" />
+              <span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">15</output><span data-transfer-i18n="fast">سریع</span></span>
+            </label>
+            <label class="transfer-density-control">
+              <span data-transfer-i18n="chunkSize">تراکم هر QR</span>
+              <input id="transferChunkSize" type="range" min="256" max="2048" step="1" value="1465" />
+              <span class="range-labels" dir="ltr"><span>256</span><output id="transferChunkSizeValue" for="transferChunkSize">1465</output><span>2048</span></span>
+            </label>
+          </div>
+
+          <p class="transfer-status" id="transferSendStatus" aria-live="polite"></p>
+
+          <div class="transfer-qr-stage" id="transferQrStage" hidden>
+            <button class="transfer-fullscreen-button" type="button" id="transferFullscreen" data-transfer-i18n="fullscreen">تمام صفحه</button>
+            <label class="transfer-zoom-control" for="transferQrZoom">
+              <span data-transfer-i18n="zoom">زوم</span>
+              <input id="transferQrZoom" type="range" min="0.5" max="12" step="0.1" value="1" />
+              <span class="range-labels" dir="ltr"><span>0.5×</span><output id="transferQrZoomValue" for="transferQrZoom">1.0×</output><span>12×</span></span>
+            </label>
+            <div class="transfer-qr-viewport" id="transferQrViewport">
+              <div class="transfer-qr-box"><canvas id="transferQrCanvas" aria-label="File transfer QR"></canvas></div>
+            </div>
+            <div class="transfer-viewport-resize-handle" id="transferViewportResizeHandle" role="separator" aria-orientation="horizontal" tabindex="0" data-transfer-i18n-aria="resizeViewport" aria-label="برای تغییر ارتفاع کادر QR بکشید"><span aria-hidden="true"></span></div>
+            <div class="transfer-actions transfer-modal-playback-actions">
+              <button class="primary" type="button" id="transferModalPlayPause" disabled data-transfer-i18n="pause">توقف</button>
+            </div>
+          </div>
+
+          <div class="transfer-actions transfer-page-playback-actions">
+            <button class="primary" type="button" id="transferPlayPause" disabled data-transfer-i18n="pause">توقف</button>
+          </div>
+        </section>
+      </section>
+
       <section class="output-files" data-output-files aria-live="polite"></section>
-    </section>
+    </section>>
 
   </main>
 
@@ -324,7 +377,10 @@
     <div class="modal transfer-scanner-dialog">
       <div class="modal-head">
         <h2 id="transferScannerTitle" data-transfer-i18n="scannerTitle">دوربین دریافت فایل</h2>
-        <button class="danger icon-only" type="button" id="transferCloseScanner" aria-label="close">×</button>
+        <div class="modal-head-actions">
+          <button class="ghost icon-only transfer-new-receive" type="button" id="transferNewReceive" aria-label="شروع دریافت جدید" title="شروع دریافت جدید">+</button>
+          <button class="danger icon-only" type="button" id="transferCloseScanner" aria-label="close">×</button>
+        </div>
       </div>
       <label class="transfer-engine-field" for="transferScannerEngine">
         <span data-transfer-i18n="scannerEngine">موتور اسکن</span>
