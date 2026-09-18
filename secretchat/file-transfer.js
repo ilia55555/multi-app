@@ -781,8 +781,10 @@
     const targetFrames = k * 1.12;
     const completeTarget = k * 1.06;
     const solvedRatio = solved / k;
-    const frameRatio = Math.min(1.05, framesNew / targetFrames);
-    const percent = Math.min(99, Math.max(solvedRatio, frameRatio) * 100);
+    const frameRatio = Math.min(1, framesNew / targetFrames);
+    const percent = decoderState.isComplete
+      ? 100
+      : Math.min(99.5, Math.max(solvedRatio, frameRatio) * 99.5);
     const elapsedSeconds = Math.max(0.08, (now - received.startedAt) / 1000);
     const estimatedBytes = Math.min(
       header.totalLen,
@@ -805,8 +807,8 @@
       : `${Math.max(1, Math.round(eta / 60))} min`;
 
     const progressText = language() === 'fa'
-      ? `${Math.min(99, Math.round(percent))}٪ · ${formatTransferRate(rate)} · حدود ${etaText} باقی‌مانده`
-      : `${Math.min(99, Math.round(percent))}% · ${formatTransferRate(rate)} · ~${etaText} left`;
+      ? `${Math.min(99.5, percent).toFixed(1)}٪ · ${formatTransferRate(rate)} · حدود ${etaText} باقی‌مانده`
+      : `${Math.min(99.5, percent).toFixed(1)}% · ${formatTransferRate(rate)} · ~${etaText} left`;
 
     setStatus('transferReceiveStatus', progressText);
     updateScannerProgress(progressText);
@@ -1184,7 +1186,13 @@
     transferScannerStarting = true;
 
     try {
-      if (!preserveDecoder) resetWayFoldDecoder(false);
+      if (!preserveDecoder) {
+        resetWayFoldDecoder(false);
+        $('transferReceiveProgress').value = 0;
+      } else if (received.decoder) {
+        received.lastProgressAt = performance.now();
+        updateWayFoldProgress();
+      }
       const candidates = [
         selectedScannerEngine,
         ...SCANNER_ENGINE_VALUES.filter((engine) => engine !== selectedScannerEngine)
@@ -1490,7 +1498,7 @@
   $('transferModalNext').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex + 1); });
   $('transferPrevious').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex - 1); });
   $('transferNext').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex + 1); });
-  $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), false));
+  $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), Boolean(received.decoder)));
   $('transferScannerEngine').value = selectedScannerEngine;
   $('transferScannerEngine').addEventListener('change', async () => {
     selectedScannerEngine = $('transferScannerEngine').value;
@@ -1519,8 +1527,8 @@
 
     if (transferScannerBackgroundPaused && transferScannerPaused) {
       const message = language() === 'fa'
-        ? 'دوربین در پس‌زمینه متوقف شده است. برای ادامه «ادامه» را بزنید.'
-        : 'Camera is paused after backgrounding. Tap Resume to continue.';
+        ? 'دوربین در پس‌زمینه خاموش شده است. برای ادامه، دوربین را روشن کنید.'
+        : 'Camera was turned off in the background. Turn it on to continue.';
       $('transferCameraStatus').textContent = message;
       setStatus('transferReceiveStatus', message);
     }
