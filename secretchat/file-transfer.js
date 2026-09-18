@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const PROTOCOL = 'SCF1';
+  const WF = window.WayFoldProtocol;
+  if (!WF) throw new Error('WayFold protocol core is unavailable');
   const SCANNER_ENGINE_KEY = 'secretchat-transfer-scanner-engine';
   const VIEWPORT_HEIGHT_KEY = 'secretchat-transfer-viewport-height';
   const SCANNER_ENGINE_VALUES = ['zxing', 'html5qrcode', 'jsqr', 'qrscanner'];
@@ -40,8 +41,10 @@
   };
 
   let frames = [];
+  let senderState = null;
   let frameIndex = 0;
   let playTimer = null;
+  let nextFrameAt = 0;
   let frameJumpTimer = null;
   const viewportPointers = new Map();
   let panStart = null;
@@ -50,9 +53,14 @@
   let pinchStartZoom = 1;
   let fullscreenPlaceholder = null;
   let received = freshReceiveState();
+  const ignoredStreams = new Set();
+  let receiveWatchdog = null;
+  let receiveWakeLock = null;
   let transferScanner = null;
   let transferScannerRunning = false;
   let transferScannerStarting = false;
+  let transferScannerPaused = false;
+  let transferScannerBackgroundPaused = false;
   const scannerEnginePromises = {};
   let selectedScannerEngine = localStorage.getItem(SCANNER_ENGINE_KEY) || 'zxing';
   if (!SCANNER_ENGINE_VALUES.includes(selectedScannerEngine)) selectedScannerEngine = 'zxing';
@@ -117,7 +125,20 @@
   }
 
   function freshReceiveState() {
-    return { id: '', total: 0, manifest: null, chunks: new Map(), blob: null, bytes: null, assembling: false };
+    return {
+      decoder: null,
+      header: null,
+      startedAt: 0,
+      lastProgressAt: 0,
+      framesAtStart: 0,
+      blob: null,
+      bytes: null,
+      manifest: null,
+      encryptedBytes: null,
+      encryptedMeta: null,
+      previewUrl: null,
+      assembling: false
+    };
   }
 
   function setStatus(id, message, type = '') {
@@ -151,14 +172,7 @@
     return bytes;
   }
 
-  function base64UrlEncode(value) {
-    return bytesToBase64(encoder.encode(value)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '');
-  }
 
-  function base64UrlDecode(value) {
-    const padded = value.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - value.length % 4) % 4);
-    return decoder.decode(base64ToBytes(padded));
-  }
 
   function crc32(bytes) {
     let crc = 0xFFFFFFFF;
@@ -253,11 +267,6 @@
   function imageMimeType(name) {
     const extension = name.split('.').pop().toLowerCase();
     return extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : `image/${extension === 'svg' ? 'svg+xml' : extension}`;
-  }
-
-  function transferId() {
-    const bytes = crypto.getRandomValues(new Uint8Array(6));
-    return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
   function formatDuration(milliseconds) {
@@ -442,15 +451,75 @@
     });
   }
 
-  function drawFrame(index) {
-    if (!frames.length) return;
-    frameIndex = (index + frames.length) % frames.length;
+  const SECRET_ENCRYPTED_MIME = 'application/x-secretchat-wayfold-aesgcm';
+  const SECRET_ENCRYPTED_MAGIC = new Uint8Array([83, 67, 69, 49]);
+
+  async function packSecretEncryptedPayload(plainBytes, password, mime) {
+    const protectedFile = await encryptFileBytes(plainBytes, password);
+    const metadata = {
+      salt: protectedFile.salt,
+      iv: protectedFile.iv,
+      plainSize: plainBytes.length,
+      plainHash: await sha256(plainBytes),
+      mime: mime || 'application/octet-stream'
+    };
+    const metadataBytes = encoder.encode(JSON.stringify(metadata));
+    if (metadataBytes.length > 65535) throw new Error('ENCRYPTED_METADATA_TOO_LARGE');
+
+    const output = new Uint8Array(6 + metadataBytes.length + protectedFile.bytes.length);
+    output.set(SECRET_ENCRYPTED_MAGIC, 0);
+    new DataView(output.buffer).setUint16(4, metadataBytes.length, true);
+    output.set(metadataBytes, 6);
+    output.set(protectedFile.bytes, 6 + metadataBytes.length);
+    return output;
+  }
+
+  function unpackSecretEncryptedPayload(bytes) {
+    if (!(bytes instanceof Uint8Array) || bytes.length < 7) return null;
+    for (let i = 0; i < SECRET_ENCRYPTED_MAGIC.length; i += 1) {
+      if (bytes[i] !== SECRET_ENCRYPTED_MAGIC[i]) return null;
+    }
     try {
-      window.drawQrToCanvas(frames[frameIndex], $('transferQrCanvas'));
-      $('transferFrameNumber').value = String(frameIndex + 1);
-      $('transferFrameNumber').max = String(frames.length);
-      $('transferFrameTotal').textContent = String(frames.length);
-      $('transferSendProgress').value = (frameIndex + 1) / frames.length;
+      const metadataLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(4, true);
+      const metadataEnd = 6 + metadataLength;
+      if (metadataEnd >= bytes.length) return null;
+      const metadata = JSON.parse(decoder.decode(bytes.subarray(6, metadataEnd)));
+      if (
+        !metadata?.salt ||
+        !metadata?.iv ||
+        !Number.isInteger(metadata.plainSize) ||
+        metadata.plainSize < 0 ||
+        !/^[a-f0-9]{64}$/u.test(metadata.plainHash || '')
+      ) return null;
+      return {
+        metadata,
+        encryptedBytes: bytes.slice(metadataEnd)
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function buildSenderFrame(sequence) {
+    if (!senderState) return null;
+    const seq = sequence >>> 0;
+    const block = senderState.encoder.encode(seq);
+    return WF.packFrame({ ...senderState.header, seq }, block);
+  }
+
+  function drawFrame(index) {
+    if (!senderState) return;
+    const sequence = Math.max(0, Math.trunc(Number(index)) || 0) >>> 0;
+
+    try {
+      const frame = buildSenderFrame(sequence);
+      if (!frame) return;
+      window.drawQrBytesToCanvas(frame, $('transferQrCanvas'));
+      frameIndex = sequence;
+      $('transferFrameNumber').value = String(sequence + 1);
+      $('transferFrameNumber').max = String(0xffffffff);
+      $('transferFrameTotal').textContent = '∞';
+      $('transferSendProgress').value = 0;
     } catch (error) {
       pauseFrames();
       setStatus('transferSendStatus', error.message || tr('badFile'), 'error');
@@ -458,95 +527,51 @@
   }
 
   function playFrames() {
-    if (!frames.length) return;
+    if (!senderState) return;
     pauseFrames();
-    playTimer = setInterval(() => drawFrame(frameIndex + 1), frameInterval());
+    const interval = 1000 / frameRate();
+    nextFrameAt = performance.now();
+
+    const tick = (now) => {
+      if (!senderState || !playTimer) return;
+      playTimer = requestAnimationFrame(tick);
+      if (now < nextFrameAt) return;
+      drawFrame((frameIndex + 1) >>> 0);
+      nextFrameAt += interval;
+      if (now - nextFrameAt > 3 * interval) nextFrameAt = now + interval;
+    };
+
+    playTimer = requestAnimationFrame(tick);
     updatePlaybackButton();
   }
 
-  function canvasPngBytes(canvas) {
-    return new Promise((resolve, reject) => canvas.toBlob(async (blob) => {
-      if (!blob) return reject(new Error('PNG_FAILED'));
-      resolve(new Uint8Array(await blob.arrayBuffer()));
-    }, 'image/png'));
-  }
-
   async function downloadQrZip() {
-    if (!frames.length) return;
-    $('transferDownloadZip').disabled = true;
-    try {
-      const digits = String(frames.length).length;
-      const files = [];
-      for (let index = 0; index < frames.length; index += 1) {
-        const canvas = document.createElement('canvas');
-        window.drawQrToCanvas(frames[index], canvas);
-        files.push({ name: `qr-${String(index + 1).padStart(digits, '0')}.png`, bytes: await canvasPngBytes(canvas) });
-      }
-      const zip = new Blob([createStoreZip(files)], { type: 'application/zip' });
-      const name = 'secretchat-qr-images.zip';
-      const androidZipSaver = nativeBridge('saveQrZip');
-      if (androidZipSaver) {
-        const saved = androidZipSaver(name, bytesToBase64(new Uint8Array(await zip.arrayBuffer())));
-        if (!saved) throw new Error('ANDROID_SAVE_FAILED');
-      } else {
-        const url = URL.createObjectURL(zip);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = name;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }
-      await window.SecretChatOutputs?.add(name, zip);
-      showZipReadyStatus(Boolean(androidZipSaver && nativeBridge('openZipDirectory')));
-    } catch (error) {
-      setStatus('transferSendStatus', error.message || tr('badFile'), 'error');
-    } finally {
-      $('transferDownloadZip').disabled = false;
-    }
+    setStatus('transferSendStatus', language() === 'fa'
+      ? 'در حالت WayFold جریان QR نامحدود است و ZIP همه فریم‌ها وجود ندارد.'
+      : 'WayFold uses an unbounded QR stream; there is no finite ZIP of all frames.');
   }
 
-  async function scanTransferImages(fileList) {
-    const selectedFiles = [...fileList];
-    if (!selectedFiles.length) return;
-    setStatus('transferReceiveStatus', tr('scannerStarting'));
-    let scanner;
-    try {
-      const expanded = await Promise.all(selectedFiles.map((file) => /\.zip$/iu.test(file.name) || /(?:^|\/)zip(?:$|;)/iu.test(file.type) ? zipImageFiles(file) : [file]));
-      const files = expanded.flat().sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-      if (!(await loadTransferScannerEngine('html5qrcode'))) throw new Error('HTML5_QRCODE_MISSING');
-      const qrFormat = window.Html5QrcodeSupportedFormats?.QR_CODE;
-      scanner = new Html5Qrcode('transferScannerTarget', Number.isInteger(qrFormat) ? { formatsToSupport: [qrFormat] } : {}, false);
-      let scanned = 0;
-      for (const file of files) {
-        try {
-          const value = await scanner.scanFile(file, false);
-          await receiveFrame(value);
-          scanned += 1;
-        } catch (error) {
-          // Continue so one unreadable image does not discard an otherwise valid batch.
-        }
-      }
-      if (!scanned) throw new Error('NO_QR_FOUND');
-    } catch (error) {
-      setStatus('transferReceiveStatus', `${tr('invalid')} ${error.message || ''}`.trim(), 'error');
-    } finally {
-      try { await scanner?.clear(); } catch (error) {}
-      $('transferQrImages').value = '';
-    }
+  async function scanTransferImages() {
+    setStatus('transferReceiveStatus', language() === 'fa'
+      ? 'دریافت WayFold از دوربین زنده انجام می‌شود.'
+      : 'WayFold receiving uses the live camera stream.');
   }
 
   function pauseFrames() {
-    clearInterval(playTimer);
+    if (playTimer !== null) cancelAnimationFrame(playTimer);
     playTimer = null;
     updatePlaybackButton();
   }
 
-  function toggleFrames() { if (playTimer) pauseFrames(); else playFrames(); }
+  function toggleFrames() {
+    if (playTimer !== null) pauseFrames();
+    else playFrames();
+  }
 
   function jumpToTypedFrame() {
     clearTimeout(frameJumpTimer);
-    if (!$('transferFrameNumber').value || !frames.length) return;
-    const requested = Math.min(frames.length, Math.max(1, Math.trunc(Number($('transferFrameNumber').value)) || 1));
+    if (!$('transferFrameNumber').value || !senderState) return;
+    const requested = Math.max(1, Math.min(0x100000000, Math.trunc(Number($('transferFrameNumber').value)) || 1));
     pauseFrames();
     drawFrame(requested - 1);
   }
@@ -554,37 +579,88 @@
   async function prepareFile(file) {
     pauseFrames();
     frames = [];
+    senderState = null;
     updateSendControls(false);
     $('transferDownloadZip').disabled = true;
     $('transferQrStage').hidden = true;
     if (!file) return;
+
     setStatus('transferSendStatus', tr('preparing'));
+
     try {
       const plainBytes = new Uint8Array(await file.arrayBuffer());
-      const password = $('transferSendPassword').value;
-      if (password && password.length < MIN_FILE_PASSWORD_LENGTH) throw new Error(tr('shortPassword', MIN_FILE_PASSWORD_LENGTH - password.length));
-      const protectedFile = password ? await encryptFileBytes(plainBytes, password) : null;
-      const bytes = protectedFile?.bytes || plainBytes;
-      const chunkSize = Number($('transferChunkSize').value);
-      const total = Math.ceil(bytes.length / chunkSize) || 1;
-      if (total > 99999) throw new Error(tr('badFile'));
-      const id = transferId();
-      const hash = await sha256(bytes);
-      const manifest = { name: file.name.slice(0, 160), type: (file.type || 'application/octet-stream').slice(0, 100), size: bytes.length, chunkSize, hash };
-      if (protectedFile) Object.assign(manifest, { encrypted: true, salt: protectedFile.salt, iv: protectedFile.iv, plainSize: plainBytes.length, plainHash: await sha256(plainBytes) });
-      frames.push(`${PROTOCOL}|${id}|M|${total}|${base64UrlEncode(JSON.stringify(manifest))}`);
-      for (let index = 0; index < total; index += 1) {
-        const chunk = bytes.subarray(index * chunkSize, Math.min(bytes.length, (index + 1) * chunkSize));
-        frames.push(`${PROTOCOL}|${id}|D|${index}|${total}|${crc32(chunk)}|${bytesToBase64(chunk)}`);
+      if (plainBytes.length < 1 || plainBytes.length > WF.MAX_FILE_BYTES) {
+        throw new Error(language() === 'fa' ? 'حداکثر اندازه فایل ۵۰ MiB است.' : 'Maximum file size is 50 MiB.');
       }
+
+      if (plainBytes.length > WF.LARGE_TRANSFER_BYTES) {
+        const accepted = window.confirm(language() === 'fa'
+          ? `فایل بزرگ است: ${(plainBytes.length / WF.MiB).toFixed(1)} MiB. انتقال نوری ممکن است طول بکشد. ادامه می‌دهید؟`
+          : `Large file: ${(plainBytes.length / WF.MiB).toFixed(1)} MiB. Optical transfer may take a long time. Continue?`);
+        if (!accepted) {
+          setStatus('transferSendStatus', language() === 'fa' ? 'انتقال لغو شد.' : 'Transfer cancelled.');
+          return;
+        }
+      }
+
+      const password = $('transferSendPassword').value;
+      if (password && password.length < MIN_FILE_PASSWORD_LENGTH) {
+        throw new Error(tr('shortPassword', MIN_FILE_PASSWORD_LENGTH - password.length));
+      }
+
+      const sourceMime = file.type || 'application/octet-stream';
+      const opticalFileBytes = password
+        ? await packSecretEncryptedPayload(plainBytes, password, sourceMime)
+        : plainBytes;
+      const opticalMime = password ? SECRET_ENCRYPTED_MIME : sourceMime;
+
+      const wrapped = await WF.wrapFile(opticalFileBytes, file.name, opticalMime);
+      const frameBytes = Number($('transferChunkSize').value);
+      const blockLen = frameBytes - WF.FRAME_HEADER_BYTES;
+      if (!Number.isInteger(blockLen) || blockLen <= 0 || blockLen > WF.MAX_BLOCK_BYTES) {
+        throw new Error('INVALID_FRAME_BYTES');
+      }
+
+      const sessionId = WF.randomSessionId();
+      const fountain = new WF.FountainEncoder(wrapped.bytes, blockLen, sessionId);
+      if (fountain.k > WF.MAX_BLOCKS) {
+        throw new Error(language() === 'fa'
+          ? `این تنظیم به ${fountain.k} بلوک نیاز دارد؛ حداکثر ${WF.MAX_BLOCKS} است.`
+          : `This setting needs ${fountain.k} blocks; maximum is ${WF.MAX_BLOCKS}.`);
+      }
+
+      senderState = {
+        wrapped,
+        encoder: fountain,
+        header: {
+          sessionId,
+          seq: 0,
+          k: fountain.k,
+          blockLen,
+          totalLen: wrapped.bytes.length,
+          payloadFnv: WF.fnv1a(wrapped.bytes)
+        }
+      };
+      frames = [true];
+
       frameIndex = 0;
       $('transferQrStage').hidden = false;
       updateSendControls(true);
-      $('transferDownloadZip').disabled = false;
+      $('transferDownloadZip').disabled = true;
       drawFrame(0);
-      const cycleTime = frames.length * frameInterval();
-      setStatus('transferSendStatus', tr('ready', frames.length, formatDuration(cycleTime)), 'ok');
+
+      const saved = wrapped.originalLen - wrapped.wireFileLen;
+      const compression = wrapped.compressed && saved > 0
+        ? `gzip −${(saved / wrapped.originalLen * 100).toFixed(1)}%`
+        : 'raw';
+      setStatus(
+        'transferSendStatus',
+        `${(wrapped.originalLen / WF.MiB).toFixed(2)} MiB · ${compression} · ${Math.ceil(wrapped.bytes.length / 1024)} KiB · ${frameRate()} fps`,
+        'ok'
+      );
     } catch (error) {
+      senderState = null;
+      frames = [];
       setStatus('transferSendStatus', error.message || tr('badFile'), 'error');
     }
   }
@@ -611,6 +687,7 @@
     if (!ready || !files[engine]) return Promise.resolve(false);
     if (ready()) return Promise.resolve(true);
     if (scannerEnginePromises[engine]) return scannerEnginePromises[engine];
+
     scannerEnginePromises[engine] = new Promise((resolve) => {
       const script = document.createElement('script');
       script.src = new URL(`./vendor/${files[engine]}`, document.baseURI).href;
@@ -622,246 +699,694 @@
       if (!loaded) delete scannerEnginePromises[engine];
       return loaded;
     });
+
     return scannerEnginePromises[engine];
+  }
+
+  function asUint8Array(value) {
+    if (!value) return null;
+    if (value instanceof Uint8Array) return value;
+    if (value instanceof Uint8ClampedArray) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    if (value instanceof ArrayBuffer) return new Uint8Array(value);
+    if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    if (Array.isArray(value)) return Uint8Array.from(value);
+    return null;
+  }
+
+  function concatByteSegments(segments) {
+    if (!Array.isArray(segments) || !segments.length) return null;
+    const normalized = segments.map(asUint8Array).filter(Boolean);
+    if (!normalized.length) return null;
+    const total = normalized.reduce((sum, part) => sum + part.length, 0);
+    const output = new Uint8Array(total);
+    let offset = 0;
+    for (const part of normalized) {
+      output.set(part, offset);
+      offset += part.length;
+    }
+    return output;
+  }
+
+  function bytesFromZxingResult(result) {
+    if (!result) return null;
+
+    try {
+      const metadata = result.getResultMetadata?.() || result.resultMetadata;
+      if (metadata?.get) {
+        const key = window.ZXing?.ResultMetadataType?.BYTE_SEGMENTS ?? 2;
+        const segments = metadata.get(key) || metadata.get(2);
+        const bytes = concatByteSegments(segments);
+        if (bytes?.length) return bytes;
+      }
+    } catch (_) {}
+
+    const raw = asUint8Array(result.getRawBytes?.() || result.rawBytes);
+    return raw?.length ? raw : null;
+  }
+
+  function bytesFromHtml5Result(decodedResult) {
+    const inner = decodedResult?.result;
+    const bytes = bytesFromZxingResult(inner);
+    return bytes?.length ? bytes : null;
+  }
+
+  function bytesFromJsQr(result) {
+    const bytes = asUint8Array(result?.binaryData);
+    return bytes?.length ? bytes : null;
+  }
+
+  function receiveHeaderKey(header) {
+    return WF.headerKey(header);
+  }
+
+  function sameReceiveStream(a, b) {
+    return WF.sameStream(a, b);
+  }
+
+  function resetWayFoldDecoder(clearIgnored = false) {
+    received.decoder = null;
+    received.header = null;
+    received.startedAt = 0;
+    received.lastProgressAt = 0;
+    received.assembling = false;
+    if (clearIgnored) ignoredStreams.clear();
+  }
+
+  function formatTransferRate(bytesPerSecond) {
+    if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '…';
+    return bytesPerSecond < 1024
+      ? `${Math.round(bytesPerSecond)} B/s`
+      : `${(bytesPerSecond / 1024).toFixed(1)} KiB/s`;
+  }
+
+  function updateWayFoldProgress() {
+    if (!received.decoder || !received.header || !received.startedAt) return;
+
+    const now = performance.now();
+    const decoderState = received.decoder;
+    const header = received.header;
+    const k = Math.max(1, decoderState.k);
+    const solved = decoderState.solvedCount;
+    const framesNew = decoderState.framesNew;
+    const targetFrames = k * 1.12;
+    const completeTarget = k * 1.06;
+    const solvedRatio = solved / k;
+    const frameRatio = Math.min(1.05, framesNew / targetFrames);
+    const percent = Math.min(99, Math.max(solvedRatio, frameRatio) * 100);
+    const elapsedSeconds = Math.max(0.08, (now - received.startedAt) / 1000);
+    const estimatedBytes = Math.min(
+      header.totalLen,
+      Math.max(
+        solvedRatio * header.totalLen,
+        Math.min(1, framesNew / targetFrames) * header.totalLen
+      )
+    );
+    const rate = framesNew > 0 ? framesNew * decoderState.blockLen / elapsedSeconds : 0;
+    const frameRateNow = framesNew > 0 ? framesNew / elapsedSeconds : 0;
+    const remainingFrames = Math.max(0, completeTarget - framesNew);
+    const eta = frameRateNow > 0 ? remainingFrames / frameRateNow : Infinity;
+
+    $('transferReceiveProgress').value = Math.min(1, percent / 100);
+    const etaText = !Number.isFinite(eta)
+      ? '…'
+      : eta < 1.25 ? '< 1 s'
+      : eta < 90 ? `${Math.ceil(eta)} s`
+      : eta < 180 ? `${Math.round(eta / 5) * 5} s`
+      : `${Math.max(1, Math.round(eta / 60))} min`;
+
+    const progressText = language() === 'fa'
+      ? `${Math.min(99, Math.round(percent))}٪ · ${formatTransferRate(rate)} · حدود ${etaText} باقی‌مانده`
+      : `${Math.min(99, Math.round(percent))}% · ${formatTransferRate(rate)} · ~${etaText} left`;
+
+    setStatus('transferReceiveStatus', progressText);
+    updateScannerProgress(progressText);
+  }
+
+  function startReceiveWatchdog() {
+    if (receiveWatchdog !== null) clearInterval(receiveWatchdog);
+    receiveWatchdog = setInterval(() => {
+      if (!transferScannerRunning || !received.decoder || !received.header || !received.lastProgressAt) return;
+      if (performance.now() - received.lastProgressAt > WF.RECEIVE_TIMEOUT_MS) {
+        setStatus(
+          'transferReceiveStatus',
+          language() === 'fa'
+            ? '۱۲۰ ثانیه فریم جدیدی دریافت نشد. دوباره شروع کنید.'
+            : 'Timed out after 120s without a new frame. Start again.',
+          'error'
+        );
+        closeTransferScanner();
+      } else {
+        updateWayFoldProgress();
+      }
+    }, 200);
+  }
+
+  async function acquireWakeLock() {
+    try {
+      receiveWakeLock = await navigator.wakeLock?.request('screen');
+    } catch (_) {
+      receiveWakeLock = null;
+    }
+  }
+
+  async function releaseWakeLock() {
+    try { await receiveWakeLock?.release?.(); } catch (_) {}
+    receiveWakeLock = null;
+  }
+
+  function cameraConstraints() {
+    return {
+      audio: false,
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 960 },
+        frameRate: { ideal: 60 }
+      }
+    };
+  }
+
+  async function openCameraStream() {
+    try {
+      return await navigator.mediaDevices.getUserMedia(cameraConstraints());
+    } catch (originalError) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: 'environment' } }
+        });
+      } catch (_) {
+        throw originalError;
+      }
+    }
+  }
+
+  function createTransferVideo() {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.autoplay = true;
+    video.setAttribute('playsinline', '');
+    $('transferScannerTarget').replaceChildren(video);
+    return video;
+  }
+
+  function syncTransferScannerControls() {
+    const pauseButton = $('transferPauseScanner');
+    const resumeButton = $('transferResumeScanner');
+    if (pauseButton) pauseButton.hidden = !transferScannerRunning;
+    if (resumeButton) resumeButton.hidden = !transferScannerPaused;
+  }
+
+  async function pauseTransferScanner(background = false) {
+    if (!transferScannerRunning && !transferScannerStarting) return;
+    await stopTransferScanner();
+    transferScannerPaused = true;
+    transferScannerBackgroundPaused = background;
+    syncTransferScannerControls();
+
+    const message = background
+      ? (language() === 'fa'
+          ? 'دوربین در پس‌زمینه متوقف شد. برای ادامه «ادامه» را بزنید.'
+          : 'Camera paused in the background. Tap Resume to continue.')
+      : (language() === 'fa' ? 'دریافت موقتاً متوقف شد.' : 'Receiving paused.');
+
+    $('transferCameraStatus').textContent = message;
+    setStatus('transferReceiveStatus', message);
+  }
+
+  async function resumeTransferScanner() {
+    if (!transferScannerPaused || transferScannerStarting || transferScannerRunning) return;
+    transferScannerPaused = false;
+    transferScannerBackgroundPaused = false;
+    if (received.decoder) received.lastProgressAt = performance.now();
+    syncTransferScannerControls();
+    await openTransferScanner(new Set(), true);
   }
 
   async function stopTransferScanner() {
     const scanner = transferScanner;
     transferScanner = null;
     transferScannerStarting = false;
-    try {
-      if (scanner) await scanner.stop();
-    } catch (error) {
-      // The stream may already be stopped by Android WebView.
-    }
-    try { if (scanner) await scanner.clear(); } catch (error) {}
+
+    try { if (scanner) await scanner.stop?.(); } catch (_) {}
+    try { if (scanner) await scanner.clear?.(); } catch (_) {}
+
     transferScannerRunning = false;
+    syncTransferScannerControls();
+    if (receiveWatchdog !== null) {
+      clearInterval(receiveWatchdog);
+      receiveWatchdog = null;
+    }
+    await releaseWakeLock();
     $('transferScannerTarget').replaceChildren();
   }
 
   async function closeTransferScanner() {
+    transferScannerPaused = false;
+    transferScannerBackgroundPaused = false;
     $('transferScannerModal').classList.remove('active');
     await stopTransferScanner();
+    syncTransferScannerControls();
   }
 
-  async function openTransferScanner() {
+  async function startJsQrWorkerScanner() {
+    const video = createTransferVideo();
+    const stream = await openCameraStream();
+    video.srcObject = stream;
+    await video.play();
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    const workers = [];
+    const busy = [];
+    let stopped = false;
+    let frameId = 0;
+
+    for (let index = 0; index < 2; index += 1) {
+      const worker = new Worker(new URL('./wayfold-jsqr-worker.js', document.baseURI));
+      workers.push(worker);
+      busy.push(false);
+      worker.onmessage = (event) => {
+        const { id, bytes, error } = event.data || {};
+        busy[index] = false;
+        if (stopped) return;
+        if (error) {
+          updateScannerProgress(`${tr('scannerError')} ${error}`);
+          return;
+        }
+        if (id !== -1 && bytes) receiveWayFoldBytes(asUint8Array(bytes));
+      };
+    }
+
+    const capture = () => {
+      if (stopped) return;
+      const next = () => {
+        if (stopped) return;
+        if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(capture);
+        else requestAnimationFrame(capture);
+      };
+
+      const slot = busy.indexOf(false);
+      if (slot < 0 || !video.videoWidth || !video.videoHeight) {
+        next();
+        return;
+      }
+
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+
+      context.drawImage(video, 0, 0);
+      const image = context.getImageData(0, 0, canvas.width, canvas.height);
+      busy[slot] = true;
+      workers[slot].postMessage({
+        id: frameId++,
+        buf: image.data.buffer,
+        w: canvas.width,
+        h: canvas.height
+      }, [image.data.buffer]);
+
+      next();
+    };
+
+    if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(capture);
+    else requestAnimationFrame(capture);
+
+    return {
+      stop: async () => {
+        stopped = true;
+        workers.forEach((worker) => worker.terminate());
+        stream.getTracks().forEach((track) => track.stop());
+        video.srcObject = null;
+      },
+      clear: async () => $('transferScannerTarget').replaceChildren()
+    };
+  }
+
+  async function startZxingScanner() {
+    const video = createTransferVideo();
+    const reader = new ZXing.BrowserMultiFormatReader();
+    let controls = null;
+
+    const maybeControls = await reader.decodeFromConstraints(
+      cameraConstraints(),
+      video,
+      (result) => {
+        if (!result) return;
+        const bytes = bytesFromZxingResult(result);
+        if (bytes?.length) receiveWayFoldBytes(bytes);
+      }
+    );
+    controls = maybeControls || null;
+
+    return {
+      stop: async () => {
+        try { controls?.stop?.(); } catch (_) {}
+        try { reader.reset(); } catch (_) {}
+      },
+      clear: async () => $('transferScannerTarget').replaceChildren()
+    };
+  }
+
+  async function startHtml5QrScanner() {
+    const qrFormat = window.Html5QrcodeSupportedFormats?.QR_CODE;
+    const config = Number.isInteger(qrFormat) ? { formatsToSupport: [qrFormat] } : {};
+    const scanner = new Html5Qrcode('transferScannerTarget', config, false);
+
+    await scanner.start(
+      cameraConstraints().video,
+      {
+        fps: 60,
+        aspectRatio: 4 / 3,
+        disableFlip: true
+      },
+      (_decodedText, decodedResult) => {
+        const bytes = bytesFromHtml5Result(decodedResult);
+        if (bytes?.length) receiveWayFoldBytes(bytes);
+      },
+      () => {}
+    );
+
+    return {
+      stop: async () => scanner.stop(),
+      clear: async () => scanner.clear()
+    };
+  }
+
+  async function startQrScannerRawAdapter() {
+    if (!(await loadTransferScannerEngine('jsqr'))) throw new Error('JSQR_RAW_ADAPTER_MISSING');
+
+    const video = createTransferVideo();
+    const stream = await openCameraStream();
+    video.srcObject = stream;
+    await video.play();
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    const qrEngine = await QrScanner.createQrEngine();
+    let stopped = false;
+    let busy = false;
+
+    const capture = async () => {
+      if (stopped) return;
+
+      const schedule = () => {
+        if (stopped) return;
+        if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(capture);
+        else requestAnimationFrame(capture);
+      };
+
+      if (busy || !video.videoWidth || !video.videoHeight) {
+        schedule();
+        return;
+      }
+
+      busy = true;
+      try {
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+
+        context.drawImage(video, 0, 0);
+        const image = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        await QrScanner.scanImage(canvas, {
+          qrEngine,
+          canvas,
+          disallowCanvasResizing: true,
+          returnDetailedScanResult: true
+        });
+
+        const raw = window.jsQR(image.data, image.width, image.height, {
+          inversionAttempts: 'attemptBoth'
+        });
+        const bytes = bytesFromJsQr(raw);
+        if (bytes?.length) receiveWayFoldBytes(bytes);
+      } catch (_) {
+        // No QR in this frame.
+      } finally {
+        busy = false;
+        schedule();
+      }
+    };
+
+    if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(capture);
+    else requestAnimationFrame(capture);
+
+    return {
+      stop: async () => {
+        stopped = true;
+        stream.getTracks().forEach((track) => track.stop());
+        video.srcObject = null;
+        if (qrEngine instanceof Worker) qrEngine.terminate();
+      },
+      clear: async () => $('transferScannerTarget').replaceChildren()
+    };
+  }
+
+  async function startScannerEngine(engine) {
+    if (!(await loadTransferScannerEngine(engine))) throw new Error(`${engine.toUpperCase()}_MISSING`);
+    if (engine === 'jsqr') return startJsQrWorkerScanner();
+    if (engine === 'zxing') return startZxingScanner();
+    if (engine === 'html5qrcode') return startHtml5QrScanner();
+    if (engine === 'qrscanner') return startQrScannerRawAdapter();
+    throw new Error('UNKNOWN_SCANNER_ENGINE');
+  }
+
+  async function openTransferScanner(attemptedEngines = new Set(), preserveDecoder = false) {
     if (transferScannerStarting || transferScannerRunning) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus('transferReceiveStatus', language() === 'fa'
+        ? 'دوربین فقط در HTTPS یا محیط امن قابل استفاده است.'
+        : 'Camera access requires HTTPS or another secure context.', 'error');
+      return;
+    }
+
     $('transferScannerModal').classList.add('active');
     $('transferCameraStatus').textContent = tr('scannerStarting');
     $('transferCameraStatus').className = 'transfer-status';
     transferScannerStarting = true;
+
     try {
-      const engine = selectedScannerEngine;
-      if (!(await loadTransferScannerEngine(engine))) throw new Error(`${engine.toUpperCase()}_MISSING`);
-      if (!$('transferScannerModal').classList.contains('active') || !transferScannerStarting) return;
-      let scanner;
-      if (engine === 'jsqr') {
-        const video = document.createElement('video');
-        video.muted = true;
-        video.setAttribute('playsinline', '');
-        $('transferScannerTarget').replaceChildren(video);
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'environment' } });
-        video.srcObject = stream;
-        await video.play();
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        let animationFrame = 0;
-        let stopped = false;
-        const scan = () => {
-          if (stopped) return;
-          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth && video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const image = context.getImageData(0, 0, canvas.width, canvas.height);
-            const result = window.jsQR(image.data, image.width, image.height);
-            if (result?.data) receiveFrame(result.data);
-          }
-          animationFrame = requestAnimationFrame(scan);
-        };
-        scanner = {
-          stop: async () => {
-            stopped = true;
-            cancelAnimationFrame(animationFrame);
-            stream.getTracks().forEach((track) => track.stop());
-          },
-          clear: async () => $('transferScannerTarget').replaceChildren()
-        };
-        transferScanner = scanner;
-        scan();
-      } else if (engine === 'zxing') {
-        const video = document.createElement('video');
-        video.id = 'transferZxingVideo';
-        video.muted = true;
-        video.setAttribute('playsinline', '');
-        $('transferScannerTarget').replaceChildren(video);
-        const reader = new ZXing.BrowserMultiFormatReader();
-        scanner = {
-          stop: async () => reader.reset(),
-          clear: async () => $('transferScannerTarget').replaceChildren()
-        };
-        transferScanner = scanner;
-        await reader.decodeFromConstraints(
-          { audio: false, video: { facingMode: 'environment' } },
-          video,
-          (result) => { if (result) receiveFrame(result.getText?.() || result.text || ''); }
-        );
-      } else if (engine === 'qrscanner') {
-        const video = document.createElement('video');
-        video.muted = true;
-        video.setAttribute('playsinline', '');
-        $('transferScannerTarget').replaceChildren(video);
-        const reader = new QrScanner(
-          video,
-          (result) => receiveFrame(result?.data || result || ''),
-          { preferredCamera: 'environment', returnDetailedScanResult: true, highlightScanRegion: false, highlightCodeOutline: false }
-        );
-        scanner = {
-          stop: async () => reader.stop(),
-          clear: async () => {
-            reader.destroy();
-            $('transferScannerTarget').replaceChildren();
-          }
-        };
-        transferScanner = scanner;
-        await reader.start();
-      } else {
-        const qrFormat = window.Html5QrcodeSupportedFormats?.QR_CODE;
-        const config = Number.isInteger(qrFormat) ? { formatsToSupport: [qrFormat] } : {};
-        scanner = new Html5Qrcode('transferScannerTarget', config, false);
-        transferScanner = scanner;
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 12, qrbox: (width, height) => Math.max(160, Math.min(270, width - 32, height - 32)), aspectRatio: 1 },
-          (value) => receiveFrame(value),
-          () => {}
-        );
+      if (!preserveDecoder) resetWayFoldDecoder(false);
+      const candidates = [
+        selectedScannerEngine,
+        ...SCANNER_ENGINE_VALUES.filter((engine) => engine !== selectedScannerEngine)
+      ].filter((engine) => !attemptedEngines.has(engine));
+
+      let startedEngine = '';
+      let scanner = null;
+
+      for (const engine of candidates) {
+        attemptedEngines.add(engine);
+        try {
+          scanner = await startScannerEngine(engine);
+          startedEngine = engine;
+          break;
+        } catch (error) {
+          const permissionError = /NotAllowedError|Permission denied|PermissionDismissed|SecurityError/iu
+            .test(`${error?.name || ''} ${error?.message || error || ''}`);
+          if (permissionError) throw error;
+        }
       }
-      if (transferScanner !== scanner) {
-        await scanner.stop().catch(() => {});
-        await scanner.clear().catch(() => {});
+
+      if (!scanner || !startedEngine) throw new Error('NO_SCANNER_ENGINE');
+      if (!$('transferScannerModal').classList.contains('active')) {
+        await scanner.stop?.();
+        await scanner.clear?.();
         return;
       }
+
+      transferScanner = scanner;
       transferScannerRunning = true;
-      $('transferCameraStatus').textContent = tr('scannerReady');
-    } catch (error) {
-      await stopTransferScanner();
-      $('transferCameraStatus').textContent = `${tr('scannerError')} ${error.message || ''}`.trim();
-      $('transferCameraStatus').className = 'transfer-status error';
-    } finally {
       transferScannerStarting = false;
+      transferScannerPaused = false;
+      transferScannerBackgroundPaused = false;
+      if (preserveDecoder && received.decoder) received.lastProgressAt = performance.now();
+      selectedScannerEngine = startedEngine;
+      $('transferScannerEngine').value = startedEngine;
+      localStorage.setItem(SCANNER_ENGINE_KEY, startedEngine);
+      $('transferCameraStatus').textContent = tr('scannerReady');
+      syncTransferScannerControls();
+      startReceiveWatchdog();
+      await acquireWakeLock();
+    } catch (error) {
+      transferScannerStarting = false;
+      await stopTransferScanner();
+      $('transferCameraStatus').textContent = `${tr('scannerError')} ${error?.message || error || ''}`.trim();
+      $('transferCameraStatus').className = 'transfer-status error';
+      transferScannerPaused = false;
+      syncTransferScannerControls();
     }
   }
 
-  function parseFrame(value) {
-    if (typeof value !== 'string' || !value.startsWith(`${PROTOCOL}|`)) return null;
-    const parts = value.split('|');
-    if (parts[2] === 'M' && parts.length === 5) return { id: parts[1], kind: 'M', total: Number(parts[3]), payload: parts[4] };
-    if (parts[2] === 'D' && parts.length === 7) return { id: parts[1], kind: 'D', index: Number(parts[3]), total: Number(parts[4]), crc: parts[5], payload: parts[6] };
-    throw new Error('INVALID_FRAME');
+  async function receiveWayFoldBytes(bytes) {
+    if (!(bytes instanceof Uint8Array) || !bytes.length) return;
+
+    const parsed = WF.parseFrame(bytes);
+    if (!parsed) return;
+
+    const { header, block } = parsed;
+
+    if (received.header?.sessionId === header.sessionId && !sameReceiveStream(received.header, header)) {
+      return;
+    }
+
+    if (!received.decoder || received.header?.sessionId !== header.sessionId) {
+      const key = receiveHeaderKey(header);
+      if (ignoredStreams.has(key)) return;
+
+      if (header.totalLen > WF.LARGE_TRANSFER_BYTES) {
+        const accepted = window.confirm(language() === 'fa'
+          ? `حجم payload نوری ${(header.totalLen / WF.MiB).toFixed(1)} MiB است و می‌تواند حافظه زیادی مصرف کند. ادامه می‌دهید؟`
+          : `Large optical payload: ${(header.totalLen / WF.MiB).toFixed(1)} MiB. It may use significant memory. Continue?`);
+        if (!accepted) {
+          ignoredStreams.add(key);
+          setStatus(
+            'transferReceiveStatus',
+            language() === 'fa' ? 'این جریان رد شد؛ در انتظار جریان دیگری…' : 'Stream declined; looking for another stream…'
+          );
+          return;
+        }
+      }
+
+      received.decoder = new WF.FountainDecoder(
+        header.k,
+        header.blockLen,
+        header.sessionId,
+        header.totalLen
+      );
+      received.header = { ...header };
+      received.startedAt = performance.now();
+      received.lastProgressAt = received.startedAt;
+    }
+
+    if (!received.decoder || !received.header) return;
+
+    const previousFrames = received.decoder.framesNew;
+    const previousSolved = received.decoder.solvedCount;
+    received.decoder.addFrame(header.seq, block);
+
+    if (
+      received.decoder.framesNew > previousFrames ||
+      received.decoder.solvedCount > previousSolved
+    ) {
+      received.lastProgressAt = performance.now();
+    }
+
+    updateWayFoldProgress();
+
+    if (!received.decoder.isComplete || received.assembling) return;
+    received.assembling = true;
+
+    const payload = received.decoder.assemble();
+    const elapsedSeconds = (performance.now() - received.startedAt) / 1000;
+    await finishWayFoldReceive(payload, elapsedSeconds, received.header);
   }
 
-  async function finishReceive() {
-    if (received.assembling || !received.manifest || received.chunks.size !== received.total) return;
-    received.assembling = true;
-    setStatus('transferReceiveStatus', tr('verifying'));
+  async function finishWayFoldReceive(payload, elapsedSeconds, header) {
     try {
-      const bytes = new Uint8Array(received.manifest.size);
-      let offset = 0;
-      for (let index = 0; index < received.total; index += 1) {
-        const chunk = received.chunks.get(index);
-        if (!chunk) throw new Error('MISSING_CHUNK');
-        bytes.set(chunk, offset);
-        offset += chunk.length;
+      if (!payload || WF.fnv1a(payload) !== header.payloadFnv) {
+        throw new Error('FNV');
       }
-      if (offset !== received.manifest.size || await sha256(bytes) !== received.manifest.hash) throw new Error('HASH_MISMATCH');
-      if (received.manifest.encrypted) {
-        received.encryptedBytes = bytes;
+
+      const unpacked = await WF.unwrapFile(payload);
+      if (!unpacked) throw new Error('ENVELOPE_SHA256');
+
+      $('transferReceiveProgress').value = 1;
+      await closeTransferScanner();
+
+      received.manifest = {
+        name: unpacked.filename,
+        type: unpacked.mime
+      };
+
+      if (unpacked.mime === SECRET_ENCRYPTED_MIME) {
+        const encrypted = unpackSecretEncryptedPayload(unpacked.file);
+        if (!encrypted) throw new Error('SECRET_ENVELOPE');
+        received.encryptedBytes = encrypted.encryptedBytes;
+        received.encryptedMeta = encrypted.metadata;
+        received.manifest.type = encrypted.metadata.mime || 'application/octet-stream';
         $('transferPasswordUnlock').hidden = false;
         setStatus('transferReceiveStatus', tr('passwordRequired'), 'ok');
         updateScannerProgress(tr('scannerComplete'));
-        await closeTransferScanner();
         $('transferReceivePassword').focus();
         return;
       }
-      showReceivedFile(bytes);
-      await closeTransferScanner();
+
+      showReceivedFile(unpacked.file);
+      const stats = language() === 'fa'
+        ? `${Math.round(unpacked.file.length / 1024)} KiB در ${elapsedSeconds.toFixed(1)} ثانیه · FNV + SHA-256 تأیید شد ✓`
+        : `${Math.round(unpacked.file.length / 1024)} KiB in ${elapsedSeconds.toFixed(1)} s · FNV + SHA-256 verified ✓`;
+      setStatus('transferReceiveStatus', stats, 'ok');
     } catch (error) {
-      received.assembling = false;
-      setStatus('transferReceiveStatus', tr('hashError'), 'error');
+      await closeTransferScanner();
+      resetWayFoldDecoder(false);
+      setStatus(
+        'transferReceiveStatus',
+        language() === 'fa'
+          ? `خطای صحت انتقال: ${error.message || error}`
+          : `Transfer integrity error: ${error.message || error}`,
+        'error'
+      );
     }
   }
 
   function showReceivedFile(bytes) {
-      received.bytes = bytes;
-      received.blob = new Blob([bytes], { type: received.manifest.type });
-      if (received.manifest.type.startsWith('image/')) {
-        received.previewUrl = URL.createObjectURL(received.blob);
-        $('transferImagePreview').src = received.previewUrl;
-        $('transferImagePreview').alt = received.manifest.name;
-        $('transferImagePreview').hidden = false;
-      } else {
-        $('transferImagePreview').removeAttribute('src');
-        $('transferImagePreview').hidden = true;
-      }
-      $('transferReceivedName').textContent = received.manifest.name;
-      $('transferReceivedSize').textContent = `${bytes.length.toLocaleString()} bytes`;
-      $('transferFileReady').hidden = false;
-      setStatus('transferReceiveStatus', tr('complete'), 'ok');
-      updateScannerProgress(tr('scannerComplete'));
+    received.bytes = bytes;
+    received.blob = new Blob([bytes], { type: received.manifest.type });
+
+    if (received.manifest.type.startsWith('image/')) {
+      if (received.previewUrl) URL.revokeObjectURL(received.previewUrl);
+      received.previewUrl = URL.createObjectURL(received.blob);
+      $('transferImagePreview').src = received.previewUrl;
+      $('transferImagePreview').alt = received.manifest.name;
+      $('transferImagePreview').hidden = false;
+    } else {
+      $('transferImagePreview').removeAttribute('src');
+      $('transferImagePreview').hidden = true;
+    }
+
+    $('transferReceivedName').textContent = received.manifest.name;
+    $('transferReceivedSize').textContent = `${bytes.length.toLocaleString()} bytes`;
+    $('transferFileReady').hidden = false;
+    setStatus('transferReceiveStatus', tr('complete'), 'ok');
+    updateScannerProgress(tr('scannerComplete'));
   }
 
   async function unlockReceivedFile() {
-    if (!received.encryptedBytes || !received.manifest) return;
+    if (!received.encryptedBytes || !received.encryptedMeta || !received.manifest) return;
+
     try {
-      const bytes = await decryptFileBytes(received.encryptedBytes, $('transferReceivePassword').value, received.manifest);
-      if (bytes.length !== received.manifest.plainSize || await sha256(bytes) !== received.manifest.plainHash) throw new Error('BAD_PASSWORD');
+      const bytes = await decryptFileBytes(
+        received.encryptedBytes,
+        $('transferReceivePassword').value,
+        received.encryptedMeta
+      );
+
+      if (
+        bytes.length !== received.encryptedMeta.plainSize ||
+        await sha256(bytes) !== received.encryptedMeta.plainHash
+      ) {
+        throw new Error('BAD_PASSWORD');
+      }
+
       $('transferPasswordUnlock').hidden = true;
       $('transferReceivePassword').value = '';
+      received.manifest.type = received.encryptedMeta.mime || 'application/octet-stream';
       showReceivedFile(bytes);
-    } catch (error) {
+    } catch (_) {
       setStatus('transferReceiveStatus', tr('wrongPassword'), 'error');
     }
   }
 
-  async function receiveFrame(value) {
-    let frame;
-    try { frame = parseFrame(value); } catch (error) {
-      setStatus('transferReceiveStatus', tr('invalid'), 'error');
-      return;
-    }
-    if (!frame) return;
-    if (!frame.id || !Number.isInteger(frame.total) || frame.total < 1 || frame.total > 99999) return setStatus('transferReceiveStatus', tr('invalid'), 'error');
-    if (received.id && received.id !== frame.id) return setStatus('transferReceiveStatus', tr('different'), 'error');
-    if (!received.id) { received.id = frame.id; received.total = frame.total; }
-    if (received.total !== frame.total) return setStatus('transferReceiveStatus', tr('invalid'), 'error');
-    try {
-      if (frame.kind === 'M') {
-        const manifest = JSON.parse(base64UrlDecode(frame.payload));
-        if (!manifest.name || !Number.isInteger(manifest.size) || manifest.size < 0 || !/^[a-f0-9]{64}$/u.test(manifest.hash)) throw new Error('INVALID_MANIFEST');
-        if (manifest.encrypted && (!manifest.salt || !manifest.iv || !Number.isInteger(manifest.plainSize) || !/^[a-f0-9]{64}$/u.test(manifest.plainHash))) throw new Error('INVALID_ENCRYPTED_MANIFEST');
-        received.manifest = manifest;
-      } else {
-        if (!Number.isInteger(frame.index) || frame.index < 0 || frame.index >= received.total) throw new Error('INVALID_INDEX');
-        if (!received.chunks.has(frame.index)) {
-          const chunk = base64ToBytes(frame.payload);
-          if (crc32(chunk) !== frame.crc) throw new Error('CRC_MISMATCH');
-          received.chunks.set(frame.index, chunk);
-        }
-      }
-      const done = received.chunks.size;
-      $('transferReceiveProgress').value = done / received.total;
-      setStatus('transferReceiveStatus', tr('receiving', done, received.total));
-      updateScannerProgress(tr('scannerProgress', done, received.total));
-      await finishReceive();
-    } catch (error) {
-      setStatus('transferReceiveStatus', tr('invalid'), 'error');
-    }
-  }
-
   function resetReceive() {
+    if (transferScannerRunning || transferScannerStarting) closeTransferScanner();
     if (received.previewUrl) URL.revokeObjectURL(received.previewUrl);
     received = freshReceiveState();
+    ignoredStreams.clear();
     $('transferReceiveProgress').value = 0;
     $('transferFileReady').hidden = true;
     $('transferImagePreview').removeAttribute('src');
@@ -908,8 +1433,19 @@
   $('transferChunkSize').addEventListener('input', updateDensityOutput);
   $('transferSpeed').addEventListener('input', () => {
     updateSpeedOutput();
-    if (playTimer) playFrames();
-    if (frames.length) setStatus('transferSendStatus', tr('ready', frames.length, formatDuration(frames.length * frameInterval())), 'ok');
+    if (playTimer !== null) playFrames();
+    if (senderState) {
+      const wrapped = senderState.wrapped;
+      const saved = wrapped.originalLen - wrapped.wireFileLen;
+      const compression = wrapped.compressed && saved > 0
+        ? `gzip −${(saved / wrapped.originalLen * 100).toFixed(1)}%`
+        : 'raw';
+      setStatus(
+        'transferSendStatus',
+        `${(wrapped.originalLen / WF.MiB).toFixed(2)} MiB · ${compression} · ${Math.ceil(wrapped.bytes.length / 1024)} KiB · ${frameRate()} fps`,
+        'ok'
+      );
+    }
   });
   $('transferPlayPause').addEventListener('click', toggleFrames);
   $('transferModalPlayPause').addEventListener('click', toggleFrames);
@@ -946,15 +1482,19 @@
   });
   $('transferFrameNumber').addEventListener('change', jumpToTypedFrame);
   $('transferFrameNumber').addEventListener('keydown', (event) => { if (event.key === 'Enter') jumpToTypedFrame(); });
-  $('transferOpenScanner').addEventListener('click', openTransferScanner);
+  $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), false));
   $('transferScannerEngine').value = selectedScannerEngine;
   $('transferScannerEngine').addEventListener('change', async () => {
     selectedScannerEngine = $('transferScannerEngine').value;
     localStorage.setItem(SCANNER_ENGINE_KEY, selectedScannerEngine);
     const wasOpen = $('transferScannerModal').classList.contains('active');
+    const preserveDecoder = Boolean(received.decoder);
+    transferScannerPaused = false;
     await stopTransferScanner();
-    if (wasOpen) openTransferScanner();
+    if (wasOpen) openTransferScanner(new Set(), preserveDecoder);
   });
+  $('transferPauseScanner').addEventListener('click', () => pauseTransferScanner(false));
+  $('transferResumeScanner').addEventListener('click', resumeTransferScanner);
   $('transferCloseScanner').addEventListener('click', closeTransferScanner);
   $('transferStopScanner').addEventListener('click', closeTransferScanner);
   $('transferScannerModal').addEventListener('click', (event) => { if (event.target === $('transferScannerModal')) closeTransferScanner(); });
@@ -963,6 +1503,27 @@
   $('transferUnlockFile').addEventListener('click', unlockReceivedFile);
   $('transferReceivePassword').addEventListener('keydown', (event) => { if (event.key === 'Enter') unlockReceivedFile(); });
   $('transferQrImages').addEventListener('change', () => scanTransferImages($('transferQrImages').files));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if ($('transferScannerModal').classList.contains('active') && transferScannerRunning) {
+        pauseTransferScanner(true);
+      }
+      return;
+    }
+
+    if (transferScannerBackgroundPaused && transferScannerPaused) {
+      const message = language() === 'fa'
+        ? 'دوربین در پس‌زمینه متوقف شده است. برای ادامه «ادامه» را بزنید.'
+        : 'Camera is paused after backgrounding. Tap Resume to continue.';
+      $('transferCameraStatus').textContent = message;
+      setStatus('transferReceiveStatus', message);
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (transferScannerRunning || transferScannerStarting) stopTransferScanner();
+  });
+
   window.addEventListener('secretchat:tabchange', (event) => {
     if (event.detail?.tab !== 'transfer') {
       pauseFrames();
@@ -977,5 +1538,6 @@
   setViewportHeight(window.innerHeight * (savedViewportHeight > 0 ? savedViewportHeight : 55) / 100, false);
   setQrZoom(1);
   updateFullscreenButton();
+  syncTransferScannerControls();
   resetReceive();
 })();

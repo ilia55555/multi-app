@@ -160,8 +160,8 @@
             <div class="meter" aria-hidden="true"><span id="transferPasswordMeter"></span></div>
           </div>
           <div class="transfer-settings">
-            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="0.25" max="4" step="0.25" value="1.25" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">1.25</output><span data-transfer-i18n="fast">سریع</span></span></label>
-            <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="100" max="1200" step="100" value="300" /><span class="range-labels" dir="ltr"><span>100</span><output id="transferChunkSizeValue" for="transferChunkSize">300</output><span>1200</span></span></label>
+            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="5" max="30" step="1" value="15" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">15</output><span data-transfer-i18n="fast">سریع</span></span></label>
+            <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="256" max="2048" step="1" value="1465" /><span class="range-labels" dir="ltr"><span>256</span><output id="transferChunkSizeValue" for="transferChunkSize">1465</output><span>2048</span></span></label>
           </div>
           <p class="transfer-status" id="transferSendStatus" aria-live="polite"></p>
           <div class="transfer-qr-stage" id="transferQrStage" hidden>
@@ -178,7 +178,7 @@
               <button class="ghost" type="button" id="transferModalNext" disabled data-transfer-i18n="next">بعدی</button>
               <button class="ghost" type="button" id="transferModalPrevious" disabled data-transfer-i18n="previous">قبلی</button>
             </div>
-            <button class="ghost transfer-zip-button" type="button" id="transferDownloadZip" disabled data-transfer-i18n="downloadQrZip">دانلود ZIP همه QRها</button>
+            <button class="ghost transfer-zip-button" type="button" id="transferDownloadZip" hidden disabled data-transfer-i18n="downloadQrZip">دانلود ZIP همه QRها</button>
           </div>
           <div class="transfer-actions transfer-page-playback-actions">
             <button class="primary" type="button" id="transferPlayPause" disabled data-transfer-i18n="play">پخش</button>
@@ -193,7 +193,7 @@
             <button class="primary" type="button" id="transferOpenScanner" data-transfer-i18n="openScanner">بازکردن اسکنر</button>
             <button class="danger" type="button" id="transferResetReceive" data-transfer-i18n="reset">شروع دوباره</button>
           </div>
-          <label class="transfer-offline-input"><span data-transfer-i18n="scanImages">اسکن دسته‌ای عکس‌های QR یا فایل ZIP</span><input class="transfer-file-input" id="transferQrImages" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple /></label>
+          <label class="transfer-offline-input" hidden><span data-transfer-i18n="scanImages">اسکن دسته‌ای عکس‌های QR یا فایل ZIP</span><input class="transfer-file-input" id="transferQrImages" type="file" accept="image/*,.zip,application/zip,application/x-zip-compressed" multiple /></label>
           <p class="transfer-status" id="transferReceiveStatus" aria-live="polite"></p>
           <progress id="transferReceiveProgress" max="1" value="0"></progress>
           <div class="transfer-file-ready" id="transferFileReady" hidden>
@@ -288,7 +288,7 @@
             <option value="zxing" data-recommended-engine>ZXing (پیشنهادی)</option>
             <option value="html5qrcode">Html5Qrcode</option>
             <option value="jsqr">jsQR</option>
-            <option value="qrscanner">QrScanner</option>
+            <option value="qrscanner">QrScanner + raw adapter</option>
           </select>
           <div class="modal-actions">
             <button class="primary" type="button" id="toggleQrCamera" data-i18n="cameraButton">دوربین</button>
@@ -343,6 +343,8 @@
       </div>
       <p class="transfer-status" id="transferCameraStatus" aria-live="polite"></p>
       <div class="modal-actions">
+        <button class="ghost" type="button" id="transferPauseScanner">مکث</button>
+        <button class="primary" type="button" id="transferResumeScanner" hidden>ادامه</button>
         <button class="danger" type="button" id="transferStopScanner" data-transfer-i18n="closeScanner">بستن دوربین</button>
       </div>
     </div>
@@ -350,6 +352,7 @@
 
 
   <script src="app.js" defer></script>
+  <script src="wayfold-protocol.js" defer></script>
   <script src="file-transfer.js" defer></script>
 
 </body>
