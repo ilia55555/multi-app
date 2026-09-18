@@ -1235,7 +1235,8 @@ function drawQrModulesToCanvas(modules, canvas, targetCssSize = 384) {
   canvas.width = size;
   canvas.height = size;
   canvas.style.width = `${size / dpr}px`;
-  canvas.style.height = `${size / dpr}px`;
+  canvas.style.height = 'auto';
+  canvas.style.aspectRatio = '1 / 1';
 
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
