@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v2';
+const CACHE_NAME = 'multi-app-hub-v3';
 const APP_FILES = [
   './',
   './index.html',
@@ -11,7 +11,8 @@ const APP_FILES = [
   './secretchat/index.html',
   './naghshe-Tuner/index.html',
   './Generator-Color-Palette--Tuner/full.html',
-  './Element-Samples-Tuner/index.html'
+  './Element-Samples-Tuner/index.html',
+  './tr%20file/index.html'
 ];
 
 self.addEventListener('install', event => {
