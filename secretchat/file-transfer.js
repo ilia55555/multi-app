@@ -1144,12 +1144,14 @@
         context.drawImage(video, 0, 0);
         const image = context.getImageData(0, 0, canvas.width, canvas.height);
 
-        await QrScanner.scanImage(canvas, {
+        // QrScanner's public result is text-oriented; WayFold frames are raw binary.
+        // Let QrScanner inspect the frame, but never gate the raw-byte decoder on its text result.
+        QrScanner.scanImage(canvas, {
           qrEngine,
           canvas,
           disallowCanvasResizing: true,
           returnDetailedScanResult: true
-        });
+        }).catch(() => null);
 
         const raw = window.jsQR(image.data, image.width, image.height, {
           inversionAttempts: 'attemptBoth'
