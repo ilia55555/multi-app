@@ -1578,7 +1578,7 @@
   }
 
   function isZipRecord(record) {
-    return /\.zip$/iu.test(record?.name || '') || /(?:application|x)-?zip/iu.test(record?.type || '');
+    return /\.zip$/iu.test(record?.name || '') || /zip/iu.test(record?.type || '');
   }
 
   function normalizeHistoryZipPath(path) {
@@ -1771,6 +1771,7 @@
     if (!files.length) return;
 
     try {
+      if (files.some((file) => !file.size || file.size > HISTORY_MAX_FILE_BYTES)) throw new Error('HISTORY_FILE_SIZE');
       const now = Date.now();
       const db = await openTransferHistoryDb();
       try {
@@ -1779,7 +1780,6 @@
           const store = transaction.objectStore(TRANSFER_HISTORY_STORE);
 
           files.forEach((file, index) => {
-            if (!file.size || file.size > HISTORY_MAX_FILE_BYTES) throw new Error('HISTORY_FILE_SIZE');
             store.put({
               id: crypto.randomUUID?.() || `${now}-${index}-${Math.random().toString(16).slice(2)}`,
               name: file.name || `imported-${index + 1}`,
@@ -1857,19 +1857,15 @@
       info.className = 'transfer-history-info';
 
       const name = document.createElement('strong');
-      name.textContent = record.extractedPath || record.name;
+      const sourceName = record.sourceZipName || byId.get(record.parentId)?.name || 'ZIP';
+      name.textContent = record.parentId
+        ? `${record.extractedPath || record.name} — ${tr('extractedFrom', sourceName)}`
+        : (record.extractedPath || record.name);
 
       const meta = document.createElement('span');
       meta.textContent = `${formatHistorySize(record.size)} · ${formatHistoryDate(record.receivedAt)}`;
 
       info.append(name, meta);
-
-      if (record.parentId) {
-        const source = document.createElement('span');
-        source.className = 'transfer-history-source';
-        source.textContent = tr('extractedFrom', record.sourceZipName || byId.get(record.parentId)?.name || 'ZIP');
-        info.append(source);
-      }
 
       const actions = document.createElement('div');
       actions.className = 'transfer-history-actions';
