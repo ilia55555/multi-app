@@ -28,7 +28,7 @@
       <div>
         <span class="eyebrow"><i></i> ابزارهای آماده</span>
         <h1>سریع وارد اپ موردنظرت شو.</h1>
-        <p>هر کارت مستقیماً همان اپ را باز می‌کند؛ بدون منوی اضافه و مسیر واسط.</p>
+        <p>کارت‌ها به‌صورت خودکار از فایل apps.json ساخته می‌شوند.</p>
       </div>
       <div class="tool-count"><strong id="toolCount">۰</strong><span>اپ فعال</span></div>
     </section>
@@ -36,55 +36,18 @@
     <section class="apps-section" aria-labelledby="appsTitle">
       <div class="section-head">
         <div><span>مجموعه من</span><h2 id="appsTitle">اپلیکیشن‌ها</h2></div>
-        <p id="resultCount" aria-live="polite"></p>
+        <p id="resultCount" aria-live="polite">در حال بارگذاری…</p>
       </div>
 
-      <div class="apps" id="appsGrid">
-        <a class="app-card featured" href="./LiveWebStudio-Tuner/index.html" data-search="لایو وب استودیو live web studio ویرایش کد html css javascript">
-          <div class="card-top"><span class="app-icon code">&lt;/&gt;</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>توسعه وب</small><h3>لایو وب استودیو</h3><p>ویرایش پروژه و مشاهده زنده خروجی HTML، CSS و JavaScript.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-
-        <a class="app-card" href="./secretchat/index.html" data-search="سکرت چت secretchat رمزگذاری بازگشایی انتقال فایل">
-          <div class="card-top"><span class="app-icon chat">⌁</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>حریم خصوصی</small><h3>سکرت‌چت</h3><p>رمزگذاری پیام‌ها، بازگشایی امن و انتقال مستقیم فایل.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-
-        <a class="app-card" href="./naghshe-Tuner/index.html" data-search="نقشه کش طراحی ترسیم دقیق canvas">
-          <div class="card-top"><span class="app-icon map">◇</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>طراحی دقیق</small><h3>نقشه‌کش</h3><p>ترسیم شکل‌ها و اندازه‌گذاری دقیق روی بوم حرفه‌ای.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-
-        <a class="app-card" href="./Generator-Color-Palette--Tuner/full.html" data-search="پالت رنگ color palette تولید ویرایش کپی رنگ">
-          <div class="card-top"><span class="app-icon palette">◉</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>رنگ و طراحی</small><h3>استودیو پالت رنگ</h3><p>ساخت، ویرایش و کپی مجموعه رنگ‌های هماهنگ.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-
-        <a class="app-card" href="./Element-Samples-Tuner/index.html" data-search="نمونه المان ui elements html کامپوننت رابط کاربری">
-          <div class="card-top"><span class="app-icon elements">▦</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>کتابخانه رابط کاربری</small><h3>نمونه المان‌ها</h3><p>مرجع مستقل المان‌های HTML و کامپوننت‌های کاربردی UI.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-
-        <a class="app-card" href="./tr%20file/index.html" data-search="انتقال فایل file transfer qr کد نوری بدون اینترنت دوربین">
-          <div class="card-top"><span class="app-icon relay">⇄</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>انتقال مستقیم فایل</small><h3>انتقال فایل</h3><p>انتقال فایل بین دو دستگاه با QR متحرک، بدون آپلود فایل روی اینترنت.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-
-        <a class="app-card" href="./apps/streambox/index.html" data-search="استریم باکس streambox فیلم ویدیو پخش لینک مستقیم">
-          <div class="card-top"><span class="app-icon stream">▶</span><span class="status"><i></i> فعال</span></div>
-          <div class="card-copy"><small>پخش رسانه</small><h3>استریم باکس</h3><p>پخش تدریجی ویدیو از لینک مستقیم با ادامه هوشمند.</p></div>
-          <div class="card-foot"><span>ورود به اپ</span><b>←</b></div>
-        </a>
-      </div>
+      <div class="apps" id="appsGrid" aria-live="polite"></div>
 
       <div class="empty-results" id="emptyResults" hidden>
         <span>⌕</span><h3>ابزاری پیدا نشد</h3><p>عبارت دیگری را جستجو کن.</p>
+      </div>
+
+      <div class="load-error" id="loadError" hidden role="alert">
+        <strong>فهرست اپ‌ها بارگذاری نشد.</strong>
+        <span>ساختار فایل apps.json را بررسی کن.</span>
       </div>
     </section>
   </main>
