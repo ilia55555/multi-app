@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const PROTOCOL = 'SCF2';
+  const WF = window.WayFoldProtocol;
+  if (!WF) throw new Error('WayFold protocol core is unavailable');
   const SCANNER_ENGINE_KEY = 'secretchat-transfer-scanner-engine';
   const VIEWPORT_HEIGHT_KEY = 'secretchat-transfer-viewport-height';
   const SCANNER_ENGINE_VALUES = ['zxing', 'html5qrcode', 'jsqr', 'qrscanner'];
@@ -40,8 +41,10 @@
   };
 
   let frames = [];
+  let senderState = null;
   let frameIndex = 0;
   let playTimer = null;
+  let nextFrameAt = 0;
   let frameJumpTimer = null;
   const viewportPointers = new Map();
   let panStart = null;
@@ -50,6 +53,9 @@
   let pinchStartZoom = 1;
   let fullscreenPlaceholder = null;
   let received = freshReceiveState();
+  const ignoredStreams = new Set();
+  let receiveWatchdog = null;
+  let receiveWakeLock = null;
   let transferScanner = null;
   let transferScannerRunning = false;
   let transferScannerStarting = false;
@@ -118,16 +124,17 @@
 
   function freshReceiveState() {
     return {
-      id: '',
-      total: 0,
-      blockLen: 0,
-      manifest: null,
-      blocks: [],
-      equations: new Map(),
-      byBlock: new Map(),
-      solvedCount: 0,
+      decoder: null,
+      header: null,
+      startedAt: 0,
+      lastProgressAt: 0,
+      framesAtStart: 0,
       blob: null,
       bytes: null,
+      manifest: null,
+      encryptedBytes: null,
+      encryptedMeta: null,
+      previewUrl: null,
       assembling: false
     };
   }
