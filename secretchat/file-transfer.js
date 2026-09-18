@@ -5,6 +5,9 @@
   if (!WF) throw new Error('WayFold protocol core is unavailable');
   const SCANNER_ENGINE_KEY = 'secretchat-transfer-scanner-engine';
   const VIEWPORT_HEIGHT_KEY = 'secretchat-transfer-viewport-height';
+  const TRANSFER_HISTORY_DB = 'secretchat-transfer-history';
+  const TRANSFER_HISTORY_STORE = 'receivedFiles';
+  const TRANSFER_HISTORY_VERSION = 1;
   const SCANNER_ENGINE_VALUES = ['zxing', 'html5qrcode', 'jsqr', 'qrscanner'];
   const FILE_KEY_ITERATIONS = 300000;
   const MIN_FILE_PASSWORD_LENGTH = 4;
@@ -25,7 +28,10 @@
       waiting: 'در انتظار QRهای فایل…', receiving: (done, total) => `دریافت ${done} از ${total} بخش`, different: 'QR مربوط به فایل دیگری است؛ برای دریافت آن «شروع دوباره» را بزنید.',
       invalid: 'بخش QR خراب یا نامعتبر بود.', verifying: 'همه بخش‌ها رسید؛ در حال بررسی فایل…', complete: 'فایل کامل و معتبر دریافت شد.', hashError: 'بررسی نهایی فایل ناموفق بود؛ چرخه QR را دوباره اسکن کنید.', saved: 'فایل ذخیره شد.', saveError: 'ذخیره فایل انجام نشد.',
       scannerTitle: 'دوربین دریافت فایل', scannerEngine: 'موتور اسکن', recommendedEngine: 'ZXing (پیشنهادی)', closeScanner: 'بستن دوربین', scannerStarting: 'در حال راه‌اندازی دوربین اختصاصی…', scannerReady: 'دوربین آماده است؛ QRهای انتقال فایل را داخل کادر بگیرید.', scannerError: 'دوربین انتقال فایل راه‌اندازی نشد.',
-      scannerProgress: (done, total) => `دریافت فایل: ${done} از ${total}`, scannerComplete: 'فایل کامل دریافت شد؛ می‌توانید دوربین را ببندید.'
+      scannerProgress: (done, total) => `دریافت فایل: ${done} از ${total}`, scannerComplete: 'فایل کامل دریافت شد؛ می‌توانید دوربین را ببندید.',
+      historyEmpty: 'هنوز فایلی دریافت نشده است.', historyCount: (n) => `${n} فایل`, deleteHistory: 'حذف', confirmDeleteHistory: 'تأیید حذف',
+      newReceiveWarning: 'با شروع دریافت جدید، پیشرفت دریافت فایل فعلی از دست می‌رود. ادامه می‌دهید؟',
+      cameraOff: 'خاموش کردن دوربین', cameraOn: 'روشن کردن دوربین'
     },
     en: {
       tab: 'File QR',
@@ -36,7 +42,10 @@
       waiting: 'Waiting for file QR codes…', receiving: (done, total) => `Received ${done} of ${total} chunks`, different: 'This QR belongs to another file; select Start over to receive it.',
       invalid: 'The QR chunk was damaged or invalid.', verifying: 'All chunks received; verifying file…', complete: 'The complete verified file was received.', hashError: 'Final file verification failed; scan the QR cycle again.', saved: 'File saved.', saveError: 'The file could not be saved.',
       scannerTitle: 'File receiver camera', scannerEngine: 'Scan engine', recommendedEngine: 'ZXing (Recommended)', closeScanner: 'Close camera', scannerStarting: 'Starting the dedicated receiver camera…', scannerReady: 'Camera ready; place the transfer QR codes inside the frame.', scannerError: 'The file-transfer camera could not be started.',
-      scannerProgress: (done, total) => `Receiving file: ${done} of ${total}`, scannerComplete: 'File received completely; you can close the camera.'
+      scannerProgress: (done, total) => `Receiving file: ${done} of ${total}`, scannerComplete: 'File received completely; you can close the camera.',
+      historyEmpty: 'No received files yet.', historyCount: (n) => `${n} files`, deleteHistory: 'Delete', confirmDeleteHistory: 'Confirm delete',
+      newReceiveWarning: 'Starting a new receive will discard the current file progress. Continue?',
+      cameraOff: 'Turn camera off', cameraOn: 'Turn camera on'
     }
   };
 
@@ -136,7 +145,8 @@
       encryptedBytes: null,
       encryptedMeta: null,
       previewUrl: null,
-      assembling: false
+      assembling: false,
+      historyRecordId: null
     };
   }
 
@@ -543,16 +553,58 @@
     updatePlaybackButton();
   }
 
-  async function downloadQrZip() {
-    setStatus('transferSendStatus', language() === 'fa'
-      ? 'در حالت WayFold جریان QR نامحدود است و ZIP همه فریم‌ها وجود ندارد.'
-      : 'WayFold uses an unbounded QR stream; there is no finite ZIP of all frames.');
+  async function decodeTransferImageFile(file) {
+    if (!(await loadTransferScannerEngine('jsqr'))) throw new Error('JSQR_MISSING');
+    const bitmap = await createImageBitmap(file);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(bitmap, 0, 0);
+      const image = context.getImageData(0, 0, canvas.width, canvas.height);
+      const result = window.jsQR(image.data, image.width, image.height, { inversionAttempts: 'attemptBoth' });
+      return bytesFromJsQr(result);
+    } finally {
+      bitmap.close?.();
+    }
   }
 
-  async function scanTransferImages() {
-    setStatus('transferReceiveStatus', language() === 'fa'
-      ? 'دریافت WayFold از دوربین زنده انجام می‌شود.'
-      : 'WayFold receiving uses the live camera stream.');
+  async function scanTransferImages(fileList) {
+    const selected = [...(fileList || [])];
+    if (!selected.length) return;
+    let imageFiles = [];
+
+    try {
+      for (const file of selected) {
+        if (/\.zip$/iu.test(file.name) || /zip/iu.test(file.type)) imageFiles.push(...await zipImageFiles(file));
+        else if (file.type.startsWith('image/')) imageFiles.push(file);
+      }
+      if (!imageFiles.length) throw new Error('NO_IMAGES');
+
+      let decoded = 0;
+      for (let index = 0; index < imageFiles.length; index += 1) {
+        setStatus(
+          'transferReceiveStatus',
+          language() === 'fa'
+            ? `در حال اسکن تصویر ${index + 1} از ${imageFiles.length}…`
+            : `Scanning image ${index + 1} of ${imageFiles.length}…`
+        );
+        const bytes = await decodeTransferImageFile(imageFiles[index]);
+        if (!bytes?.length) continue;
+        decoded += 1;
+        await receiveWayFoldBytes(bytes);
+        if (received.decoder?.isComplete || received.blob) break;
+      }
+
+      if (!decoded) {
+        setStatus('transferReceiveStatus', language() === 'fa' ? 'QR معتبر WayFold در تصاویر پیدا نشد.' : 'No valid WayFold QR was found in the images.', 'error');
+      }
+    } catch (_) {
+      setStatus('transferReceiveStatus', language() === 'fa' ? 'خواندن دسته‌ای تصاویر ناموفق بود.' : 'Batch image scanning failed.', 'error');
+    } finally {
+      $('transferQrImages').value = '';
+    }
   }
 
   function pauseFrames() {
@@ -571,7 +623,6 @@
     frames = [];
     senderState = null;
     updateSendControls(false);
-    $('transferDownloadZip').disabled = true;
     $('transferQrStage').hidden = true;
     if (!file) return;
 
@@ -636,8 +687,7 @@
       frameIndex = 0;
       $('transferQrStage').hidden = false;
       updateSendControls(true);
-      $('transferDownloadZip').disabled = true;
-      drawFrame(0);
+        drawFrame(0);
 
       const saved = wrapped.originalLen - wrapped.wireFileLen;
       const compression = wrapped.compressed && saved > 0
@@ -648,6 +698,7 @@
         `${(wrapped.originalLen / WF.MiB).toFixed(2)} MiB · ${compression} · ${Math.ceil(wrapped.bytes.length / 1024)} KiB · ${frameRate()} fps`,
         'ok'
       );
+      playFrames();
     } catch (error) {
       senderState = null;
       frames = [];
@@ -887,9 +938,7 @@
     if (!button) return;
 
     const isOn = transferScannerRunning || transferScannerStarting;
-    button.textContent = isOn
-      ? (language() === 'fa' ? 'خاموش کردن دوربین' : 'Turn camera off')
-      : (language() === 'fa' ? 'روشن کردن دوربین' : 'Turn camera on');
+    button.textContent = isOn ? tr('cameraOff') : tr('cameraOn');
     button.classList.toggle('danger', isOn);
     button.classList.toggle('primary', !isOn);
     button.disabled = false;
@@ -1338,7 +1387,7 @@
         return;
       }
 
-      showReceivedFile(unpacked.file);
+      await showReceivedFile(unpacked.file);
       const stats = language() === 'fa'
         ? `${Math.round(unpacked.file.length / 1024)} KiB در ${elapsedSeconds.toFixed(1)} ثانیه · FNV + SHA-256 تأیید شد ✓`
         : `${Math.round(unpacked.file.length / 1024)} KiB in ${elapsedSeconds.toFixed(1)} s · FNV + SHA-256 verified ✓`;
@@ -1356,7 +1405,7 @@
     }
   }
 
-  function showReceivedFile(bytes) {
+  async function showReceivedFile(bytes) {
     received.bytes = bytes;
     received.blob = new Blob([bytes], { type: received.manifest.type });
 
@@ -1376,6 +1425,7 @@
     $('transferFileReady').hidden = false;
     setStatus('transferReceiveStatus', tr('complete'), 'ok');
     updateScannerProgress(tr('scannerComplete'));
+    await persistCurrentReceivedFile();
   }
 
   async function unlockReceivedFile() {
@@ -1398,14 +1448,190 @@
       $('transferPasswordUnlock').hidden = true;
       $('transferReceivePassword').value = '';
       received.manifest.type = received.encryptedMeta.mime || 'application/octet-stream';
-      showReceivedFile(bytes);
+      await showReceivedFile(bytes);
     } catch (_) {
       setStatus('transferReceiveStatus', tr('wrongPassword'), 'error');
     }
   }
 
-  function resetReceive() {
-    if (transferScannerRunning || transferScannerStarting) closeTransferScanner();
+  function openTransferHistoryDb() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(TRANSFER_HISTORY_DB, TRANSFER_HISTORY_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(TRANSFER_HISTORY_STORE)) {
+          const store = db.createObjectStore(TRANSFER_HISTORY_STORE, { keyPath: 'id' });
+          store.createIndex('receivedAt', 'receivedAt');
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('INDEXEDDB_OPEN_FAILED'));
+    });
+  }
+
+  async function historyTransaction(mode, action) {
+    const db = await openTransferHistoryDb();
+    try {
+      return await new Promise((resolve, reject) => {
+        const transaction = db.transaction(TRANSFER_HISTORY_STORE, mode);
+        const store = transaction.objectStore(TRANSFER_HISTORY_STORE);
+        let request;
+        try { request = action(store); } catch (error) { reject(error); return; }
+        transaction.oncomplete = () => resolve(request?.result ?? request);
+        transaction.onerror = () => reject(transaction.error || new Error('INDEXEDDB_TRANSACTION_FAILED'));
+        transaction.onabort = () => reject(transaction.error || new Error('INDEXEDDB_TRANSACTION_ABORTED'));
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  async function listTransferHistory() {
+    const db = await openTransferHistoryDb();
+    try {
+      return await new Promise((resolve, reject) => {
+        const transaction = db.transaction(TRANSFER_HISTORY_STORE, 'readonly');
+        const request = transaction.objectStore(TRANSFER_HISTORY_STORE).getAll();
+        request.onsuccess = () => resolve((request.result || []).sort((a, b) => b.receivedAt - a.receivedAt));
+        request.onerror = () => reject(request.error || new Error('INDEXEDDB_READ_FAILED'));
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  async function saveBlobToDevice(name, blob, mime) {
+    const safeName = safeFileName(name);
+    const androidFileSaver = nativeBridge('saveBase64File');
+    if (androidFileSaver) {
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const saved = androidFileSaver(safeName, bytesToBase64(bytes), mime || blob.type || 'application/octet-stream');
+      if (!saved) throw new Error('ANDROID_SAVE_FAILED');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = safeName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function formatHistoryDate(timestamp) {
+    try {
+      return new Intl.DateTimeFormat(language() === 'fa' ? 'fa-IR' : 'en-CA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(timestamp));
+    } catch (_) {
+      return new Date(timestamp).toLocaleString();
+    }
+  }
+
+  function formatHistorySize(size) {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KiB`;
+    return `${(size / (1024 * 1024)).toFixed(2)} MiB`;
+  }
+
+  async function renderTransferHistory() {
+    const list = $('transferHistoryList');
+    const empty = $('transferHistoryEmpty');
+    const count = $('transferHistoryCount');
+    if (!list || !empty || !count) return;
+
+    let records = [];
+    try {
+      records = await listTransferHistory();
+    } catch (_) {
+      list.replaceChildren();
+      empty.hidden = false;
+      empty.textContent = language() === 'fa' ? 'سوابق دریافت در دسترس نیست.' : 'Receive history is unavailable.';
+      count.textContent = tr('historyCount', 0);
+      return;
+    }
+
+    count.textContent = tr('historyCount', records.length);
+    empty.textContent = tr('historyEmpty');
+    empty.hidden = records.length > 0;
+    list.replaceChildren();
+
+    for (const record of records) {
+      const item = document.createElement('article');
+      item.className = 'transfer-history-item';
+
+      const info = document.createElement('div');
+      info.className = 'transfer-history-info';
+      const name = document.createElement('strong');
+      name.textContent = record.name;
+      const meta = document.createElement('span');
+      meta.textContent = `${formatHistorySize(record.size)} · ${formatHistoryDate(record.receivedAt)}`;
+      info.append(name, meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'transfer-history-actions';
+
+      const save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'primary';
+      save.textContent = tr('saveFile');
+      save.addEventListener('click', async () => {
+        try { await saveBlobToDevice(record.name, record.blob, record.type); }
+        catch (_) { setStatus('transferReceiveStatus', tr('saveError'), 'error'); }
+      });
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'transfer-history-delete';
+      remove.textContent = tr('deleteHistory');
+      let confirmTimer = null;
+
+      remove.addEventListener('click', async () => {
+        if (!remove.classList.contains('is-confirming')) {
+          remove.classList.add('is-confirming');
+          remove.textContent = tr('confirmDeleteHistory');
+          clearTimeout(confirmTimer);
+          confirmTimer = setTimeout(() => {
+            remove.classList.remove('is-confirming');
+            remove.textContent = tr('deleteHistory');
+          }, 5000);
+          return;
+        }
+
+        clearTimeout(confirmTimer);
+        remove.disabled = true;
+        try {
+          await historyTransaction('readwrite', (store) => store.delete(record.id));
+          await renderTransferHistory();
+        } catch (_) {
+          remove.disabled = false;
+          remove.classList.remove('is-confirming');
+          remove.textContent = tr('deleteHistory');
+        }
+      });
+
+      actions.append(save, remove);
+      item.append(info, actions);
+      list.append(item);
+    }
+  }
+
+  async function persistCurrentReceivedFile() {
+    if (!received.blob || !received.manifest || received.historyRecordId) return;
+    const id = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const record = {
+      id,
+      name: received.manifest.name,
+      type: received.manifest.type || received.blob.type || 'application/octet-stream',
+      size: received.blob.size,
+      receivedAt: Date.now(),
+      blob: received.blob
+    };
+    try {
+      await historyTransaction('readwrite', (store) => store.put(record));
+      received.historyRecordId = id;
+      await renderTransferHistory();
+    } catch (_) {}
+  }
+
+  function clearReceiveUiState() {
     if (received.previewUrl) URL.revokeObjectURL(received.previewUrl);
     received = freshReceiveState();
     ignoredStreams.clear();
@@ -1422,29 +1648,51 @@
     setStatus('transferReceiveStatus', tr('waiting'));
   }
 
+  function hasActiveReceiveProgress() {
+    return Boolean(received.decoder && !received.decoder.isComplete && (received.decoder.framesNew > 0 || received.decoder.solvedCount > 0));
+  }
+
+  async function startNewReceiveFromModal() {
+    if (hasActiveReceiveProgress() && !window.confirm(tr('newReceiveWarning'))) return;
+    clearReceiveUiState();
+    if (transferScannerRunning) {
+      $('transferCameraStatus').textContent = tr('scannerReady');
+      startReceiveWatchdog();
+    }
+  }
+
+  function resetReceive() {
+    if (transferScannerRunning || transferScannerStarting) closeTransferScanner();
+    clearReceiveUiState();
+  }
+
   function safeFileName(value) { return value.replace(/[\\/:*?"<>|]/gu, '_') || 'received-file'; }
 
   async function saveReceivedFile() {
-    if (!received.blob || !received.bytes || !received.manifest) return;
-    const name = safeFileName(received.manifest.name);
+    if (!received.blob || !received.manifest) return;
     try {
-      const androidFileSaver = nativeBridge('saveBase64File');
-      if (androidFileSaver) {
-        const saved = androidFileSaver(name, bytesToBase64(received.bytes), received.manifest.type);
-        if (!saved) throw new Error('ANDROID_SAVE_FAILED');
-      } else {
-        const url = URL.createObjectURL(received.blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = name;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }
+      await saveBlobToDevice(received.manifest.name, received.blob, received.manifest.type);
       setStatus('transferReceiveStatus', tr('saved'), 'ok');
-      await window.SecretChatOutputs?.add(name, received.blob);
-    } catch (error) {
+      await window.SecretChatOutputs?.add(safeFileName(received.manifest.name), received.blob);
+    } catch (_) {
       setStatus('transferReceiveStatus', tr('saveError'), 'error');
     }
+  }
+
+  function switchTransferMode(mode) {
+    const safeMode = mode === 'send' ? 'send' : 'receive';
+    document.querySelectorAll('[data-transfer-mode]').forEach((button) => {
+      const active = button.dataset.transferMode === safeMode;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-transfer-mode-panel]').forEach((panel) => {
+      const active = panel.dataset.transferModePanel === safeMode;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+    if (safeMode === 'receive') pauseFrames();
+    else if (transferScannerRunning || transferScannerStarting) closeTransferScanner();
   }
 
   $('transferFile').addEventListener('change', () => prepareFile($('transferFile').files[0]));
@@ -1471,7 +1719,7 @@
   });
   $('transferPlayPause').addEventListener('click', toggleFrames);
   $('transferModalPlayPause').addEventListener('click', toggleFrames);
-  $('transferDownloadZip').addEventListener('click', downloadQrZip);
+
   $('transferQrZoom').addEventListener('input', () => setQrZoom($('transferQrZoom').value));
   $('transferViewportResizeHandle').addEventListener('pointerdown', startViewportResize);
   $('transferViewportResizeHandle').addEventListener('pointermove', moveViewportResize);
@@ -1494,11 +1742,12 @@
     if (savedHeight > 0) setViewportHeight(window.innerHeight * savedHeight / 100, false);
     setQrZoom($('transferQrZoom').value);
   });
-  $('transferModalPrevious').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex - 1); });
-  $('transferModalNext').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex + 1); });
-  $('transferPrevious').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex - 1); });
-  $('transferNext').addEventListener('click', () => { pauseFrames(); drawFrame(frameIndex + 1); });
+
   $('transferOpenScanner').addEventListener('click', () => openTransferScanner(new Set(), Boolean(received.decoder)));
+  $('transferNewReceive').addEventListener('click', startNewReceiveFromModal);
+  document.querySelectorAll('[data-transfer-mode]').forEach((button) => {
+    button.addEventListener('click', () => switchTransferMode(button.dataset.transferMode));
+  });
   $('transferScannerEngine').value = selectedScannerEngine;
   $('transferScannerEngine').addEventListener('change', async () => {
     selectedScannerEngine = $('transferScannerEngine').value;
@@ -1512,7 +1761,7 @@
   $('transferCameraToggle').addEventListener('click', toggleTransferCamera);
   $('transferCloseScanner').addEventListener('click', closeTransferScanner);
   $('transferScannerModal').addEventListener('click', (event) => { if (event.target === $('transferScannerModal')) closeTransferScanner(); });
-  $('transferResetReceive').addEventListener('click', resetReceive);
+
   $('transferSaveFile').addEventListener('click', saveReceivedFile);
   $('transferUnlockFile').addEventListener('click', unlockReceivedFile);
   $('transferReceivePassword').addEventListener('keydown', (event) => { if (event.key === 'Enter') unlockReceivedFile(); });
@@ -1554,4 +1803,6 @@
   updateFullscreenButton();
   syncTransferScannerControls();
   resetReceive();
+  switchTransferMode('receive');
+  renderTransferHistory();
 })();
