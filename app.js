@@ -29,7 +29,7 @@ search.addEventListener('input', () => {
     card.hidden = !card.dataset.search.toLowerCase().includes(value);
     if (!card.hidden) visibleCount += 1;
   });
-  resultCount.textContent = value ? `${visibleCount.toLocaleString('fa-IR')} نتیجه پیدا شد` : '۶ ابزار برای استفاده آماده است';
+  resultCount.textContent = value ? `${visibleCount.toLocaleString('fa-IR')} نتیجه پیدا شد` : '۷ ابزار برای استفاده آماده است';
   emptyResults.hidden = visibleCount !== 0;
 });
 
