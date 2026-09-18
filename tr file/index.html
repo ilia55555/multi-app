@@ -2313,11 +2313,9 @@ function $i(e) {
     if (!t || _ || !N)
         return;
     const {header: n, block: r} = t;
-    if (O && O.sessionId === n.sessionId && !Ki(O, n))
+    if ((O == null ? void 0 : O.sessionId) === n.sessionId && !Ki(O, n))
         return;
-    if (q && O && O.sessionId !== n.sessionId)
-        return;
-    if (!q) {
+    if (!q || (O == null ? void 0 : O.sessionId) !== n.sessionId) {
         const o = Hi(n);
         if ($t.has(o))
             return;
