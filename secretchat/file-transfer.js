@@ -127,6 +127,11 @@
       readySaveButton.setAttribute('aria-label', tr('saveFile'));
       readySaveButton.title = tr('saveFile');
     }
+    const readyOpenButton = $('transferOpenReceivedFile');
+    if (readyOpenButton) {
+      readyOpenButton.setAttribute('aria-label', tr('openHistory'));
+      readyOpenButton.title = tr('openHistory');
+    }
     updatePlaybackButton();
     updateTransferPasswordStrength();
     renderTransferHistory();
@@ -2073,6 +2078,14 @@
   $('transferCloseScanner').addEventListener('click', closeTransferScanner);
   $('transferScannerModal').addEventListener('click', (event) => { if (event.target === $('transferScannerModal')) closeTransferScanner(); });
 
+  $('transferOpenReceivedFile').addEventListener('click', () => {
+    if (!received.blob || !received.manifest) return;
+    openHistoryFile({
+      name: received.manifest.name,
+      type: received.manifest.type,
+      blob: received.blob
+    });
+  });
   $('transferSaveFile').addEventListener('click', saveReceivedFile);
   $('transferHistoryImportButton').addEventListener('click', () => $('transferHistoryImport').click());
   $('transferHistoryImport').addEventListener('change', () => importHistoryFiles($('transferHistoryImport').files));
