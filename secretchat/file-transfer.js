@@ -304,13 +304,64 @@
     return state.value;
   }
 
+  const fountainDegreeCache = new Map();
+
+  function fountainDegreeCdf(total) {
+    if (fountainDegreeCache.has(total)) return fountainDegreeCache.get(total);
+
+    if (total <= 1) {
+      const single = [1];
+      fountainDegreeCache.set(total, single);
+      return single;
+    }
+
+    const c = 0.1;
+    const delta = 0.05;
+    const r = c * Math.log(total / delta) * Math.sqrt(total);
+    const spike = Math.max(1, Math.min(total, Math.floor(total / Math.max(r, 1e-9))));
+    const weights = new Float64Array(total);
+    let sum = 0;
+
+    for (let degree = 1; degree <= total; degree += 1) {
+      const rho = degree === 1 ? 1 / total : 1 / (degree * (degree - 1));
+      let tau = 0;
+
+      if (degree < spike) tau = r / (degree * total);
+      else if (degree === spike) tau = r * Math.log(Math.max(r / delta, 1)) / total;
+
+      const weight = rho + tau;
+      weights[degree - 1] = weight;
+      sum += weight;
+    }
+
+    const cdf = new Float64Array(total);
+    let cumulative = 0;
+    for (let index = 0; index < total; index += 1) {
+      cumulative += weights[index] / sum;
+      cdf[index] = cumulative;
+    }
+    cdf[total - 1] = 1;
+    fountainDegreeCache.set(total, cdf);
+    return cdf;
+  }
+
   function repairIndices(id, sequence, total) {
     if (sequence < total) return [sequence];
     if (total <= 1) return [0];
 
     const state = { value: seedForFrame(id, sequence) };
-    const roll = nextRandom(state) % 100;
-    const degree = Math.min(total, roll < 48 ? 2 : roll < 78 ? 3 : roll < 94 ? 4 : 5);
+    const cdf = fountainDegreeCdf(total);
+    const roll = nextRandom(state) / 0x100000000;
+
+    let low = 0;
+    let high = cdf.length - 1;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (roll <= cdf[mid]) high = mid;
+      else low = mid + 1;
+    }
+
+    const degree = low + 1;
     const selected = new Set();
     while (selected.size < degree) selected.add(nextRandom(state) % total);
     return [...selected].sort((a, b) => a - b);
@@ -730,16 +781,16 @@
 
       for (let sequence = 0; sequence < total; sequence += 1) {
         const payload = sourceBlocks[sequence];
-        dataFrames.push(`${PROTOCOL}|${id}|F|${sequence}|${total}|${crc32(payload)}|${sequence}|${bytesToBase64(payload)}`);
+        dataFrames.push(`${PROTOCOL}|${id}|F|${sequence}|${total}|${crc32(payload)}|${bytesToBase64(payload)}`);
       }
 
-      const repairCount = Math.max(12, Math.ceil(total * 0.4));
+      const repairCount = Math.max(12, Math.ceil(total * 0.6));
       for (let repair = 0; repair < repairCount; repair += 1) {
         const sequence = total + repair;
         const indices = repairIndices(id, sequence, total);
         const payload = new Uint8Array(blockLen);
         for (const index of indices) xorInto(payload, sourceBlocks[index]);
-        dataFrames.push(`${PROTOCOL}|${id}|F|${sequence}|${total}|${crc32(payload)}|${indices.join('.')}|${bytesToBase64(payload)}`);
+        dataFrames.push(`${PROTOCOL}|${id}|F|${sequence}|${total}|${crc32(payload)}|${bytesToBase64(payload)}`);
       }
 
       frames = [];
@@ -965,15 +1016,14 @@
       };
     }
 
-    if (parts[2] === 'F' && parts.length === 8) {
+    if (parts[2] === 'F' && parts.length === 7) {
       return {
         id: parts[1],
         kind: 'F',
         sequence: Number(parts[3]),
         total: Number(parts[4]),
         crc: parts[5],
-        indices: parts[6].split('.').map(Number),
-        payload: parts[7]
+        payload: parts[6]
       };
     }
 
@@ -1110,7 +1160,8 @@
         received.manifest = manifest;
       } else {
         if (!Number.isInteger(frame.sequence) || frame.sequence < 0) throw new Error('INVALID_SEQUENCE');
-        if (!frame.indices.length || frame.indices.length > 5 || frame.indices.some((index) => !Number.isInteger(index) || index < 0 || index >= received.total)) {
+        const indices = repairIndices(frame.id, frame.sequence, received.total);
+        if (!indices.length || indices.some((index) => !Number.isInteger(index) || index < 0 || index >= received.total)) {
           throw new Error('INVALID_INDICES');
         }
 
@@ -1120,7 +1171,7 @@
         if (received.blockLen && received.blockLen !== payload.length) throw new Error('BLOCK_LENGTH_MISMATCH');
         if (!received.blockLen) received.blockLen = payload.length;
 
-        addEquation(frame.sequence, frame.indices, payload);
+        addEquation(frame.sequence, indices, payload);
       }
 
       const done = received.solvedCount;
