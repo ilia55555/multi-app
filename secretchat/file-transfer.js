@@ -992,7 +992,8 @@
         selectedScannerEngine = nextEngine;
         $('transferScannerEngine').value = nextEngine;
         transferScannerStarting = false;
-        return openTransferScanner(attemptedEngines);
+        setTimeout(() => openTransferScanner(attemptedEngines), 0);
+        return;
       }
 
       $('transferCameraStatus').textContent = `${tr('scannerError')} ${error.message || ''}`.trim();
