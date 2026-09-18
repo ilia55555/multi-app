@@ -733,3 +733,11 @@ html.transfer-fullscreen-fallback-open { overflow: hidden; }
     margin-inline-start: calc(var(--history-depth, 1) * 10px);
   }
 }
+
+
+.transfer-file-ready-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+}
