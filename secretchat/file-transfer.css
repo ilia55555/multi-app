@@ -191,9 +191,18 @@ input[type="range"]::-moz-range-thumb {
   place-items: center;
 }
 
+.transfer-qr-box canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  image-rendering: pixelated;
+}
+
 .transfer-qr-box {
   display: grid;
-  width: min(100%, 430px);
+  width: min(100%, 1000px);
   aspect-ratio: 1;
   flex: none;
   place-items: center;
@@ -282,7 +291,7 @@ input[type="range"]::-moz-range-thumb {
 
 .transfer-qr-stage:fullscreen .transfer-qr-box,
 .transfer-qr-stage.fullscreen-fallback .transfer-qr-box {
-  width: var(--qr-box-size, min(52vmin, 520px));
+  width: var(--qr-box-size, min(90vmin, 1000px));
   max-width: none;
   margin: auto;
 }
