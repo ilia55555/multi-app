@@ -1528,14 +1528,14 @@
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
-  async function openHistoryFile(record) {
+  function openHistoryFile(record) {
     if (!record?.blob) return;
 
     const type = record.type || record.blob.type || 'application/octet-stream';
     const safeInline = /^(?:image\/(?:png|jpeg|gif|webp|svg\+xml)|application\/pdf|audio\/|video\/)/iu.test(type);
     const safeText = /^(?:text\/|application\/(?:json|javascript))(?:$|;)/iu.test(type);
     const previewBlob = safeText
-      ? new Blob([await record.blob.text()], { type: 'text/plain;charset=utf-8' })
+      ? new Blob([record.blob], { type: 'text/plain;charset=utf-8' })
       : record.blob;
 
     const url = URL.createObjectURL(previewBlob);
