@@ -73,50 +73,6 @@ function __wfB64Encode(bytes) {
   }
   return btoa(out);
 }
-function __wfB64Decode(s) {
-  const bin = atob(s);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i) & 255;
-  return out;
-}
-
-class SingleFileQrWorker {
-  constructor() {
-    this.onmessage = null;
-    this.onerror = null;
-    this._terminated = false;
-    this._detector = ("BarcodeDetector" in window) ? new BarcodeDetector({ formats: ["qr_code"] }) : null;
-    this._canvas = document.createElement("canvas");
-    this._ctx = this._canvas.getContext("2d", { willReadFrequently: true });
-  }
-  async postMessage(msg) {
-    if (this._terminated) return;
-    const { id, buf, w, h } = msg || {};
-    try {
-      if (!this._detector) {
-        this.onmessage && this.onmessage({ data: { id, bytes: null, error: null } });
-        return;
-      }
-      if (this._canvas.width !== w) this._canvas.width = w;
-      if (this._canvas.height !== h) this._canvas.height = h;
-      const px = new Uint8ClampedArray(buf);
-      this._ctx.putImageData(new ImageData(px, w, h), 0, 0);
-      const found = await this._detector.detect(this._canvas);
-      let bytes = null;
-      for (const item of found || []) {
-        const raw = item && typeof item.rawValue === "string" ? item.rawValue : "";
-        if (raw.startsWith("WF1:")) {
-          try { bytes = __wfB64Decode(raw.slice(4)); } catch (_) {}
-          if (bytes) break;
-        }
-      }
-      if (!this._terminated && this.onmessage) this.onmessage({ data: { id, bytes, error: null } });
-    } catch (err) {
-      if (!this._terminated && this.onmessage) this.onmessage({ data: { id, bytes: null, error: null } });
-    }
-  }
-  terminate() { this._terminated = true; }
-}
 </script>
 </head>
   <body class="role-receive" data-mode="receive">
@@ -2225,10 +2181,6 @@ async function Gi() {
         ie(I("receive.secureError"), !0);
         return
     }
-    if (!("BarcodeDetector" in window)) {
-        ie(I("receive.unsupported"), !0);
-        return
-    }
     try {
         if ((await navigator.permissions.query({
             name: "camera"
@@ -2285,7 +2237,9 @@ async function Gi() {
     se(),
     oe();
     for (let b = 0; b < u; b++) {
-        const F = new SingleFileQrWorker()
+        const F = new Worker(new URL("./qr-worker.js", import.meta.url), {
+            type: "module"
+        })
           , S = b;
         F.onmessage = T => {
             const {id: k, bytes: R, error: P} = T.data;
@@ -2296,7 +2250,7 @@ async function Gi() {
                 return
             }
             k !== -1 && (Oe[S] = !1,
-            R && $i(R))
+            R && $i(R instanceof Uint8Array ? R : new Uint8Array(R)))
         }
         ,
         F.onerror = T => ot(`✗ ${I("receive.workerError", {
