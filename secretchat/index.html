@@ -160,7 +160,7 @@
             <div class="meter" aria-hidden="true"><span id="transferPasswordMeter"></span></div>
           </div>
           <div class="transfer-settings">
-            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="5" max="30" step="1" value="15" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">15</output><span data-transfer-i18n="fast">سریع</span></span></label>
+            <label class="transfer-speed-control"><span data-transfer-i18n="speed">سرعت نمایش (QR در ثانیه)</span><input id="transferSpeed" type="range" min="1" max="120" step="1" value="15" /><span class="range-labels"><span data-transfer-i18n="slow">آرام</span><output id="transferSpeedValue" for="transferSpeed" dir="ltr">15</output><span data-transfer-i18n="fast">سریع</span></span></label>
             <label class="transfer-density-control"><span data-transfer-i18n="chunkSize">تراکم هر QR</span><input id="transferChunkSize" type="range" min="256" max="2048" step="1" value="1465" /><span class="range-labels" dir="ltr"><span>256</span><output id="transferChunkSizeValue" for="transferChunkSize">1465</output><span>2048</span></span></label>
           </div>
           <p class="transfer-status" id="transferSendStatus" aria-live="polite"></p>
@@ -171,8 +171,6 @@
               <div class="transfer-qr-box"><canvas id="transferQrCanvas" aria-label="File transfer QR"></canvas></div>
             </div>
             <div class="transfer-viewport-resize-handle" id="transferViewportResizeHandle" role="separator" aria-orientation="horizontal" tabindex="0" data-transfer-i18n-aria="resizeViewport" aria-label="برای تغییر ارتفاع کادر QR بکشید"><span aria-hidden="true"></span></div>
-            <label class="transfer-frame-picker" for="transferFrameNumber"><span data-transfer-i18n="frameNumber">شماره QR</span><span dir="ltr"><input id="transferFrameNumber" type="number" min="1" value="1" inputmode="numeric" /> / <b id="transferFrameTotal">0</b></span></label>
-            <progress id="transferSendProgress" max="1" value="0"></progress>
             <div class="transfer-actions transfer-modal-playback-actions">
               <button class="primary" type="button" id="transferModalPlayPause" disabled data-transfer-i18n="play">پخش</button>
               <button class="ghost" type="button" id="transferModalNext" disabled data-transfer-i18n="next">بعدی</button>
@@ -343,9 +341,7 @@
       </div>
       <p class="transfer-status" id="transferCameraStatus" aria-live="polite"></p>
       <div class="modal-actions">
-        <button class="ghost" type="button" id="transferPauseScanner">مکث</button>
-        <button class="primary" type="button" id="transferResumeScanner" hidden>ادامه</button>
-        <button class="danger" type="button" id="transferStopScanner" data-transfer-i18n="closeScanner">بستن دوربین</button>
+        <button class="danger" type="button" id="transferCameraToggle">خاموش کردن دوربین</button>
       </div>
     </div>
   </div>
