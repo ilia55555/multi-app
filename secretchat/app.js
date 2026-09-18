@@ -1216,26 +1216,33 @@ function makeQrMatrix(input, options = {}) {
 
 function drawQrToCanvas(text, canvas) {
   const modules = makeQrMatrix(text);
-
-  return drawQrModulesToCanvas(modules, canvas);
+  return drawQrModulesToCanvas(modules, canvas, 384);
 }
 
 function drawQrBytesToCanvas(bytes, canvas) {
   const modules = makeQrMatrix(bytes, { wayfold: true });
-
-  return drawQrModulesToCanvas(modules, canvas);
+  return drawQrModulesToCanvas(modules, canvas, 1000);
 }
 
-function drawQrModulesToCanvas(modules, canvas) {
+function drawQrModulesToCanvas(modules, canvas, targetCssSize = 384) {
   const border = 4;
-  const scale = Math.max(2, Math.floor(384 / (modules.length + border * 2)));
-  const size = (modules.length + border * 2) * scale;
+  const fullModules = modules.length + border * 2;
+  const dpr = window.devicePixelRatio || 1;
+  const viewportTarget = Math.min(0.9 * Math.min(window.innerWidth, window.innerHeight), targetCssSize);
+  const scale = Math.max(1, Math.floor(viewportTarget * dpr / fullModules));
+  const size = fullModules * scale;
+
   canvas.width = size;
   canvas.height = size;
+  canvas.style.width = `${size / dpr}px`;
+  canvas.style.height = `${size / dpr}px`;
+
   const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
   ctx.fillStyle = '#000000';
+
   modules.forEach((row, y) => row.forEach((dark, x) => {
     if (dark) ctx.fillRect((x + border) * scale, (y + border) * scale, scale, scale);
   }));
