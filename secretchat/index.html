@@ -172,7 +172,7 @@
             <img class="transfer-image-preview" id="transferImagePreview" alt="" hidden />
             <strong id="transferReceivedName"></strong>
             <span id="transferReceivedSize" dir="ltr"></span>
-            <button class="primary" type="button" id="transferSaveFile" data-transfer-i18n="saveFile">ذخیره فایل</button>
+            <button class="primary transfer-icon-button" type="button" id="transferSaveFile" aria-label="ذخیره فایل" title="ذخیره فایل"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
           </div>
 
           <div class="transfer-password-unlock" id="transferPasswordUnlock" hidden>
@@ -194,7 +194,11 @@
               <small>Received files</small>
               <h2 id="transferHistoryTitle">سوابق دریافت</h2>
             </div>
-            <span id="transferHistoryCount">۰ فایل</span>
+            <div class="transfer-history-head-actions">
+              <span id="transferHistoryCount">۰ فایل</span>
+              <button class="ghost transfer-icon-button" type="button" id="transferHistoryImportButton" aria-label="وارد کردن فایل" title="وارد کردن فایل"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></button>
+              <input id="transferHistoryImport" type="file" multiple hidden />
+            </div>
           </div>
           <div id="transferHistoryList" class="transfer-history-list" aria-live="polite"></div>
           <p id="transferHistoryEmpty" class="transfer-history-empty">هنوز فایلی دریافت نشده است.</p>
@@ -259,7 +263,6 @@
         </section>
       </section>
 
-      <section class="output-files" data-output-files aria-live="polite"></section>
     </section>
 
   </main>
