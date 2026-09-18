@@ -1035,10 +1035,18 @@ function closeAllQr() {
   });
 }
 
-function makeQrMatrix(text) {
-  const bytes = Array.from(encoder.encode(text));
-  const eccLenTable = [-1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30];
-  const blockCountTable = [-1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25];
+function makeQrMatrix(input, options = {}) {
+  const rawBytes = input instanceof Uint8Array || input instanceof Uint8ClampedArray || input instanceof ArrayBuffer;
+  const bytes = Array.from(input instanceof ArrayBuffer ? new Uint8Array(input) : rawBytes ? input : encoder.encode(String(input)));
+  const useWayFold = options.wayfold === true;
+  const eccLenTable = useWayFold
+    ? [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28]
+    : [-1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30];
+  const blockCountTable = useWayFold
+    ? [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49]
+    : [-1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25];
+  const formatEccBits = useWayFold ? 0 : 1;
+  const maskPattern = useWayFold ? 4 : 0;
   const gfMul = (x, y) => {
     let z = 0;
     for (let i = 7; i >= 0; i -= 1) {
@@ -1147,7 +1155,7 @@ function makeQrMatrix(text) {
     return result;
   };
   const drawFormat = (mask) => {
-    const dataBits = (1 << 3) | mask;
+    const dataBits = (formatEccBits << 3) | mask;
     let rem = dataBits;
     for (let i = 0; i < 10; i += 1) rem = (rem << 1) ^ (((rem >>> 9) & 1) * 0x537);
     const bits15 = ((dataBits << 10) | rem) ^ 0x5412;
@@ -1182,7 +1190,7 @@ function makeQrMatrix(text) {
   pos.forEach((x, i) => pos.forEach((y, j) => {
     if (!((i === 0 && j === 0) || (i === 0 && j === pos.length - 1) || (i === pos.length - 1 && j === 0))) drawAlign(x, y);
   }));
-  drawFormat(0); drawVersion();
+  drawFormat(maskPattern); drawVersion();
   for (let i = 0, right = size - 1; right >= 1; right -= 2) {
     if (right === 6) right = 5;
     for (let vert = 0; vert < size; vert += 1) for (let j = 0; j < 2; j += 1) {
@@ -1195,16 +1203,30 @@ function makeQrMatrix(text) {
       }
     }
   }
-  const mask = 0;
+  const shouldMask = (x, y) => {
+    if (maskPattern === 4) return (Math.floor(y / 2) + Math.floor(x / 3)) % 2 === 0;
+    return (x + y) % 2 === 0;
+  };
   for (let y = 0; y < size; y += 1) for (let x = 0; x < size; x += 1) {
-    if (!isFunction[y][x] && (x + y) % 2 === 0) modules[y][x] = !modules[y][x];
+    if (!isFunction[y][x] && shouldMask(x, y)) modules[y][x] = !modules[y][x];
   }
-  drawFormat(mask);
+  drawFormat(maskPattern);
   return modules;
 }
 
 function drawQrToCanvas(text, canvas) {
   const modules = makeQrMatrix(text);
+
+  return drawQrModulesToCanvas(modules, canvas);
+}
+
+function drawQrBytesToCanvas(bytes, canvas) {
+  const modules = makeQrMatrix(bytes, { wayfold: true });
+
+  return drawQrModulesToCanvas(modules, canvas);
+}
+
+function drawQrModulesToCanvas(modules, canvas) {
   const border = 4;
   const scale = Math.max(2, Math.floor(384 / (modules.length + border * 2)));
   const size = (modules.length + border * 2) * scale;
@@ -1218,6 +1240,8 @@ function drawQrToCanvas(text, canvas) {
     if (dark) ctx.fillRect((x + border) * scale, (y + border) * scale, scale, scale);
   }));
 }
+
+window.drawQrBytesToCanvas = drawQrBytesToCanvas;
 
 function showQr(sourceId, statusId) {
   const value = $(sourceId).value;
