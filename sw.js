@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v3';
+const CACHE_NAME = 'multi-app-hub-v4';
 const APP_FILES = [
   './',
   './index.html',
@@ -7,6 +7,9 @@ const APP_FILES = [
   './apps/streambox/index.html',
   './apps/streambox/styles.css',
   './apps/streambox/app.js',
+  './apps/rigidmesh/index.html',
+  './apps/rigidmesh/styles.css',
+  './apps/rigidmesh/app.js',
   './LiveWebStudio-Tuner/index.html',
   './secretchat/index.html',
   './naghshe-Tuner/index.html',
