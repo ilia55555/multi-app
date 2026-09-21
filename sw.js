@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v4';
+const CACHE_NAME = 'multi-app-hub-v5';
 const APP_FILES = [
   './',
   './index.html',
@@ -10,6 +10,9 @@ const APP_FILES = [
   './apps/rigidmesh/index.html',
   './apps/rigidmesh/styles.css',
   './apps/rigidmesh/app.js',
+  './apps/frameforge/index.html',
+  './apps/frameforge/styles.css',
+  './apps/frameforge/app.js',
   './LiveWebStudio-Tuner/index.html',
   './secretchat/index.html',
   './naghshe-Tuner/index.html',

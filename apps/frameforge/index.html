@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08110f">
+  <meta name="description" content="استودیوی ساخت انیمیشن فریم‌به‌فریم و صحنه‌پردازی دوبعدی">
+  <link rel="stylesheet" href="./styles.css">
+  <title>فریم‌فلو — استودیوی انیمیشن دوبعدی</title>
+</head>
+<body>
+  <header class="app-header">
+    <a class="back-link" href="../../index.html" aria-label="بازگشت به جعبه ابزار">←</a>
+    <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="brand-copy"><strong>فریم‌فلو</strong><small>استودیوی انیمیشن دوبعدی</small></div>
+    <div class="header-actions">
+      <span class="save-state"><i></i> پروژه محلی</span>
+      <button class="ghost-button" id="newProject" type="button">پروژه جدید</button>
+      <button class="primary-button" id="exportJson" type="button">خروجی JSON <b>⇩</b></button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar right-sidebar">
+      <section class="sidebar-heading">
+        <div><span class="step">۱</span><div><h2>فریم‌های کاراکتر</h2><p>۴ تا ۳۶ تصویر وارد کنید</p></div></div>
+        <span class="count-pill" id="frameCount">۰ / ۳۶</span>
+      </section>
+
+      <label class="dropzone" id="dropzone" for="frameInput">
+        <input id="frameInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+        <span class="upload-icon">↥</span>
+        <strong>تصاویر را اینجا رها کنید</strong>
+        <small>یا برای انتخاب PNG، JPG و WebP کلیک کنید</small>
+        <b>انتخاب تصاویر</b>
+      </label>
+
+      <section class="cut-panel">
+        <div class="section-title"><div><span class="step small">۲</span><h3>برش خودکار شیت</h3></div><span class="optional">اختیاری</span></div>
+        <p>اگر یک تصویر شامل چند فریم است، شبکهٔ آن را مشخص کنید.</p>
+        <div class="grid-fields">
+          <label>ستون<input id="sheetCols" type="number" min="1" max="6" value="4"></label>
+          <span>×</span>
+          <label>ردیف<input id="sheetRows" type="number" min="1" max="6" value="1"></label>
+        </div>
+        <button class="outline-button" id="cutSheet" type="button" disabled>برش تصویر انتخاب‌شده</button>
+      </section>
+
+      <section class="frames-section">
+        <div class="section-title"><h3>فریم‌ها</h3><button id="selectAll" type="button">انتخاب همه</button></div>
+        <div class="empty-frames" id="emptyFrames"><span>▦</span><p>هنوز فریمی اضافه نشده است</p></div>
+        <div class="frame-grid" id="frameGrid"></div>
+      </section>
+    </aside>
+
+    <section class="stage-area">
+      <div class="stage-toolbar">
+        <div class="project-title"><span>پروژه بدون نام</span><b id="projectSize">۹۶۰ × ۵۴۰</b></div>
+        <div class="tool-group" aria-label="ابزارهای بوم">
+          <button id="zoomOut" title="کوچک‌نمایی">−</button><span id="zoomLabel">۱۰۰٪</span><button id="zoomIn" title="بزرگ‌نمایی">＋</button>
+          <i></i><button id="fitStage" title="جا دادن در صفحه">⊞</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="empty-stage" id="emptyStage">
+          <div class="empty-visual"><span>◇</span><i></i><i></i><i></i></div>
+          <h1>داستانت را به حرکت درآور</h1>
+          <p>فریم‌های کاراکتر را وارد کن، لایه‌ها را بچین و نتیجه را همین‌جا ببین.</p>
+          <label for="frameInput" class="primary-button large">＋ افزودن اولین فریم‌ها</label>
+        </div>
+        <canvas id="stage" width="960" height="540" aria-label="پیش‌نمایش صحنه دوبعدی"></canvas>
+      </div>
+
+      <section class="timeline">
+        <div class="playback-row">
+          <div class="transport">
+            <button id="prevFrame" title="فریم قبل">|◀</button>
+            <button class="play-button" id="playPause" title="پخش"><span>▶</span></button>
+            <button id="nextFrame" title="فریم بعد">▶|</button>
+          </div>
+          <div class="time-readout"><b id="currentTime">۰۰:۰۰.۰۰</b><span>/</span><span id="totalTime">۰۰:۰۰.۰۰</span></div>
+          <label class="speed-control"><span>سرعت پخش</span><input id="fps" type="range" min="1" max="30" value="12"><b><output id="fpsValue">۱۲</output> FPS</b></label>
+          <label class="loop-control"><input id="loop" type="checkbox" checked><span></span> تکرار پخش</label>
+        </div>
+        <div class="timeline-track" id="timelineTrack"><div class="timeline-empty">فریم‌های انتخاب‌شده در اینجا و به ترتیب پخش می‌شوند</div></div>
+      </section>
+    </section>
+
+    <aside class="sidebar left-sidebar">
+      <section class="sidebar-heading">
+        <div><span class="step">۳</span><div><h2>لایه‌های صحنه</h2><p>پس‌زمینه، کاراکتر و موانع</p></div></div>
+        <button class="icon-button" id="addLayer" type="button" title="افزودن لایه">＋</button>
+        <input id="layerInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+      </section>
+      <div class="layer-list" id="layerList"></div>
+      <p class="layer-hint">لایهٔ بالاتر جلوی لایه‌های پایین‌تر دیده می‌شود.</p>
+
+      <section class="properties">
+        <div class="section-title"><h3>تنظیمات لایه</h3><span id="activeLayerName">کاراکتر</span></div>
+        <div class="field-row"><label>موقعیت X<input id="posX" type="number" value="480"></label><label>موقعیت Y<input id="posY" type="number" value="270"></label></div>
+        <div class="field-row"><label>مقیاس<input id="scale" type="number" min="10" max="400" value="100"><em>٪</em></label><label>چرخش<input id="rotation" type="number" min="-360" max="360" value="0"><em>°</em></label></div>
+        <label class="wide-field">شفافیت <output id="opacityValue">۱۰۰٪</output><input id="opacity" type="range" min="0" max="100" value="100"></label>
+        <button class="apply-button" id="resetTransform" type="button">↻ بازنشانی تغییرات لایه</button>
+        <p class="character-note">تغییرات لایهٔ کاراکتر روی تمام فریم‌های آن اعمال می‌شود.</p>
+      </section>
+
+      <section class="project-summary">
+        <h3>خلاصه پروژه</h3>
+        <div><span>فریم فعال</span><b id="summaryFrames">۰</b></div>
+        <div><span>مدت انیمیشن</span><b id="summaryDuration">۰.۰۰ ثانیه</b></div>
+        <div><span>ابعاد صحنه</span><b>۹۶۰ × ۵۴۰</b></div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
