@@ -26,6 +26,12 @@ const clock = new THREE.Clock();
 const editorKeyframes = new Map();
 let editorClip = null;
 let editorFrame = 1;
+let faceSelectionMode = false;
+let facePointerDown = false;
+let faceTarget = null;
+let selectedFaces = new Set();
+let faceHighlight = null;
+let pivotSelectionMode = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a18);
@@ -80,6 +86,15 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown', event => {
   if (!modelRoot || transform.dragging) return;
+  if (pivotSelectionMode) {
+    placeSelectedPivot(event);
+    return;
+  }
+  if (faceSelectionMode) {
+    facePointerDown = true;
+    paintFaces(event);
+    return;
+  }
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -87,6 +102,8 @@ renderer.domElement.addEventListener('pointerdown', event => {
   const hit = raycaster.intersectObjects(getMeshes(), false)[0];
   if (hit) selectMesh(hit.object);
 });
+renderer.domElement.addEventListener('pointermove', event => { if (faceSelectionMode && facePointerDown) paintFaces(event); });
+window.addEventListener('pointerup', () => { facePointerDown = false; });
 
 function createDemoModel() {
   const root = new THREE.Group();
@@ -110,14 +127,209 @@ function createDemoModel() {
 
 function getMeshes() {
   const meshes = [];
-  modelRoot?.traverse(child => { if (child.isMesh) meshes.push(child); });
+  modelRoot?.traverse(child => { if (child.isMesh && !child.userData.rigidmeshHelper) meshes.push(child); });
   return meshes;
 }
 
 function getEditableObjects() {
   const objects = [];
-  modelRoot?.traverse(child => { if (child.isMesh || child.isBone) objects.push(child); });
+  modelRoot?.traverse(child => { if ((child.isMesh || child.isBone) && !child.userData.rigidmeshHelper) objects.push(child); });
   return objects;
+}
+
+function pointerRay(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+}
+
+function triangleVertexIndex(geometry, triangle, corner) {
+  return geometry.index ? geometry.index.getX(triangle * 3 + corner) : triangle * 3 + corner;
+}
+
+function paintFaces(event) {
+  pointerRay(event);
+  const hit = raycaster.intersectObjects(getMeshes(), false)[0];
+  if (!hit?.object.geometry?.attributes?.position) return;
+  if (faceTarget !== hit.object) {
+    clearFaceSelection();
+    faceTarget = hit.object;
+    selectMesh(faceTarget);
+  }
+  const geometry = faceTarget.geometry;
+  const position = geometry.attributes.position;
+  const localPoint = faceTarget.worldToLocal(hit.point.clone());
+  const radius = Number(document.querySelector('#brushRadius').value);
+  const radiusSquared = radius * radius;
+  const triangleCount = geometry.index ? geometry.index.count / 3 : position.count / 3;
+  const centroid = new THREE.Vector3();
+  const vertex = new THREE.Vector3();
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) {
+    centroid.set(0, 0, 0);
+    for (let corner = 0; corner < 3; corner += 1) {
+      vertex.fromBufferAttribute(position, triangleVertexIndex(geometry, triangle, corner));
+      centroid.add(vertex);
+    }
+    centroid.multiplyScalar(1 / 3);
+    if (centroid.distanceToSquared(localPoint) <= radiusSquared) {
+      if (event.shiftKey) selectedFaces.delete(triangle); else selectedFaces.add(triangle);
+    }
+  }
+  updateFaceHighlight();
+}
+
+function updateFaceHighlight() {
+  if (faceHighlight) {
+    faceHighlight.parent?.remove(faceHighlight);
+    faceHighlight.geometry.dispose(); faceHighlight.material.dispose();
+    faceHighlight = null;
+  }
+  if (faceTarget && selectedFaces.size) {
+    const position = faceTarget.geometry.attributes.position;
+    const values = [];
+    selectedFaces.forEach(triangle => {
+      for (let corner = 0; corner < 3; corner += 1) {
+        const index = triangleVertexIndex(faceTarget.geometry, triangle, corner);
+        values.push(position.getX(index), position.getY(index), position.getZ(index));
+      }
+    });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(values, 3));
+    const material = new THREE.MeshBasicMaterial({ color: 0xffb52e, transparent: true, opacity: 0.58, depthTest: false, side: THREE.DoubleSide });
+    faceHighlight = new THREE.Mesh(geometry, material);
+    faceHighlight.name = 'پیش‌نمایش انتخاب سطح';
+    faceHighlight.userData.rigidmeshHelper = true;
+    faceHighlight.renderOrder = 998;
+    faceTarget.add(faceHighlight);
+  }
+  document.querySelector('#selectedFaceCount').textContent = `${selectedFaces.size.toLocaleString('fa-IR')} سطح`;
+  document.querySelector('#clearFaces').disabled = !selectedFaces.size;
+  document.querySelector('#createPart').disabled = !selectedFaces.size;
+}
+
+function clearFaceSelection() {
+  selectedFaces.clear();
+  updateFaceHighlight();
+  faceTarget = null;
+}
+
+function setFaceSelectionMode(enabled) {
+  if (enabled) setPivotSelectionMode(false);
+  faceSelectionMode = enabled;
+  facePointerDown = false;
+  viewport.classList.toggle('face-pick', enabled);
+  const button = document.querySelector('#faceSelectMode');
+  button.classList.toggle('active', enabled);
+  button.textContent = enabled ? '✓ انتخاب سطح فعال است' : '◩ شروع انتخاب سطح';
+  orbit.enabled = !enabled;
+  if (enabled) transform.detach(); else if (selected) transform.attach(selected);
+}
+
+function setPivotSelectionMode(enabled) {
+  if (enabled && (!selected || !selected.isMesh)) {
+    showToast('ابتدا یک قطعهٔ مش را انتخاب کنید.', true);
+    return;
+  }
+  if (enabled && editorKeyframes.has(selected.uuid)) {
+    showToast('محل مفصل را پیش از ثبت فریم‌های کلیدی تعیین کنید.', true);
+    return;
+  }
+  pivotSelectionMode = enabled;
+  viewport.classList.toggle('pivot-pick', enabled);
+  const button = document.querySelector('#pivotMode');
+  button.classList.toggle('active', enabled);
+  button.textContent = enabled ? 'روی محل مفصل کلیک کنید' : '⊙ تعیین محل مفصل قطعه';
+  orbit.enabled = !enabled;
+  if (enabled) {
+    faceSelectionMode = false;
+    viewport.classList.remove('face-pick');
+    const faceButton = document.querySelector('#faceSelectMode');
+    faceButton.classList.remove('active'); faceButton.textContent = '◩ شروع انتخاب سطح';
+    transform.detach();
+  } else if (selected && !faceSelectionMode) transform.attach(selected);
+}
+
+function moveGeometryPivot(mesh, localPivot) {
+  mesh.geometry.translate(-localPivot.x, -localPivot.y, -localPivot.z);
+  const offset = localPivot.clone().multiply(mesh.scale).applyQuaternion(mesh.quaternion);
+  mesh.position.add(offset);
+  mesh.geometry.computeBoundingBox(); mesh.geometry.computeBoundingSphere();
+  mesh.userData.originalTransform = makeSnapshot(mesh);
+}
+
+function placeSelectedPivot(event) {
+  if (!selected?.isMesh) return setPivotSelectionMode(false);
+  pointerRay(event);
+  const hit = raycaster.intersectObject(selected, false)[0];
+  if (!hit) return showToast('روی سطح همان قطعه کلیک کنید.', true);
+  const localPivot = selected.worldToLocal(hit.point.clone());
+  moveGeometryPivot(selected, localPivot);
+  setPivotSelectionMode(false);
+  updateOutline(); syncInspector();
+  showToast('محل مفصل تنظیم شد؛ چرخش قطعه اکنون حول همین نقطه انجام می‌شود.');
+}
+
+function triangleMaterialIndex(geometry, triangle) {
+  const offset = triangle * 3;
+  const group = geometry.groups.find(item => offset >= item.start && offset < item.start + item.count);
+  return group?.materialIndex || 0;
+}
+
+function createTriangleSubset(geometry, includeTriangle) {
+  const output = new THREE.BufferGeometry();
+  const triangleCount = geometry.attributes.position.count / 3;
+  const keptTriangles = [];
+  for (let triangle = 0; triangle < triangleCount; triangle += 1) if (includeTriangle(triangle)) keptTriangles.push(triangle);
+  for (const [name, attribute] of Object.entries(geometry.attributes)) {
+    const values = new Float32Array(keptTriangles.length * 3 * attribute.itemSize);
+    let cursor = 0;
+    keptTriangles.forEach(triangle => {
+      for (let corner = 0; corner < 3; corner += 1) {
+        const sourceIndex = triangle * 3 + corner;
+        values[cursor++] = attribute.getX(sourceIndex);
+        if (attribute.itemSize > 1) values[cursor++] = attribute.getY(sourceIndex);
+        if (attribute.itemSize > 2) values[cursor++] = attribute.getZ(sourceIndex);
+        if (attribute.itemSize > 3) values[cursor++] = attribute.getW(sourceIndex);
+      }
+    });
+    output.setAttribute(name, new THREE.BufferAttribute(values, attribute.itemSize, attribute.normalized));
+  }
+  let groupStart = 0, lastMaterial = null;
+  keptTriangles.forEach((triangle, index) => {
+    const material = triangleMaterialIndex(geometry, triangle);
+    if (lastMaterial === null) lastMaterial = material;
+    if (material !== lastMaterial) {
+      output.addGroup(groupStart * 3, (index - groupStart) * 3, lastMaterial);
+      groupStart = index; lastMaterial = material;
+    }
+  });
+  if (keptTriangles.length) output.addGroup(groupStart * 3, (keptTriangles.length - groupStart) * 3, lastMaterial || 0);
+  output.computeBoundingBox(); output.computeBoundingSphere();
+  return output;
+}
+
+function createRigidPart() {
+  if (!faceTarget || !selectedFaces.size) return;
+  const sourceGeometry = faceTarget.geometry.index ? faceTarget.geometry.toNonIndexed() : faceTarget.geometry.clone();
+  const triangleCount = sourceGeometry.attributes.position.count / 3;
+  if (selectedFaces.size >= triangleCount) return showToast('برای ساخت قطعه باید بخشی از مش اصلی انتخاب‌نشده باقی بماند.', true);
+  const partGeometry = createTriangleSubset(sourceGeometry, triangle => selectedFaces.has(triangle));
+  const remainderGeometry = createTriangleSubset(sourceGeometry, triangle => !selectedFaces.has(triangle));
+  const part = new THREE.Mesh(partGeometry, faceTarget.material);
+  part.name = `${faceTarget.name} ـ قطعه ${getMeshes().length.toLocaleString('fa-IR')}`;
+  part.position.copy(faceTarget.position); part.quaternion.copy(faceTarget.quaternion); part.scale.copy(faceTarget.scale);
+  part.castShadow = faceTarget.castShadow; part.receiveShadow = faceTarget.receiveShadow;
+  const parent = faceTarget.parent;
+  clearFaceSelection();
+  faceTarget.geometry.dispose(); faceTarget.geometry = remainderGeometry;
+  parent.add(part);
+  part.geometry.computeBoundingBox();
+  moveGeometryPivot(part, part.geometry.boundingBox.getCenter(new THREE.Vector3()));
+  sourceGeometry.dispose();
+  renderMeshList(); updateStats(); selectMesh(part);
+  setFaceSelectionMode(false);
+  showToast('قطعهٔ انتخابی مستقل شد؛ حالا می‌توانید آن را حرکت دهید و Keyframe ثبت کنید.');
 }
 
 function setModel(root, name, clips = []) {
@@ -170,6 +382,11 @@ function frameModel() {
   const box = new THREE.Box3().setFromObject(modelRoot);
   if (box.isEmpty()) return;
   const sphere = box.getBoundingSphere(new THREE.Sphere());
+  const brush = document.querySelector('#brushRadius');
+  const brushStep = Math.max(sphere.radius * 0.002, 0.0001);
+  brush.min = brushStep; brush.max = Math.max(sphere.radius * 0.5, brushStep * 2); brush.step = brushStep;
+  brush.value = Math.max(sphere.radius * 0.08, brushStep);
+  document.querySelector('#brushRadiusValue').textContent = Number(brush.value).toLocaleString('fa-IR', { maximumFractionDigits: 3 });
   const distance = Math.max(3, sphere.radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.15);
   orbit.target.copy(sphere.center);
   camera.position.copy(sphere.center).add(new THREE.Vector3(distance * .65, distance * .38, distance));
@@ -560,6 +777,13 @@ async function loadAnimationFile(file) {
 document.querySelector('#pickButton').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
 document.querySelector('#selectCharacter').addEventListener('click', () => selectMesh(modelRoot));
+document.querySelector('#faceSelectMode').addEventListener('click', () => setFaceSelectionMode(!faceSelectionMode));
+document.querySelector('#pivotMode').addEventListener('click', () => setPivotSelectionMode(!pivotSelectionMode));
+document.querySelector('#brushRadius').addEventListener('input', event => {
+  document.querySelector('#brushRadiusValue').textContent = Number(event.target.value).toLocaleString('fa-IR', { maximumFractionDigits: 2 });
+});
+document.querySelector('#clearFaces').addEventListener('click', clearFaceSelection);
+document.querySelector('#createPart').addEventListener('click', createRigidPart);
 const dropZone = document.querySelector('#dropZone');
 ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('drag'); }));
 ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('drag'); }));

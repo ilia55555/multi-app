@@ -37,6 +37,16 @@
         <div id="meshList" class="mesh-list" role="tree"></div>
       </section>
 
+      <section class="panel part-panel">
+        <div class="panel-head"><div><span>مدل یکپارچه بدون ریگ</span><h2>جداکردن قسمت مش</h2></div><b id="selectedFaceCount">۰ سطح</b></div>
+        <p class="panel-hint">حالت انتخاب را روشن کنید و روی سطح مدل بکشید تا مثلث‌های آن قسمت انتخاب شوند.</p>
+        <button id="faceSelectMode" class="face-mode" type="button">◩ شروع انتخاب سطح</button>
+        <label class="brush-size">شعاع قلم در واحد مدل <input id="brushRadius" type="range" min="0.01" max="2" step="0.01" value="0.25"><output id="brushRadiusValue">۰٫۲۵</output></label>
+        <div class="part-actions"><button id="clearFaces" type="button" disabled>پاک‌کردن انتخاب</button><button id="createPart" type="button" disabled>ساخت قطعهٔ صلب</button></div>
+        <button id="pivotMode" class="pivot-mode" type="button">⊙ تعیین محل مفصل قطعه</button>
+        <small>برای کم‌کردن انتخاب، هنگام کشیدن کلید Shift را نگه دارید. قطعهٔ ساخته‌شده بدون تغییر رأس‌ها مستقل حرکت می‌کند.</small>
+      </section>
+
       <div class="safety-note"><span>◇</span><p><b>حالت بدون دفرمه</b><small>فقط Transform آبجکت تغییر می‌کند؛ رأس‌های هندسه دست‌نخورده می‌مانند.</small></p></div>
     </aside>
 
