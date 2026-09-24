@@ -14,21 +14,20 @@ self.fetch = (input, init) => {
   return secretChatFetch(input, init);
 };
 
-// Prefer the bundled high-speed decoder. The repository previously contained
-// a binary/truncated scan-decoder-runtime.js, which made importScripts throw a
-// SyntaxError before the worker could install its message handler. Keep this
-// guarded so a bad decoder asset can never take down SecretChat file receive.
+// Load the bundled high-speed ZXing/WASM worker first. The fetch shim above
+// keeps the uploaded hashed WASM reference local and maps it to scan-core.wasm.
 let decoderReady = false;
 try {
   importScripts('./scan-decoder-runtime.js');
   decoderReady = typeof self.onmessage === 'function';
-} catch (_) {
+} catch (error) {
   decoderReady = false;
   self.onmessage = null;
+  console.error('[SecretChat transfer] ZXing/WASM decoder failed to load', error);
 }
 
-// Local, offline fallback. This keeps the exact { id, bytes } protocol used by
-// file-transfer.js and requires no network/CDN access.
+// Offline safety fallback. file-transfer.js sends { id, buf, w, h }, so keep
+// exactly the same message contract here.
 if (!decoderReady) {
   try {
     importScripts('./vendor/jsQR.min.js');
@@ -43,18 +42,18 @@ if (!decoderReady) {
   self.onmessage = event => {
     const msg = event?.data || {};
     const id = msg.id;
-    const width = Number(msg.width);
-    const height = Number(msg.height);
+    const width = Number(msg.w);
+    const height = Number(msg.h);
 
     try {
-      if (!msg.data || !Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      if (!msg.buf || !Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
         self.postMessage({ id, bytes: null });
         return;
       }
 
-      const pixels = msg.data instanceof Uint8ClampedArray
-        ? msg.data
-        : new Uint8ClampedArray(msg.data);
+      const pixels = msg.buf instanceof Uint8ClampedArray
+        ? msg.buf
+        : new Uint8ClampedArray(msg.buf);
 
       const result = self.jsQR(pixels, width, height, {
         inversionAttempts: 'dontInvert'
