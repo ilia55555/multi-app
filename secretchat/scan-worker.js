@@ -1,6 +1,9 @@
 'use strict';
 
 const secretChatFetch = self.fetch.bind(self);
+const secretChatPostMessage = self.postMessage.bind(self);
+let fallbackInstalled = false;
+
 self.fetch = (input, init) => {
   try {
     const raw = typeof input === 'string' ? input : input?.url;
@@ -14,30 +17,21 @@ self.fetch = (input, init) => {
   return secretChatFetch(input, init);
 };
 
-// Load the bundled high-speed ZXing/WASM worker first. The fetch shim above
-// keeps the uploaded hashed WASM reference local and maps it to scan-core.wasm.
-let decoderReady = false;
-try {
-  importScripts('./scan-decoder-runtime.js');
-  decoderReady = typeof self.onmessage === 'function';
-} catch (error) {
-  decoderReady = false;
-  self.onmessage = null;
-  console.error('[SecretChat transfer] ZXing/WASM decoder failed to load', error);
-}
-
-// Offline safety fallback. file-transfer.js sends { id, buf, w, h }, so keep
-// exactly the same message contract here.
-if (!decoderReady) {
+function installJsQrFallback(reason) {
+  if (fallbackInstalled) return true;
   try {
     importScripts('./vendor/jsQR.min.js');
   } catch (error) {
-    self.onmessage = event => {
-      const id = event?.data?.id;
-      self.postMessage({ id, bytes: null, error: `QR decoder unavailable: ${error?.message || error}` });
-    };
-    throw error;
+    secretChatPostMessage({
+      id: -1,
+      bytes: null,
+      error: `QR decoder unavailable: ${error?.message || error}`
+    });
+    return false;
   }
+
+  fallbackInstalled = true;
+  if (reason) console.warn('[SecretChat transfer] Using jsQR fallback:', reason);
 
   self.onmessage = event => {
     const msg = event?.data || {};
@@ -70,4 +64,28 @@ if (!decoderReady) {
       self.postMessage({ id, bytes: null });
     }
   };
+  return true;
+}
+
+// The bundled runtime emits an internal warm-up message with id -1. Do not
+// forward successful warm-up messages because file-transfer.js uses worker
+// replies as its busy/free signal. If WASM initialization fails asynchronously,
+// switch this worker to the local jsQR fallback instead.
+self.postMessage = (message, transferOrOptions) => {
+  if (message && message.id === -1) {
+    if (message.error) installJsQrFallback(message.error);
+    return;
+  }
+  return secretChatPostMessage(message, transferOrOptions);
+};
+
+try {
+  importScripts('./scan-decoder-runtime.js');
+  if (typeof self.onmessage !== 'function') {
+    installJsQrFallback('ZXing/WASM runtime did not install a message handler');
+  }
+} catch (error) {
+  console.error('[SecretChat transfer] ZXing/WASM decoder failed to load', error);
+  self.onmessage = null;
+  installJsQrFallback(error?.message || error);
 }
