@@ -43,5 +43,10 @@
     "name": "فریم‌فلو",
     "description": "برش فریم، ساخت انیمیشن دوبعدی و چیدمان کاراکتر در صحنه‌های چندلایه.",
     "path": "./apps/frameforge/index.html"
+  },
+  {
+    "name": "مولتی پیک",
+    "description": "چسباندن چند عکس در یک خروجی PNG با چیدمان افقی، عمودی یا شبکه‌ای و پشتیبانی از Copy/Paste.",
+    "path": "./apps/multipic/index.html"
   }
 ]
