@@ -1,9 +1,10 @@
-const CACHE_NAME = 'multi-app-hub-v5';
+const CACHE_NAME = 'multi-app-hub-v6';
 const APP_FILES = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './apps.json',
   './apps/streambox/index.html',
   './apps/streambox/styles.css',
   './apps/streambox/app.js',
@@ -13,6 +14,7 @@ const APP_FILES = [
   './apps/frameforge/index.html',
   './apps/frameforge/styles.css',
   './apps/frameforge/app.js',
+  './apps/multipic/index.html',
   './LiveWebStudio-Tuner/index.html',
   './secretchat/index.html',
   './naghshe-Tuner/index.html',
