@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مولتی پیک | Multi Pic</title>
+<style>
+*{box-sizing:border-box}
+:root{color-scheme:dark}
+body{margin:0;background:#0f1115;color:#f5f7fb;font-family:Tahoma,Arial,sans-serif}
+.app{width:min(1180px,95vw);margin:24px auto}
+.card{background:#171a21;border:1px solid #2a2f3a;border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+h1{font-size:24px;margin:0 0 8px}
+.sub{color:#aeb6c5;font-size:14px;margin-bottom:16px;line-height:1.9}
+.drop{border:2px dashed #4b5568;border-radius:16px;min-height:130px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:.2s;padding:20px;background:#12151b}
+.drop.drag{border-color:#8ab4ff;background:#172033}
+.drop strong{display:block;font-size:18px;margin-bottom:8px}
+input[type=file]{display:none}
+.toolbar,.gridControls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.toolbar{margin:16px 0}
+.gridControls{display:none;padding:12px;margin:8px 0 14px;background:#12151b;border:1px solid #2b3039;border-radius:12px}
+.gridControls.show{display:flex}
+button,select,input[type=number]{border:1px solid #343b49;background:#212630;color:#fff;border-radius:10px;padding:10px 12px;font:inherit}
+button{cursor:pointer}
+button:hover{background:#2a3140}
+button.primary{background:#2f6fed;border-color:#2f6fed}
+button.primary:hover{background:#245ed0}
+button.success{background:#1f7a4c;border-color:#1f7a4c}
+button.success:hover{background:#17633d}
+button.danger{background:#3a2024;border-color:#623039}
+label.small{font-size:13px;color:#c4cad5}
+.items{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.item{flex:0 0 150px;background:#11141a;border:1px solid #2f3540;border-radius:12px;padding:8px;position:relative;cursor:grab;user-select:none}
+.item.dragging{opacity:.45}
+.item img{width:100%;height:100px;object-fit:contain;background:#0a0c10;border-radius:8px}
+.name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:7px;direction:ltr}
+.meta{font-size:11px;color:#8f98a8;margin-top:4px}
+.remove{position:absolute;top:5px;left:5px;width:28px;height:28px;padding:0;border-radius:50%;background:#a8323f;border:none}
+.previewWrap{margin-top:18px;background:#0b0d11;border:1px solid #2b3039;border-radius:14px;padding:12px;overflow:auto;max-height:58vh}
+canvas{display:block;max-width:100%;height:auto;margin:auto;background-color:#151922;background-image:linear-gradient(45deg,#20242d 25%,transparent 25%),linear-gradient(-45deg,#20242d 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#20242d 75%),linear-gradient(-45deg,transparent 75%,#20242d 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+.status{margin-top:10px;color:#aeb6c5;font-size:13px;direction:ltr;text-align:left}
+.note{margin-top:12px;color:#9aa4b5;font-size:12px;line-height:1.9}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#202630;color:#fff;border:1px solid #3a4352;border-radius:12px;padding:10px 16px;opacity:0;pointer-events:none;transition:.2s;z-index:999}
+.toast.show{opacity:1}
+@media(max-width:700px){.item{flex-basis:125px}.item img{height:85px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1>مولتی پیک</h1>
+    <div class="sub">چند عکس را بدون کوچک‌کردن یا فشرده‌سازی مخرب کنار هم قرار بده و یک PNG با رزولوشن اصلی تحویل بگیر.</div>
+
+    <label class="drop" id="dropZone">
+      <div>
+        <strong>عکس‌ها را اینجا بکش یا کلیک کن</strong>
+        چند عکس را همزمان انتخاب کن یا مستقیم Ctrl+V بزن
+      </div>
+      <input id="fileInput" type="file" accept="image/*" multiple>
+    </label>
+
+    <div class="toolbar">
+      <button id="pasteBtn" class="success">Paste عکس</button>
+      <button id="copyBtn" class="success">Copy خروجی</button>
+
+      <label class="small">چیدمان:
+        <select id="direction">
+          <option value="horizontal">افقی</option>
+          <option value="vertical">عمودی</option>
+          <option value="grid">شبکه‌ای</option>
+        </select>
+      </label>
+
+      <label class="small">فاصله:
+        <input id="gap" type="number" value="0" min="0" max="500" style="width:80px"> px
+      </label>
+
+      <button id="reverseBtn">معکوس کردن ترتیب</button>
+      <button id="clearBtn" class="danger">پاک کردن همه</button>
+      <button id="downloadBtn" class="primary">دانلود PNG</button>
+    </div>
+
+    <div class="gridControls" id="gridControls">
+      <label class="small">حالت آماده:
+        <select id="gridPreset">
+          <option value="custom">دلخواه</option>
+          <option value="1x2">1 × 2</option>
+          <option value="1x3">1 × 3</option>
+          <option value="1x4">1 × 4</option>
+          <option value="1x5">1 × 5</option>
+          <option value="2x2">2 × 2</option>
+          <option value="2x3">2 × 3</option>
+          <option value="2x4">2 × 4</option>
+          <option value="2x5">2 × 5</option>
+          <option value="3x2">3 × 2</option>
+          <option value="3x3">3 × 3</option>
+          <option value="3x4">3 × 4</option>
+          <option value="3x5">3 × 5</option>
+          <option value="4x4">4 × 4</option>
+          <option value="5x5">5 × 5</option>
+        </select>
+      </label>
+
+      <label class="small">ردیف:
+        <input id="rows" type="number" min="1" max="50" value="2" style="width:75px">
+      </label>
+
+      <label class="small">ستون:
+        <input id="cols" type="number" min="1" max="50" value="2" style="width:75px">
+      </label>
+    </div>
+
+    <div class="items" id="items"></div>
+
+    <div class="previewWrap">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="status" id="status">No images</div>
+    <div class="note">برای عوض‌کردن ترتیب، کارت عکس را بکش و جابه‌جا کن. در حالت شبکه‌ای اندازهٔ هر ردیف و ستون بر اساس تصاویر اصلی محاسبه می‌شود تا عکس‌ها Resize نشوند.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var fileInput=document.getElementById("fileInput");
+var dropZone=document.getElementById("dropZone");
+var itemsEl=document.getElementById("items");
+var canvas=document.getElementById("canvas");
+var ctx=canvas.getContext("2d",{alpha:true});
+var directionEl=document.getElementById("direction");
+var gapEl=document.getElementById("gap");
+var statusEl=document.getElementById("status");
+var downloadBtn=document.getElementById("downloadBtn");
+var clearBtn=document.getElementById("clearBtn");
+var reverseBtn=document.getElementById("reverseBtn");
+var pasteBtn=document.getElementById("pasteBtn");
+var copyBtn=document.getElementById("copyBtn");
+var gridControls=document.getElementById("gridControls");
+var gridPreset=document.getElementById("gridPreset");
+var rowsEl=document.getElementById("rows");
+var colsEl=document.getElementById("cols");
+var toast=document.getElementById("toast");
+var images=[];
+var dragIndex=null;
+
+function showToast(text){
+  toast.textContent=text;
+  toast.classList.add("show");
+  clearTimeout(showToast.t);
+  showToast.t=setTimeout(function(){toast.classList.remove("show")},1800);
+}
+
+fileInput.addEventListener("change",function(e){addFiles(Array.from(e.target.files))});
+
+["dragenter","dragover"].forEach(function(evt){
+  dropZone.addEventListener(evt,function(e){
+    e.preventDefault();
+    dropZone.classList.add("drag");
+  });
+});
+
+["dragleave","drop"].forEach(function(evt){
+  dropZone.addEventListener(evt,function(e){
+    e.preventDefault();
+    dropZone.classList.remove("drag");
+  });
+});
+
+dropZone.addEventListener("drop",function(e){
+  addFiles(Array.from(e.dataTransfer.files).filter(function(f){return f.type.indexOf("image/")===0}));
+});
+
+document.addEventListener("paste",async function(e){
+  var files=[];
+  var items=e.clipboardData ? Array.from(e.clipboardData.items||[]) : [];
+  items.forEach(function(item){
+    if(item.type.indexOf("image/")===0){
+      var file=item.getAsFile();
+      if(file) files.push(file);
+    }
+  });
+  if(files.length){
+    e.preventDefault();
+    await addFiles(files);
+    showToast(files.length+" عکس Paste شد");
+  }
+});
+
+pasteBtn.addEventListener("click",async function(){
+  if(!navigator.clipboard || !navigator.clipboard.read){
+    showToast("مرورگر اجازه خواندن مستقیم Clipboard را نمی‌دهد؛ Ctrl+V بزن.");
+    return;
+  }
+  try{
+    var clipItems=await navigator.clipboard.read();
+    var files=[];
+    for(var i=0;i<clipItems.length;i++){
+      var imageType=clipItems[i].types.find(function(t){return t.indexOf("image/")===0});
+      if(!imageType) continue;
+      var blob=await clipItems[i].getType(imageType);
+      var ext=imageType.split("/")[1]||"png";
+      files.push(new File([blob],"clipboard-"+Date.now()+"-"+(files.length+1)+"."+ext,{type:imageType}));
+    }
+    if(!files.length){
+      showToast("عکسی داخل Clipboard پیدا نشد");
+      return;
+    }
+    await addFiles(files);
+    showToast(files.length+" عکس اضافه شد");
+  }catch(err){
+    console.error(err);
+    showToast("دسترسی Clipboard رد شد؛ Ctrl+V را امتحان کن");
+  }
+});
+
+async function addFiles(files){
+  for(var i=0;i<files.length;i++){
+    var file=files[i];
+    if(file.type.indexOf("image/")!==0) continue;
+    try{
+      var bitmap=await createImageBitmap(file);
+      images.push({file:file,bitmap:bitmap,width:bitmap.width,height:bitmap.height,url:URL.createObjectURL(file)});
+    }catch(err){
+      console.error("Cannot load image:",file.name,err);
+    }
+  }
+  fileInput.value="";
+  renderItems();
+  compose();
+}
+
+function escapeHtml(str){
+  return str.replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];
+  });
+}
+
+function renderItems(){
+  itemsEl.innerHTML="";
+  images.forEach(function(img,index){
+    var el=document.createElement("div");
+    el.className="item";
+    el.draggable=true;
+    el.dataset.index=index;
+
+    var remove=document.createElement("button");
+    remove.className="remove";
+    remove.title="حذف";
+    remove.textContent="×";
+
+    var preview=document.createElement("img");
+    preview.src=img.url;
+    preview.alt="";
+
+    var name=document.createElement("div");
+    name.className="name";
+    name.innerHTML=escapeHtml(img.file.name);
+
+    var meta=document.createElement("div");
+    meta.className="meta";
+    meta.textContent=img.width+" × "+img.height;
+
+    remove.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      removeImage(index);
+    });
+
+    el.addEventListener("dragstart",function(){
+      dragIndex=index;
+      el.classList.add("dragging");
+    });
+
+    el.addEventListener("dragend",function(){
+      dragIndex=null;
+      el.classList.remove("dragging");
+    });
+
+    el.addEventListener("dragover",function(e){e.preventDefault()});
+
+    el.addEventListener("drop",function(e){
+      e.preventDefault();
+      var targetIndex=Number(el.dataset.index);
+      if(dragIndex===null || dragIndex===targetIndex) return;
+      var moved=images.splice(dragIndex,1)[0];
+      images.splice(targetIndex,0,moved);
+      renderItems();
+      compose();
+    });
+
+    el.append(remove,preview,name,meta);
+    itemsEl.appendChild(el);
+  });
+}
+
+function removeImage(index){
+  var removed=images.splice(index,1)[0];
+  if(removed){
+    URL.revokeObjectURL(removed.url);
+    if(removed.bitmap && removed.bitmap.close) removed.bitmap.close();
+  }
+  renderItems();
+  compose();
+}
+
+function ensureCanvasSize(width,height){
+  var max=32767;
+  if(width>max || height>max){
+    alert("ابعاد خروجی خیلی بزرگ شده: "+width+"×"+height+". تعداد یا اندازه عکس‌ها را کمتر کن.");
+    return false;
+  }
+  return true;
+}
+
+function compose(){
+  if(images.length===0){
+    canvas.width=1;
+    canvas.height=1;
+    ctx.clearRect(0,0,1,1);
+    statusEl.textContent="No images";
+    return;
+  }
+
+  var gap=Math.max(0,Number(gapEl.value)||0);
+  var dir=directionEl.value;
+
+  if(dir==="grid"){
+    composeGrid(gap);
+    return;
+  }
+
+  var width;
+  var height;
+
+  if(dir==="horizontal"){
+    width=images.reduce(function(s,i){return s+i.width},0)+gap*(images.length-1);
+    height=Math.max.apply(null,images.map(function(i){return i.height}));
+  }else{
+    width=Math.max.apply(null,images.map(function(i){return i.width}));
+    height=images.reduce(function(s,i){return s+i.height},0)+gap*(images.length-1);
+  }
+
+  if(!ensureCanvasSize(width,height)) return;
+
+  canvas.width=width;
+  canvas.height=height;
+  ctx.clearRect(0,0,width,height);
+  ctx.imageSmoothingEnabled=false;
+
+  var x=0;
+  var y=0;
+
+  images.forEach(function(img){
+    ctx.drawImage(img.bitmap,x,y,img.width,img.height);
+    if(dir==="horizontal") x+=img.width+gap;
+    else y+=img.height+gap;
+  });
+
+  statusEl.textContent=width+" × "+height+" px | "+images.length+" image(s)";
+}
+
+function composeGrid(gap){
+  var rows=Math.max(1,parseInt(rowsEl.value)||1);
+  var cols=Math.max(1,parseInt(colsEl.value)||1);
+  var visibleCount=Math.min(images.length,rows*cols);
+  var subset=images.slice(0,visibleCount);
+  if(!subset.length) return;
+
+  var colWidths=new Array(cols).fill(0);
+  var rowHeights=new Array(rows).fill(0);
+
+  subset.forEach(function(img,i){
+    var r=Math.floor(i/cols);
+    var c=i%cols;
+    colWidths[c]=Math.max(colWidths[c],img.width);
+    rowHeights[r]=Math.max(rowHeights[r],img.height);
+  });
+
+  var width=colWidths.reduce(function(a,b){return a+b},0)+gap*(cols-1);
+  var height=rowHeights.reduce(function(a,b){return a+b},0)+gap*(rows-1);
+  if(!ensureCanvasSize(width,height)) return;
+
+  canvas.width=width;
+  canvas.height=height;
+  ctx.clearRect(0,0,width,height);
+  ctx.imageSmoothingEnabled=false;
+
+  var colX=[];
+  var rowY=[];
+  var acc=0;
+
+  for(var c=0;c<cols;c++){
+    colX[c]=acc;
+    acc+=colWidths[c]+gap;
+  }
+
+  acc=0;
+  for(var r=0;r<rows;r++){
+    rowY[r]=acc;
+    acc+=rowHeights[r]+gap;
+  }
+
+  subset.forEach(function(img,i){
+    var r=Math.floor(i/cols);
+    var c=i%cols;
+    ctx.drawImage(img.bitmap,colX[c],rowY[r],img.width,img.height);
+  });
+
+  var hidden=images.length-visibleCount;
+  statusEl.textContent=width+" × "+height+" px | Grid "+rows+"×"+cols+" | "+visibleCount+" image(s)"+(hidden>0 ? " | "+hidden+" image(s) not placed" : "");
+}
+
+directionEl.addEventListener("change",function(){
+  gridControls.classList.toggle("show",directionEl.value==="grid");
+  compose();
+});
+
+gapEl.addEventListener("input",compose);
+
+rowsEl.addEventListener("input",function(){
+  gridPreset.value="custom";
+  compose();
+});
+
+colsEl.addEventListener("input",function(){
+  gridPreset.value="custom";
+  compose();
+});
+
+gridPreset.addEventListener("change",function(){
+  if(gridPreset.value==="custom") return;
+  var parts=gridPreset.value.split("x").map(Number);
+  rowsEl.value=parts[0];
+  colsEl.value=parts[1];
+  compose();
+});
+
+reverseBtn.addEventListener("click",function(){
+  images.reverse();
+  renderItems();
+  compose();
+});
+
+clearBtn.addEventListener("click",function(){
+  images.forEach(function(img){
+    URL.revokeObjectURL(img.url);
+    if(img.bitmap && img.bitmap.close) img.bitmap.close();
+  });
+  images=[];
+  renderItems();
+  compose();
+});
+
+downloadBtn.addEventListener("click",function(){
+  if(!images.length){
+    alert("اول چند عکس اضافه کن.");
+    return;
+  }
+  canvas.toBlob(function(blob){
+    if(!blob){
+      alert("ساخت خروجی ناموفق بود.");
+      return;
+    }
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="multi-pic.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+  },"image/png");
+});
+
+copyBtn.addEventListener("click",async function(){
+  if(!images.length){
+    showToast("اول چند عکس اضافه کن");
+    return;
+  }
+  if(!navigator.clipboard || !window.ClipboardItem){
+    showToast("مرورگر Copy تصویر را پشتیبانی نمی‌کند");
+    return;
+  }
+  try{
+    var blob=await new Promise(function(resolve){canvas.toBlob(resolve,"image/png")});
+    if(!blob) throw new Error("No blob");
+    await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+    showToast("خروجی در Clipboard کپی شد");
+  }catch(err){
+    console.error(err);
+    showToast("اجازه Copy داده نشد؛ از دانلود PNG استفاده کن");
+  }
+});
+
+compose();
+</script>
+</body>
+</html>
