@@ -191,6 +191,7 @@ function randomPassword() {
 }
 
 async function encryptMessage() {
+  if (window.SecretChatUltra?.active) return window.SecretChatUltra.encrypt();
   const password = $('encryptPassword').value;
   const message = $('plainMessage').value;
   if (!password || !message) return setStatus('encryptStatus', t('fillBoth'), 'warn');
@@ -212,6 +213,7 @@ async function encryptMessage() {
 }
 
 async function decryptMessage() {
+  if (window.SecretChatUltra?.active) return window.SecretChatUltra.decrypt();
   const password = $('decryptPassword').value;
   const cipher = $('cipherMessage').value.trim();
   if (!password || !cipher) return setStatus('decryptStatus', t('fillCipher'), 'warn');
@@ -219,6 +221,11 @@ async function decryptMessage() {
 
   try {
     const payload = JSON.parse(decodeURIComponent(escape(atob(cipher))));
+    if (window.SecretChatUltra?.isUltraPayload(payload)) {
+      $('decryptedOutput').value = '';
+      autoGrow($('decryptedOutput'));
+      return setStatus('decryptStatus', window.SecretChatUltra.text('ultraRequired'), 'error');
+    }
     if (!['SecretChat-v1', VERSION].includes(payload.v)) throw new Error('Unsupported payload');
     const key = await deriveKey(password, base64ToBytes(payload.salt), payload.iter || ITERATIONS);
     const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: base64ToBytes(payload.iv) }, key, base64ToBytes(payload.data));
@@ -239,6 +246,7 @@ function markCopied(button) {
 }
 
 async function copyText(sourceId, statusId, button) {
+  if (window.SecretChatUltra?.active) return window.SecretChatUltra.copy(sourceId, statusId, button);
   const value = $(sourceId).value;
   if (!value) return setStatus(statusId, t('copyEmpty'), 'warn');
   await navigator.clipboard.writeText(value);
@@ -263,6 +271,7 @@ async function readClipboardText() {
 }
 
 async function pasteText(targetId, statusId) {
+  if (window.SecretChatUltra?.active && !window.SecretChatUltra.canPaste(targetId)) return setStatus(statusId, window.SecretChatUltra.text('blocked'), 'warn');
   try {
     const value = await readClipboardText();
     if (!value) return setStatus(statusId, t('pasteEmpty'), 'warn');
@@ -404,6 +413,7 @@ function errorToLogText(context, error, details = {}) {
 }
 
 function writeAppLog(context, error, details = {}) {
+  if (window.SecretChatUltra?.active) return false;
   let content = errorToLogText(context, error, details);
   const secrets = [...document.querySelectorAll('[data-toggle-password]')]
     .map((button) => $(button.dataset.togglePassword)?.value || '')
@@ -534,6 +544,7 @@ async function prepareOutputFileImport(file) {
 }
 
 function receiveExternalText(base64, name) {
+  if (window.SecretChatUltra?.active) return false;
   if (!IS_ANDROID_RUNTIME || typeof base64 !== 'string') return false;
   try {
     const bytes = base64ToBytes(base64);
@@ -1687,6 +1698,7 @@ function toggleQrCamera() {
 }
 
 function openQrReader() {
+  if (window.SecretChatUltra?.active) return;
   $('qrReaderModal').classList.add('active');
   $('qrEngineSelect').value = selectedQrEngine;
   setStatus('qrReaderStatus', '');
