@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v6';
+const CACHE_NAME = 'multi-app-hub-v7';
 const APP_FILES = [
   './',
   './index.html',
@@ -15,6 +15,10 @@ const APP_FILES = [
   './apps/frameforge/styles.css',
   './apps/frameforge/app.js',
   './apps/multipic/index.html',
+  './apps/sfxstudio/index.html',
+  './apps/sfxstudio/styles.css',
+  './apps/sfxstudio/app.js',
+  './apps/sfxstudio/vendor/lame.min.js',
   './LiveWebStudio-Tuner/index.html',
   './secretchat/index.html',
   './naghshe-Tuner/index.html',

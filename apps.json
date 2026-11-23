@@ -48,5 +48,10 @@
     "name": "مولتی پیک",
     "description": "چسباندن چند عکس در یک خروجی PNG با چیدمان افقی، عمودی یا شبکه‌ای و پشتیبانی از Copy/Paste.",
     "path": "./apps/multipic/index.html"
+  },
+  {
+    "name": "استودیو افکت صدا",
+    "description": "ساخت، ضبط و ویرایش افکت صوتی بازی با کات، پیچ، اکو، ریورب و خروجی MP3، WAV و JSON.",
+    "path": "./apps/sfxstudio/index.html"
   }
 ]

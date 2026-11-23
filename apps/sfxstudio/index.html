@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>استودیو افکت صدا | SFX Studio</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <a class="back" href="../../index.html" aria-label="بازگشت به مرکز اپ‌ها">←</a>
+  <h1>استودیو افکت صدا</h1>
+  <input id="soundName" class="name" value="sfx_01" spellcheck="false" aria-label="نام صدا" dir="ltr">
+  <div class="spacer"></div>
+  <button id="undoBtn" title="بازگشت (Ctrl+Z)">↶</button>
+  <button id="redoBtn" title="انجام مجدد (Ctrl+Y)">↷</button>
+</header>
+
+<main class="layout">
+  <aside class="panel">
+    <nav class="tabs">
+      <button class="tab active" data-tab="synth">سازنده</button>
+      <button class="tab" data-tab="fx">افکت‌ها</button>
+      <button class="tab" data-tab="lib">کتابخانه</button>
+    </nav>
+
+    <section class="tabBody active" id="tab-synth">
+      <div class="presets" id="presets"></div>
+      <div class="row wrap">
+        <button id="mutateBtn">جهش کوچک</button>
+        <button id="randomBtn">کاملاً تصادفی</button>
+        <label class="chk"><input type="checkbox" id="liveSynth" checked> جایگزینی زنده</label>
+        <label class="chk"><input type="checkbox" id="autoPlay" checked> پخش خودکار</label>
+      </div>
+      <div class="row wrap">
+        <button class="primary" id="synthReplace">جایگزین کن</button>
+        <button id="synthInsert">درج در نشانگر</button>
+        <button id="synthMix">میکس روی نشانگر</button>
+      </div>
+      <p class="hint">برای صدای لایه‌ای (مثل شلیک + پوکه)، یک صدا بساز، «جایگزینی زنده» را خاموش کن و صدای بعدی را با «میکس روی نشانگر» روی آن بنشان.</p>
+      <div id="synthControls"></div>
+    </section>
+
+    <section class="tabBody" id="tab-fx">
+      <p class="hint">افکت‌ها روی بخش انتخاب‌شده اعمال می‌شوند؛ اگر چیزی انتخاب نشده باشد روی کل صدا.</p>
+      <div class="row wrap sticky">
+        <button id="fxPreview">پیش‌شنود</button>
+        <button class="primary" id="fxApply">اعمال افکت‌ها</button>
+        <button id="fxReset">ریست همه</button>
+      </div>
+      <div id="fxControls"></div>
+    </section>
+
+    <section class="tabBody" id="tab-lib">
+      <div class="row wrap">
+        <button class="primary" id="libSave">ذخیره صدای فعلی</button>
+        <button id="libExport">خروجی بانک JSON</button>
+        <label class="btn">ورود JSON<input type="file" id="libImport" accept=".json,application/json" hidden></label>
+      </div>
+      <ul class="lib" id="libList"></ul>
+      <details class="help">
+        <summary>نحوه استفاده در بازی</summary>
+        <p>فایل JSON هر صدا شامل <code>audio</code> (WAV به‌صورت Data URI)، مدت، نرخ نمونه و دستور ساخت (<code>recipe</code>) است:</p>
+<pre dir="ltr">const sfx = await fetch('gunshot.json').then(r =&gt; r.json());
+const ctx = new AudioContext();
+const buf = await ctx.decodeAudioData(
+  await (await fetch(sfx.audio)).arrayBuffer());
+function play() {
+  const s = ctx.createBufferSource();
+  s.buffer = buf; s.connect(ctx.destination); s.start();
+}</pre>
+        <p>بانک JSON شکل <code>{"sounds":[...]}</code> دارد و همه صداهای کتابخانه را یک‌جا نگه می‌دارد.</p>
+      </details>
+    </section>
+  </aside>
+
+  <section class="editor">
+    <div class="row wrap toolbar">
+      <label class="btn">باز کردن فایل<input type="file" id="fileInput" accept="audio/*,.json" hidden></label>
+      <button id="recBtn">● ضبط میکروفون</button>
+      <button id="newBtn">صدای خالی</button>
+      <div class="spacer"></div>
+      <button id="zoomOut" title="کوچک‌نمایی">−</button>
+      <button id="zoomFit" title="نمایش کامل">⤢</button>
+      <button id="zoomIn" title="بزرگ‌نمایی">+</button>
+    </div>
+
+    <div class="waveWrap" id="waveWrap" dir="ltr">
+      <canvas id="wave"></canvas>
+      <div class="dropHint">فایل صوتی را اینجا رها کن</div>
+    </div>
+    <input type="range" id="scroll" dir="ltr" min="0" max="1000" value="0" class="scroll" aria-label="پیمایش">
+
+    <div class="info" id="info" dir="ltr"></div>
+
+    <div class="row wrap transport">
+      <button class="primary" id="playBtn" title="Space">▶ پخش</button>
+      <button id="stopBtn">■ توقف</button>
+      <label class="chk"><input type="checkbox" id="loopChk"> تکرار</label>
+      <label class="chk vol">صدا <input type="range" id="monitorVol" min="0" max="1" step="0.01" value="0.8"></label>
+    </div>
+
+    <div class="group">
+      <h3>ویرایش</h3>
+      <div class="row wrap">
+        <button data-op="selectAll" title="Ctrl+A">انتخاب همه</button>
+        <button data-op="cut" title="Ctrl+X">کات</button>
+        <button data-op="copy" title="Ctrl+C">کپی</button>
+        <button data-op="paste" title="Ctrl+V">چسباندن</button>
+        <button data-op="pasteMix">چسباندن میکسی</button>
+        <button data-op="delete" title="Delete">حذف</button>
+        <button data-op="crop">نگه‌داشتن انتخاب</button>
+        <button data-op="duplicate">تکثیر انتخاب</button>
+        <button data-op="silence">سکوت کردن</button>
+        <button data-op="insertSilence">درج سکوت</button>
+        <button data-op="trimSilence">حذف سکوت دو طرف</button>
+      </div>
+      <div class="row wrap">
+        <button data-op="fadeIn">فید ورودی</button>
+        <button data-op="fadeOut">فید خروجی</button>
+        <button data-op="reverse">معکوس</button>
+        <button data-op="normalize">نرمال‌سازی</button>
+        <button data-op="invert">وارونگی فاز</button>
+        <button data-op="mono">تبدیل به مونو</button>
+        <button data-op="stereo">تبدیل به استریو</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>خروجی</h3>
+      <div class="row wrap">
+        <label class="chk"><input type="checkbox" id="exportSel"> فقط بخش انتخاب‌شده</label>
+        <label class="chk">کیفیت MP3
+          <select id="mp3Rate"><option>96</option><option selected>128</option><option>192</option><option>256</option><option>320</option></select>
+        </label>
+      </div>
+      <div class="row wrap">
+        <button class="primary" id="expMp3">دانلود MP3</button>
+        <button class="primary" id="expWav">دانلود WAV</button>
+        <button class="primary" id="expJson">دانلود JSON</button>
+        <button id="copyJson">کپی JSON</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
