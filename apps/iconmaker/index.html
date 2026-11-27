@@ -72,6 +72,7 @@ figure canvas:hover{border-color:var(--ac)}
   <div class="sep"></div>
   <p class="ttl">فرمت خروجی</p>
   <div class="chips" id="fmts"></div>
+  <label><input id="mix" type="checkbox"> خروجی ترکیبی (چند فرمت با هم)</label>
 </div>
 
 <div class="card">
@@ -85,8 +86,9 @@ figure canvas:hover{border-color:var(--ac)}
 </main>
 <script>
 const SIZES=[16,32,48,64,128,180,192,256,512,1024],DEF=[16,32,48,180,192,512];
-const FMTS=[['png','PNG',1],['ico','ICO',1],['jpg','JPG',0],['webp','WEBP',0],['svg','SVG',0]];
+const FMTS=[['ico','ICO',1],['png','PNG',0],['jpg','JPG',0],['webp','WEBP',0],['svg','SVG',0]];
 const $=id=>document.getElementById(id);let items=[];
+document.addEventListener('change',e=>{const t=e.target;if(t.closest&&t.closest('#fmts')&&t.checked&&!$('mix').checked)document.querySelectorAll('#fmts input').forEach(i=>{if(i!==t)i.checked=false});if(t.id==='mix'&&!t.checked){const c=[...document.querySelectorAll('#fmts input:checked')];c.slice(1).forEach(i=>i.checked=false);render()}});
 $('sizes').innerHTML=SIZES.map(s=>`<label><input type="checkbox" value="${s}" ${DEF.includes(s)?'checked':''}>${s}</label>`).join('');
 $('fmts').innerHTML=FMTS.map(([v,t,c])=>`<label><input type="checkbox" value="${v}" ${c?'checked':''}>${t}</label>`).join('');
 $('drop').onclick=()=>$('file').click();
