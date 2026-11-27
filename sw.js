@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multi-app-hub-v7';
+const CACHE_NAME = 'multi-app-hub-v8';
 const APP_FILES = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const APP_FILES = [
   './apps/frameforge/styles.css',
   './apps/frameforge/app.js',
   './apps/multipic/index.html',
+  './apps/iconmaker/index.html',
   './apps/sfxstudio/index.html',
   './apps/sfxstudio/styles.css',
   './apps/sfxstudio/app.js',
@@ -39,7 +40,7 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(fetch(event.request).then(response => {
+  event.respondWith(fetch(event.request, { cache: 'no-cache' }).then(response => {
     const copy = response.clone();
     caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
     return response;
