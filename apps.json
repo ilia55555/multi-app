@@ -20,6 +20,11 @@
     "path": "./tr file/index.html"
   },
   {
+    "name": "آیکن‌ساز",
+    "description": "تبدیل عکس به آیکن PNG و favicon.ico در اندازه‌های مختلف.",
+    "path": "./apps/iconmaker/index.html"
+  },
+  {
     "name": "نقشه‌کش",
     "description": "ترسیم شکل‌ها و اندازه‌گذاری دقیق روی بوم حرفه‌ای.",
     "path": "./naghshe-Tuner/index.html"

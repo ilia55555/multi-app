@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>آیکن‌ساز</title>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--fg:#1d2230;--mut:#667;--ac:#4f6cf5;--bd:#dde1ea}
+@media (prefers-color-scheme:dark){:root{--bg:#12141b;--card:#1c1f29;--fg:#eceef4;--mut:#99a;--bd:#2c3140}}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:720px;margin:auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px}
+#drop{border:2px dashed var(--bd);border-radius:12px;padding:28px;text-align:center;cursor:pointer;color:var(--mut)}
+#drop.on{border-color:var(--ac)}
+label{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap}
+input[type=range]{flex:1}
+.sizes{display:flex;flex-wrap:wrap;gap:10px}
+.sizes label{margin:0}
+button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 16px;font:inherit;cursor:pointer;margin:4px}
+button:disabled{opacity:.5}
+#prev{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+#prev figure{margin:0;text-align:center;font-size:12px;color:var(--mut)}
+#prev canvas{background:repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 0/12px 12px;border-radius:4px;max-width:128px;cursor:pointer}
+a.back{color:var(--ac);text-decoration:none}
+</style>
+</head>
+<body><main>
+<p><a class="back" href="../../index.html">→ بازگشت</a></p>
+<h1>آیکن‌ساز</h1>
+<div class="card">
+  <div id="drop">عکس را اینجا بکشید یا کلیک کنید<input id="file" type="file" accept="image/*" hidden></div>
+</div>
+<div class="card">
+  <label>برش: <select id="fit"><option value="cover">پر کردن مربع (برش)</option><option value="contain">جا دادن کامل</option></select></label>
+  <label>گردی گوشه‌ها: <input id="radius" type="range" min="0" max="50" value="0"><span id="rv">0%</span></label>
+  <label>فاصله داخلی: <input id="pad" type="range" min="0" max="30" value="0"><span id="pv">0%</span></label>
+  <label><input id="usebg" type="checkbox"> پس‌زمینه: <input id="bg" type="color" value="#ffffff"></label>
+  <div class="sizes" id="sizes"></div>
+</div>
+<div class="card">
+  <div id="prev"></div>
+  <p>
+    <button id="ico" disabled>دانلود favicon.ico</button>
+    <button id="pngs" disabled>دانلود همه PNGها</button>
+  </p>
+  <small style="color:var(--mut)">روی هر پیش‌نمایش کلیک کنید تا همان اندازه دانلود شود.</small>
+</div>
+</main>
+<script>
+const SIZES=[16,32,48,64,128,180,192,256,512],DEF=[16,32,48,180,192,512];
+const $=id=>document.getElementById(id);let img=null;
+$('sizes').innerHTML=SIZES.map(s=>`<label><input type="checkbox" value="${s}" ${DEF.includes(s)?'checked':''}>${s}</label>`).join('');
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>load(e.target.files[0]);
+['dragover','dragleave','drop'].forEach(t=>$('drop').addEventListener(t,e=>{e.preventDefault();$('drop').classList.toggle('on',t==='dragover');if(t==='drop')load(e.dataTransfer.files[0])}));
+document.addEventListener('paste',e=>{const f=[...e.clipboardData.files][0];if(f)load(f)});
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',render));
+function load(f){if(!f||!f.type.startsWith('image/'))return;const i=new Image();i.onload=()=>{img=i;render()};i.src=URL.createObjectURL(f)}
+const sel=()=>[...document.querySelectorAll('#sizes input:checked')].map(i=>+i.value);
+function draw(s){
+  const c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
+  x.imageSmoothingQuality='high';
+  const r=s*$('radius').value/100;
+  x.beginPath();x.roundRect?x.roundRect(0,0,s,s,r):x.rect(0,0,s,s);x.clip();
+  if($('usebg').checked){x.fillStyle=$('bg').value;x.fillRect(0,0,s,s)}
+  const p=s*$('pad').value/100,a=s-2*p,w=img.width,h=img.height;
+  const k=$('fit').value==='cover'?Math.max(a/w,a/h):Math.min(a/w,a/h);
+  x.drawImage(img,p+(a-w*k)/2,p+(a-h*k)/2,w*k,h*k);return c}
+function render(){
+  $('rv').textContent=$('radius').value+'%';$('pv').textContent=$('pad').value+'%';
+  if(!img)return;$('prev').innerHTML='';
+  sel().forEach(s=>{const c=draw(s),f=document.createElement('figure');c.style.width=Math.min(s,128)+'px';c.onclick=()=>c.toBlob(b=>save(b,`icon-${s}.png`));f.append(c,document.createElement('br'),s+'×'+s);$('prev').append(f)});
+  $('ico').disabled=$('pngs').disabled=!sel().length}
+function save(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+const blob=c=>new Promise(r=>c.toBlob(r,'image/png'));
+$('pngs').onclick=async()=>{for(const s of sel()){save(await blob(draw(s)),`icon-${s}.png`);await new Promise(r=>setTimeout(r,250))}};
+$('ico').onclick=async()=>{
+  let ss=sel().filter(s=>s<=256);if(!ss.length)ss=[256];
+  const bufs=await Promise.all(ss.map(async s=>new Uint8Array(await (await blob(draw(s))).arrayBuffer())));
+  const head=6+16*ss.length,tot=head+bufs.reduce((a,b)=>a+b.length,0),out=new Uint8Array(tot),v=new DataView(out.buffer);
+  v.setUint16(2,1,true);v.setUint16(4,ss.length,true);let off=head;
+  ss.forEach((s,i)=>{const e=6+16*i;out[e]=s>=256?0:s;out[e+1]=s>=256?0:s;v.setUint16(e+4,1,true);v.setUint16(e+6,32,true);v.setUint32(e+8,bufs[i].length,true);v.setUint32(e+12,off,true);out.set(bufs[i],off);off+=bufs[i].length});
+  save(new Blob([out],{type:'image/x-icon'}),'favicon.ico')};
+</script>
+</body></html>
