@@ -1,13 +1,23 @@
 [
   {
-    "name": "لایو وب استودیو",
-    "description": "ویرایش پروژه و مشاهده زنده خروجی HTML، CSS و JavaScript.",
-    "path": "./LiveWebStudio-Tuner/index.html"
+    "name": "استریم باکس",
+    "description": "پخش تدریجی ویدیو از لینک مستقیم با ادامه هوشمند.",
+    "path": "./apps/streambox/index.html"
   },
   {
     "name": "سکرت‌چت",
     "description": "رمزگذاری پیام‌ها، بازگشایی امن و انتقال مستقیم فایل.",
     "path": "./secretchat/index.html"
+  },
+  {
+    "name": "لایو وب استودیو",
+    "description": "ویرایش پروژه و مشاهده زنده خروجی HTML، CSS و JavaScript.",
+    "path": "./LiveWebStudio-Tuner/index.html"
+  },
+  {
+    "name": "انتقال فایل",
+    "description": "انتقال فایل بین دو دستگاه با QR متحرک، بدون آپلود فایل روی اینترنت.",
+    "path": "./tr file/index.html"
   },
   {
     "name": "نقشه‌کش",
@@ -23,16 +33,6 @@
     "name": "نمونه المان‌ها",
     "description": "مرجع مستقل المان‌های HTML و کامپوننت‌های کاربردی UI.",
     "path": "./Element-Samples-Tuner/index.html"
-  },
-  {
-    "name": "انتقال فایل",
-    "description": "انتقال فایل بین دو دستگاه با QR متحرک، بدون آپلود فایل روی اینترنت.",
-    "path": "./tr file/index.html"
-  },
-  {
-    "name": "استریم باکس",
-    "description": "پخش تدریجی ویدیو از لینک مستقیم با ادامه هوشمند.",
-    "path": "./apps/streambox/index.html"
   },
   {
     "name": "استودیو مش صلب",
