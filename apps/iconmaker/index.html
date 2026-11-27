@@ -86,11 +86,14 @@ figure canvas:hover{border-color:var(--ac)}
 </main>
 <script>
 const SIZES=[16,32,48,64,128,180,192,256,512,1024],DEF=[16,32,48,180,192,512];
-const FMTS=[['ico','ICO',1],['png','PNG',0],['jpg','JPG',0],['webp','WEBP',0],['svg','SVG',0],['xml','XML اندروید',0]];
+const FMTS=[['ico','ICO',1],['png','PNG',0],['jpg','JPG',0],['webp','WEBP',0],['svg','SVG',0],['xml','XML اندروید',0],['icns','ICNS مک',0,1],['android','پک اندروید',0,1],['ios','پک iOS',0,1],['pwa','پک وب/PWA',0,1],['avif','AVIF',0,1],['bmp','BMP',0,1],['tiff','TIFF',0,1]];
+const PACK=['icns','android','ios','pwa'];
 const $=id=>document.getElementById(id);let items=[];
 document.addEventListener('change',e=>{const t=e.target;if(t.closest&&t.closest('#fmts')&&t.checked&&!$('mix').checked)document.querySelectorAll('#fmts input').forEach(i=>{if(i!==t)i.checked=false});if(t.id==='mix'&&!t.checked){const c=[...document.querySelectorAll('#fmts input:checked')];c.slice(1).forEach(i=>i.checked=false);render()}});
 $('sizes').innerHTML=SIZES.map(s=>`<label><input type="checkbox" value="${s}" ${DEF.includes(s)?'checked':''}>${s}</label>`).join('');
-$('fmts').innerHTML=FMTS.map(([v,t,c])=>`<label><input type="checkbox" value="${v}" ${c?'checked':''}>${t}</label>`).join('');
+$('fmts').innerHTML=FMTS.map(([v,t,c,m])=>`<label${m?' class="more" hidden':''}><input type="checkbox" value="${v}" ${c?'checked':''}>${t}</label>`).join('')+'<label id="morebtn" style="border-style:dashed">بیشتر ▾</label>';
+(()=>{const c=document.createElement('canvas');c.width=c.height=1;if(!c.toDataURL('image/avif').startsWith('data:image/avif'))document.querySelector('#fmts input[value=avif]').closest('label').remove()})();
+$('morebtn').onclick=()=>{const m=document.querySelectorAll('#fmts .more'),open=m[0].hidden;m.forEach(l=>l.hidden=!open);$('morebtn').textContent=open?'کمتر ▴':'بیشتر ▾'};
 $('drop').onclick=()=>$('file').click();
 $('file').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 ['dragover','dragleave','drop'].forEach(t=>$('drop').addEventListener(t,e=>{e.preventDefault();$('drop').classList.toggle('on',t==='dragover');if(t==='drop')addFiles(e.dataTransfer.files)}));
@@ -131,11 +134,11 @@ function svgText(it){if(!it.recolor)return it.svg;const c=it.color;
   return new XMLSerializer().serializeToString(d)}
 async function buildSvg(it){it.img=await imgFrom('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgText(it)))}
 
-function draw(img,s,bgForce){
+function draw(img,s,bgForce,o={}){
   const c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');x.imageSmoothingQuality='high';
-  const r=s*$('radius').value/100;x.beginPath();x.roundRect?x.roundRect(0,0,s,s,r):x.rect(0,0,s,s);x.clip();
-  if($('usebg').checked||bgForce){x.fillStyle=$('usebg').checked?$('bg').value:'#ffffff';x.fillRect(0,0,s,s)}
-  const p=s*$('pad').value/100,a=s-2*p,w=img.width,h=img.height;
+  const r=o.circle?s/2:s*(o.radius??$('radius').value)/100;x.beginPath();x.roundRect?x.roundRect(0,0,s,s,r):x.rect(0,0,s,s);x.clip();
+  if(!o.nobg&&($('usebg').checked||bgForce)){x.fillStyle=$('usebg').checked?$('bg').value:'#ffffff';x.fillRect(0,0,s,s)}
+  const p=s*(o.pad??$('pad').value)/100,a=s-2*p,w=img.width,h=img.height;
   const k=$('fit').value==='cover'?Math.max(a/w,a/h):Math.min(a/w,a/h);
   x.drawImage(img,p+(a-w*k)/2,p+(a-h*k)/2,w*k,h*k);return c}
 
@@ -157,7 +160,7 @@ function render(){
     sel().forEach(s=>{const c=draw(it.img,s),f=document.createElement('figure');c.style.width=Math.min(s,96)+'px';
       c.onclick=()=>single(it,s);f.append(c,s+'×'+s);pv.append(f)});
     row.append(pv);P.append(row)});
-  $('zip').disabled=!items.length||!fmts().length||(!sel().length&&!fmts().every(f=>f==='svg'));$('clear').disabled=!items.length}
+  $('zip').disabled=!items.length||!fmts().length||(!sel().length&&!fmts().every(f=>['svg','xml',...PACK].includes(f)));$('clear').disabled=!items.length}
 async function applyAll(){for(const it of items)if(it.svg){it.recolor=$('allrc').checked;it.color=$('allcol').value;await buildSvg(it)}render()}
 $('allrc').onchange=applyAll;$('allcol').onchange=applyAll;$('allcol').oninput=()=>{$('allrc').checked=true};
 $('clear').onclick=()=>{items=[];render()};
@@ -165,8 +168,45 @@ $('clear').onclick=()=>{items=[];render()};
 function save(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 const MIME={png:'image/png',jpg:'image/jpeg',webp:'image/webp'};
 const bytes=async(c,f='png')=>new Uint8Array(await (await new Promise(r=>c.toBlob(r,MIME[f],.92))).arrayBuffer());
-const raster=(it,s,f)=>bytes(draw(it.img,s,f==='jpg'),f);
-async function single(it,s){const f=fmts().find(x=>x!=='ico'&&x!=='svg')||'png';save(new Blob([await raster(it,s,f)]),`${it.name}-${s}.${f}`)}
+function bmp(c){const s=c.width,h=c.height,d=c.getContext('2d').getImageData(0,0,s,h).data,o=new Uint8Array(54+s*h*4),v=new DataView(o.buffer);
+  o[0]=66;o[1]=77;v.setUint32(2,o.length,true);v.setUint32(10,54,true);v.setUint32(14,40,true);v.setInt32(18,s,true);v.setInt32(22,-h,true);v.setUint16(26,1,true);v.setUint16(28,32,true);v.setUint32(34,s*h*4,true);
+  for(let i=0;i<s*h;i++){o[54+i*4]=d[i*4+2];o[55+i*4]=d[i*4+1];o[56+i*4]=d[i*4];o[57+i*4]=d[i*4+3]}return o}
+function tiff(c){const w=c.width,h=c.height,px=c.getContext('2d').getImageData(0,0,w,h).data,n=12,ifd=8,ext=ifd+2+n*12+4,o=new Uint8Array(ext+8+px.length),v=new DataView(o.buffer);
+  o[0]=o[1]=73;v.setUint16(2,42,true);v.setUint32(4,ifd,true);v.setUint16(ifd,n,true);let p=ifd+2;
+  const tag=(t,ty,cnt,val)=>{v.setUint16(p,t,true);v.setUint16(p+2,ty,true);v.setUint32(p+4,cnt,true);ty===3&&cnt===1?v.setUint16(p+8,val,true):v.setUint32(p+8,val,true);p+=12};
+  const bps=ext,data=ext+8;[8,8,8,8].forEach((b,i)=>v.setUint16(bps+i*2,b,true));
+  tag(256,4,1,w);tag(257,4,1,h);tag(258,3,4,bps);tag(259,3,1,1);tag(262,3,1,2);tag(273,4,1,data);tag(277,3,1,4);tag(278,4,1,h);tag(279,4,1,px.length);tag(284,3,1,1);tag(338,3,1,2);tag(339,3,1,1);
+  o.set(px,data);return o}
+async function raster(it,s,f){const c=draw(it.img,s,f==='jpg'||f==='bmp'&&false);
+  if(f==='bmp')return bmp(c);if(f==='tiff')return tiff(c);
+  if(f==='avif'){const b=await new Promise(r=>c.toBlob(r,'image/avif',.85));if(!b||b.type!=='image/avif')throw new Error('avif');return new Uint8Array(await b.arrayBuffer())}
+  return bytes(c,f)}
+MIME.avif='image/avif';
+async function icns(img){const T=[['icp4',16],['icp5',32],['icp6',64],['ic07',128],['ic08',256],['ic09',512],['ic10',1024]];
+  const parts=await Promise.all(T.map(async([t,s])=>[t,await bytes(draw(img,s))]));const len=8+parts.reduce((a,[,d])=>a+8+d.length,0),o=new Uint8Array(len),v=new DataView(o.buffer),e=new TextEncoder();
+  o.set(e.encode('icns'));v.setUint32(4,len);let p=8;for(const[t,d]of parts){o.set(e.encode(t),p);v.setUint32(p+4,d.length+8);o.set(d,p+8);p+=8+d.length}return o}
+async function pack(kind,it,dir,files){const enc=new TextEncoder(),add=(n,d)=>files.push({name:dir+n,data:typeof d==='string'?enc.encode(d):d});
+  const bgc=$('usebg').checked?$('bg').value:'#FFFFFF';
+  if(kind==='android'){const D=[['mdpi',1],['hdpi',1.5],['xhdpi',2],['xxhdpi',3],['xxxhdpi',4]],b=`${kind}/res/`;
+    for(const[n,k]of D){add(`${b}mipmap-${n}/ic_launcher.png`,await bytes(draw(it.img,48*k)));
+      add(`${b}mipmap-${n}/ic_launcher_round.png`,await bytes(draw(it.img,48*k,0,{circle:1})));
+      add(`${b}mipmap-${n}/ic_launcher_foreground.png`,await bytes(draw(it.img,108*k,0,{nobg:1,radius:0,pad:Math.max(+$('pad').value,19.5)})))}
+    const ad=`<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/ic_launcher_background"/>\n    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n    <monochrome android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n`;
+    add(`${b}mipmap-anydpi-v26/ic_launcher.xml`,ad);add(`${b}mipmap-anydpi-v26/ic_launcher_round.xml`,ad);
+    add(`${b}values/ic_launcher_background.xml`,`<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">${bgc.toUpperCase()}</color>\n</resources>\n`);
+    add(`${kind}/play_store_512.png`,await bytes(draw(it.img,512,1)));return}
+  if(kind==='ios'){const b='ios/AppIcon.appiconset/',L=[['iphone',20,2],['iphone',20,3],['iphone',29,2],['iphone',29,3],['iphone',40,2],['iphone',40,3],['iphone',60,2],['iphone',60,3],['ipad',20,1],['ipad',20,2],['ipad',29,1],['ipad',29,2],['ipad',40,1],['ipad',40,2],['ipad',76,1],['ipad',76,2],['ipad',83.5,2],['ios-marketing',1024,1]];
+    const done={},imgs=[];for(const[id,pt,sc]of L){const px=Math.round(pt*sc),fn=`icon-${px}.png`;
+      if(!done[px]){done[px]=1;add(b+fn,await bytes(draw(it.img,px,1,{radius:0})))}imgs.push({idiom:id,size:`${pt}x${pt}`,scale:sc+'x',filename:fn})}
+    add(b+'Contents.json',JSON.stringify({images:imgs,info:{author:'xcode',version:1}},null,2));return}
+  if(kind==='pwa'){const b='web/';add(b+'favicon.ico',await ico(it.img,[16,32,48]));
+    for(const s of [16,32])add(`${b}favicon-${s}x${s}.png`,await bytes(draw(it.img,s)));
+    add(b+'apple-touch-icon.png',await bytes(draw(it.img,180,1,{radius:0})));
+    for(const s of [192,512])add(`${b}icon-${s}.png`,await bytes(draw(it.img,s)));
+    add(b+'icon-maskable-512.png',await bytes(draw(it.img,512,1,{radius:0,pad:Math.max(+$('pad').value,10)})));
+    add(b+'site.webmanifest',JSON.stringify({name:it.name,short_name:it.name,icons:[{src:'icon-192.png',sizes:'192x192',type:'image/png'},{src:'icon-512.png',sizes:'512x512',type:'image/png'},{src:'icon-maskable-512.png',sizes:'512x512',type:'image/png',purpose:'maskable'}],theme_color:bgc,background_color:bgc,display:'standalone'},null,2));
+    add(b+'head-snippet.html',`<link rel="icon" href="/favicon.ico" sizes="any">\n<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">\n<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n<link rel="manifest" href="/site.webmanifest">\n`);return}}
+async function single(it,s){const f=fmts().find(x=>['png','jpg','webp','bmp','tiff','avif'].includes(x))||'png';save(new Blob([await raster(it,s,f)]),`${it.name}-${s}.${f}`)}
 async function ico(img,ss){
   const bufs=await Promise.all(ss.map(s=>bytes(draw(img,s))));
   const head=6+16*ss.length,out=new Uint8Array(head+bufs.reduce((a,b)=>a+b.length,0)),v=new DataView(out.buffer);
@@ -244,12 +284,15 @@ $('zip').onclick=async()=>{const btn=$('zip');btn.disabled=true;btn.textContent=
         if(f==='ico'){const ss=sel().filter(s=>s<=256);if(!ss.length)ss.push(256);
           if($('icomulti').checked)files.push({name:dir+'favicon.ico',data:await ico(it.img,ss)});
           else for(const s of ss)files.push({name:`${dir}ico/icon-${s}.ico`,data:await ico(it.img,[s])});continue}
+        if(f==='icns'){files.push({name:`${dir}${it.name}.icns`,data:await icns(it.img)});continue}
+        if(['android','ios','pwa'].includes(f)){await pack(f,it,dir,files);continue}
         if(f==='xml'){if(it.svg)files.push({name:`${dir}${it.name.replace(/[^a-z0-9_]/gi,'_').toLowerCase()}.xml`,data:enc.encode(toVD(svgText(it)))});continue}
         if(f==='svg'){
           if(it.svg){files.push({name:`${dir}${it.name}.svg`,data:enc.encode(svgText(it))});continue}
           for(const s of sel())files.push({name:`${dir}svg/icon-${s}.svg`,data:enc.encode(imgToSvg(it,s))});continue}
         for(const s of sel())files.push({name:`${dir}${f}/icon-${s}.${f}`,data:await raster(it,s,f)})}}
     save(zip(files),items.length>1?'icons.zip':items[0].name+'-icons.zip')}
+  catch(e){alert(e.message==='avif'?'مرورگر شما ساخت AVIF را پشتیبانی نمی‌کند':'خطا در ساخت خروجی')}
   finally{btn.textContent='دانلود همه (ZIP)';render()}};
 render();
 </script>
