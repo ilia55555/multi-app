@@ -63,6 +63,8 @@ figure canvas:hover{border-color:var(--ac)}
     <label><input id="usebg" type="checkbox"> پس‌زمینه <input id="bg" type="color" value="#ffffff"></label>
     <label>گردی گوشه <input id="radius" type="range" min="0" max="50" value="0"><span class="v" id="rv"></span></label>
     <label>فاصله داخلی <input id="pad" type="range" min="0" max="30" value="0"><span class="v" id="pv"></span></label>
+    <label><input id="allrc" type="checkbox"> رنگ همه SVGها <input id="allcol" type="color" value="#ffffff"></label>
+    <label><input id="icomulti" type="checkbox"> ICO چند‌اندازه (یک فایل favicon)</label>
   </div>
   <div class="sep"></div>
   <p class="ttl">اندازه‌ها</p>
@@ -91,7 +93,7 @@ $('drop').onclick=()=>$('file').click();
 $('file').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 ['dragover','dragleave','drop'].forEach(t=>$('drop').addEventListener(t,e=>{e.preventDefault();$('drop').classList.toggle('on',t==='dragover');if(t==='drop')addFiles(e.dataTransfer.files)}));
 document.addEventListener('paste',e=>addFiles(e.clipboardData.files));
-document.querySelectorAll('.card input:not(#file),.card select').forEach(el=>el.addEventListener('input',render));
+document.querySelectorAll('.card input:not(#file):not(#allrc):not(#allcol),.card select').forEach(el=>el.addEventListener('input',render));
 const sel=()=>[...document.querySelectorAll('#sizes input:checked')].map(i=>+i.value);
 const fmts=()=>[...document.querySelectorAll('#fmts input:checked')].map(i=>i.value);
 const imgFrom=src=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});
@@ -101,7 +103,7 @@ async function addFiles(fs){
   for(const f of fs){const isSvg=f.type==='image/svg+xml'||/\.svg$/i.test(f.name);
     if(!isSvg&&!f.type.startsWith('image/'))continue;
     try{const it={name:uniq(f.name.replace(/\.[^.]+$/,'')||'icon'),svg:null};
-      if(isSvg){it.svg=prepSvg(await f.text());it.color='#ffffff';it.recolor=false;await buildSvg(it)}
+      if(isSvg){it.svg=prepSvg(await f.text());it.color=$('allcol').value;it.recolor=$('allrc').checked;await buildSvg(it)}
       else it.img=await imgFrom(URL.createObjectURL(f));
       items.push(it)}catch(e){alert('خواندن «'+f.name+'» ممکن نشد')}}
   render()}
@@ -154,6 +156,8 @@ function render(){
       c.onclick=()=>single(it,s);f.append(c,s+'×'+s);pv.append(f)});
     row.append(pv);P.append(row)});
   $('zip').disabled=!items.length||!fmts().length||(!sel().length&&!fmts().every(f=>f==='svg'));$('clear').disabled=!items.length}
+async function applyAll(){for(const it of items)if(it.svg){it.recolor=$('allrc').checked;it.color=$('allcol').value;await buildSvg(it)}render()}
+$('allrc').onchange=applyAll;$('allcol').onchange=applyAll;$('allcol').oninput=()=>{$('allrc').checked=true};
 $('clear').onclick=()=>{items=[];render()};
 
 function save(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
@@ -161,7 +165,7 @@ const MIME={png:'image/png',jpg:'image/jpeg',webp:'image/webp'};
 const bytes=async(c,f='png')=>new Uint8Array(await (await new Promise(r=>c.toBlob(r,MIME[f],.92))).arrayBuffer());
 const raster=(it,s,f)=>bytes(draw(it.img,s,f==='jpg'),f);
 async function single(it,s){const f=fmts().find(x=>x!=='ico'&&x!=='svg')||'png';save(new Blob([await raster(it,s,f)]),`${it.name}-${s}.${f}`)}
-async function ico(img){let ss=sel().filter(s=>s<=256);if(!ss.length)ss=[256];
+async function ico(img,ss){
   const bufs=await Promise.all(ss.map(s=>bytes(draw(img,s))));
   const head=6+16*ss.length,out=new Uint8Array(head+bufs.reduce((a,b)=>a+b.length,0)),v=new DataView(out.buffer);
   v.setUint16(2,1,true);v.setUint16(4,ss.length,true);let off=head;
@@ -184,7 +188,9 @@ $('zip').onclick=async()=>{const btn=$('zip');btn.disabled=true;btn.textContent=
   try{const files=[],enc=new TextEncoder(),F=fmts();
     for(const it of items){const dir=items.length>1?it.name+'/':'';
       for(const f of F){
-        if(f==='ico'){files.push({name:dir+'favicon.ico',data:await ico(it.img)});continue}
+        if(f==='ico'){const ss=sel().filter(s=>s<=256);if(!ss.length)ss.push(256);
+          if($('icomulti').checked)files.push({name:dir+'favicon.ico',data:await ico(it.img,ss)});
+          else for(const s of ss)files.push({name:`${dir}ico/icon-${s}.ico`,data:await ico(it.img,[s])});continue}
         if(f==='svg'){
           if(it.svg){files.push({name:`${dir}${it.name}.svg`,data:enc.encode(svgText(it))});continue}
           for(const s of sel())files.push({name:`${dir}svg/icon-${s}.svg`,data:enc.encode(imgToSvg(it,s))});continue}
