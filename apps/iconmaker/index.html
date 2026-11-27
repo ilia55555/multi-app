@@ -24,7 +24,7 @@ input[type=color]{border:1px solid var(--bd);border-radius:6px;width:34px;height
 button{background:var(--ac);color:var(--card);border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer;margin:4px 0 4px 6px}
 button:hover{opacity:.9}button:disabled{opacity:.4;cursor:default}
 button+button{background:transparent;color:var(--fg);border:1px solid var(--bd)}
-#prev{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;min-height:20px}
+#prev .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;padding:12px 0;border-bottom:1px solid var(--bd)}#prev .row:last-child{border:0}#prev .nm{width:100%;display:flex;justify-content:space-between;font-size:13px}#prev .nm span{cursor:pointer;color:var(--mut)}
 #prev figure{margin:0;text-align:center;font-size:12px;color:var(--mut)}
 #prev canvas{background:repeating-conic-gradient(#0001 0 25%,#0000 0 50%) 0/10px 10px;border:1px solid var(--bd);border-radius:4px;max-width:128px;cursor:pointer}
 a.back{color:var(--mut);text-decoration:none;font-size:13px}a.back:hover{color:var(--fg)}
@@ -35,7 +35,7 @@ small{color:var(--mut)}
 <p><a class="back" href="../../index.html">→ بازگشت</a></p>
 <h1>آیکن‌ساز</h1>
 <div class="card">
-  <div id="drop">عکس را اینجا بکشید یا کلیک کنید<input id="file" type="file" accept="image/*,.svg" hidden></div>
+  <div id="drop">یک یا چند عکس را اینجا بکشید یا کلیک کنید<input id="file" type="file" accept="image/*,.svg" multiple hidden></div>
 </div>
 <div class="card">
   <label>برش: <select id="fit"><option value="cover">پر کردن مربع (برش)</option><option value="contain">جا دادن کامل</option></select></label>
@@ -47,52 +47,71 @@ small{color:var(--mut)}
 <div class="card">
   <div id="prev"></div>
   <p>
-    <button id="ico" disabled>دانلود favicon.ico</button>
-    <button id="pngs" disabled>دانلود همه PNGها</button>
+    <button id="zip" disabled>دانلود همه (ZIP)</button>
+    <button id="clear" disabled>پاک کردن</button>
   </p>
-  <small>روی هر پیش‌نمایش کلیک کنید تا همان اندازه دانلود شود.</small>
+  <small>هر عکس در یک پوشه جدا با PNGها و favicon.ico. روی هر پیش‌نمایش کلیک کنید تا همان فایل دانلود شود.</small>
 </div>
 </main>
 <script>
 const SIZES=[16,32,48,64,128,180,192,256,512],DEF=[16,32,48,180,192,512];
-const $=id=>document.getElementById(id);let img=null;
+const $=id=>document.getElementById(id);let items=[];
 $('sizes').innerHTML=SIZES.map(s=>`<label><input type="checkbox" value="${s}" ${DEF.includes(s)?'checked':''}>${s}</label>`).join('');
 $('drop').onclick=()=>$('file').click();
-$('file').onchange=e=>load(e.target.files[0]);
-['dragover','dragleave','drop'].forEach(t=>$('drop').addEventListener(t,e=>{e.preventDefault();$('drop').classList.toggle('on',t==='dragover');if(t==='drop')load(e.dataTransfer.files[0])}));
-document.addEventListener('paste',e=>{const f=[...e.clipboardData.files][0];if(f)load(f)});
-document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',render));
-async function load(f){if(!f)return;const svg=f.type==='image/svg+xml'||/\.svg$/i.test(f.name);if(!svg&&!f.type.startsWith('image/'))return;
-  let src;if(svg){let t=await f.text();const d=new DOMParser().parseFromString(t,'image/svg+xml').documentElement;
+$('file').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+['dragover','dragleave','drop'].forEach(t=>$('drop').addEventListener(t,e=>{e.preventDefault();$('drop').classList.toggle('on',t==='dragover');if(t==='drop')addFiles(e.dataTransfer.files)}));
+document.addEventListener('paste',e=>addFiles(e.clipboardData.files));
+document.querySelectorAll('input:not(#file),select').forEach(el=>el.addEventListener('input',render));
+async function addFiles(fs){for(const f of fs){const im=await load(f).catch(()=>null);if(im)items.push({name:uniq(f.name.replace(/\.[^.]+$/,'')||'icon'),img:im})}render()}
+function uniq(n){let k=n,i=2;while(items.some(x=>x.name===k))k=n+'-'+i++;return k}
+async function load(f){const svg=f.type==='image/svg+xml'||/\.svg$/i.test(f.name);if(!svg&&!f.type.startsWith('image/'))return null;
+  let src;if(svg){const d=new DOMParser().parseFromString(await f.text(),'image/svg+xml').documentElement;
     if(!d.getAttribute('xmlns'))d.setAttribute('xmlns','http://www.w3.org/2000/svg');
     const vb=(d.getAttribute('viewBox')||'').split(/[\s,]+/).map(Number);const ratio=vb.length===4&&vb[3]?vb[2]/vb[3]:1;
     if(!parseFloat(d.getAttribute('width'))||/%/.test(d.getAttribute('width'))){d.setAttribute('width',1024*Math.min(ratio,1));d.setAttribute('height',1024/Math.max(ratio,1))}
     src=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(d)],{type:'image/svg+xml'}))}else src=URL.createObjectURL(f);
-  const i=new Image();i.onload=()=>{img=i;render()};i.onerror=()=>alert('خواندن تصویر ممکن نشد');i.src=src}
+  return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src})}
 const sel=()=>[...document.querySelectorAll('#sizes input:checked')].map(i=>+i.value);
-function draw(s){
-  const c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
-  x.imageSmoothingQuality='high';
-  const r=s*$('radius').value/100;
-  x.beginPath();x.roundRect?x.roundRect(0,0,s,s,r):x.rect(0,0,s,s);x.clip();
+function draw(img,s){
+  const c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');x.imageSmoothingQuality='high';
+  const r=s*$('radius').value/100;x.beginPath();x.roundRect?x.roundRect(0,0,s,s,r):x.rect(0,0,s,s);x.clip();
   if($('usebg').checked){x.fillStyle=$('bg').value;x.fillRect(0,0,s,s)}
   const p=s*$('pad').value/100,a=s-2*p,w=img.width,h=img.height;
   const k=$('fit').value==='cover'?Math.max(a/w,a/h):Math.min(a/w,a/h);
   x.drawImage(img,p+(a-w*k)/2,p+(a-h*k)/2,w*k,h*k);return c}
 function render(){
-  $('rv').textContent=$('radius').value+'%';$('pv').textContent=$('pad').value+'%';
-  if(!img)return;$('prev').innerHTML='';
-  sel().forEach(s=>{const c=draw(s),f=document.createElement('figure');c.style.width=Math.min(s,128)+'px';c.onclick=()=>c.toBlob(b=>save(b,`icon-${s}.png`));f.append(c,document.createElement('br'),s+'×'+s);$('prev').append(f)});
-  $('ico').disabled=$('pngs').disabled=!sel().length}
+  $('rv').textContent=$('radius').value+'%';$('pv').textContent=$('pad').value+'%';$('prev').innerHTML='';
+  items.forEach((it,idx)=>{const row=document.createElement('div');row.className='row';
+    const nm=document.createElement('div');nm.className='nm';nm.innerHTML=`<b></b><span>حذف</span>`;nm.firstChild.textContent=it.name;
+    nm.lastChild.onclick=()=>{items.splice(idx,1);render()};row.append(nm);
+    sel().forEach(s=>{const c=draw(it.img,s),f=document.createElement('figure');c.style.width=Math.min(s,96)+'px';
+      c.onclick=()=>c.toBlob(b=>save(b,`${it.name}-${s}.png`));f.append(c,document.createElement('br'),s+'×'+s);row.append(f)});
+    $('prev').append(row)});
+  $('zip').disabled=!items.length||!sel().length;$('clear').disabled=!items.length}
+$('clear').onclick=()=>{items=[];render()};
 function save(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
-const blob=c=>new Promise(r=>c.toBlob(r,'image/png'));
-$('pngs').onclick=async()=>{for(const s of sel()){save(await blob(draw(s)),`icon-${s}.png`);await new Promise(r=>setTimeout(r,250))}};
-$('ico').onclick=async()=>{
-  let ss=sel().filter(s=>s<=256);if(!ss.length)ss=[256];
-  const bufs=await Promise.all(ss.map(async s=>new Uint8Array(await (await blob(draw(s))).arrayBuffer())));
-  const head=6+16*ss.length,tot=head+bufs.reduce((a,b)=>a+b.length,0),out=new Uint8Array(tot),v=new DataView(out.buffer);
+const bytes=async c=>new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer());
+async function ico(img){let ss=sel().filter(s=>s<=256);if(!ss.length)ss=[256];
+  const bufs=await Promise.all(ss.map(s=>bytes(draw(img,s))));
+  const head=6+16*ss.length,out=new Uint8Array(head+bufs.reduce((a,b)=>a+b.length,0)),v=new DataView(out.buffer);
   v.setUint16(2,1,true);v.setUint16(4,ss.length,true);let off=head;
-  ss.forEach((s,i)=>{const e=6+16*i;out[e]=s>=256?0:s;out[e+1]=s>=256?0:s;v.setUint16(e+4,1,true);v.setUint16(e+6,32,true);v.setUint32(e+8,bufs[i].length,true);v.setUint32(e+12,off,true);out.set(bufs[i],off);off+=bufs[i].length});
-  save(new Blob([out],{type:'image/x-icon'}),'favicon.ico')};
+  ss.forEach((s,i)=>{const e=6+16*i;out[e]=out[e+1]=s>=256?0:s;v.setUint16(e+4,1,true);v.setUint16(e+6,32,true);v.setUint32(e+8,bufs[i].length,true);v.setUint32(e+12,off,true);out.set(bufs[i],off);off+=bufs[i].length});
+  return out}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc=d=>{let c=~0;for(const b of d)c=CRC[(c^b)&255]^(c>>>8);return ~c>>>0};
+function zip(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  for(const f of files){const n=enc.encode(f.name),d=f.data,c=crc(d),h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,n.length,true);
+    parts.push(h,n,d);const C=new DataView(new ArrayBuffer(46));
+    C.setUint32(0,0x02014b50,true);C.setUint16(4,20,true);C.setUint16(6,20,true);C.setUint16(8,0x800,true);C.setUint32(16,c,true);C.setUint32(20,d.length,true);C.setUint32(24,d.length,true);C.setUint16(28,n.length,true);C.setUint32(42,off,true);
+    cen.push(C,n);off+=30+n.length+d.length}
+  const size=cen.reduce((a,b)=>a+b.byteLength,0),E=new DataView(new ArrayBuffer(22));
+  E.setUint32(0,0x06054b50,true);E.setUint16(8,files.length,true);E.setUint16(10,files.length,true);E.setUint32(12,size,true);E.setUint32(16,off,true);
+  return new Blob([...parts,...cen,E],{type:'application/zip'})}
+$('zip').onclick=async()=>{$('zip').disabled=true;const files=[];
+  for(const it of items){const dir=items.length>1?it.name+'/':'';
+    for(const s of sel())files.push({name:`${dir}icon-${s}.png`,data:await bytes(draw(it.img,s))});
+    files.push({name:dir+'favicon.ico',data:await ico(it.img)})}
+  save(zip(files),items.length>1?'icons.zip':items[0].name+'-icons.zip');$('zip').disabled=false};
 </script>
 </body></html>
