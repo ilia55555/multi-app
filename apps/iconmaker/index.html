@@ -81,12 +81,12 @@ figure canvas:hover{border-color:var(--ac)}
     <div class="bar"><button id="zip" disabled>دانلود همه (ZIP)</button><button id="clear" class="ghost" disabled>پاک کردن</button></div>
   </div>
   <div id="prev"><div id="empty">هنوز فایلی اضافه نشده</div></div>
-  <small>روی هر پیش‌نمایش کلیک کنید تا همان اندازه با فرمت اول انتخاب‌شده دانلود شود. رنگ SVG از کنار نام فایل عوض می‌شود.</small>
+  <small>روی هر پیش‌نمایش کلیک کنید تا همان اندازه با فرمت اول انتخاب‌شده دانلود شود. رنگ SVG از کنار نام فایل عوض می‌شود. خروجی XML اندروید (Vector Drawable) فقط برای فایل‌های SVG ساخته می‌شود.</small>
 </div>
 </main>
 <script>
 const SIZES=[16,32,48,64,128,180,192,256,512,1024],DEF=[16,32,48,180,192,512];
-const FMTS=[['ico','ICO',1],['png','PNG',0],['jpg','JPG',0],['webp','WEBP',0],['svg','SVG',0]];
+const FMTS=[['ico','ICO',1],['png','PNG',0],['jpg','JPG',0],['webp','WEBP',0],['svg','SVG',0],['xml','XML اندروید',0]];
 const $=id=>document.getElementById(id);let items=[];
 document.addEventListener('change',e=>{const t=e.target;if(t.closest&&t.closest('#fmts')&&t.checked&&!$('mix').checked)document.querySelectorAll('#fmts input').forEach(i=>{if(i!==t)i.checked=false});if(t.id==='mix'&&!t.checked){const c=[...document.querySelectorAll('#fmts input:checked')];c.slice(1).forEach(i=>i.checked=false);render()}});
 $('sizes').innerHTML=SIZES.map(s=>`<label><input type="checkbox" value="${s}" ${DEF.includes(s)?'checked':''}>${s}</label>`).join('');
@@ -175,6 +175,57 @@ async function ico(img,ss){
   return out}
 function imgToSvg(it,s){const c=draw(it.img,s);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><image width="${s}" height="${s}" href="${c.toDataURL('image/png')}"/></svg>`}
+const _cx=document.createElement('canvas').getContext('2d');
+function acol(v,op){if(!v||/^none$/i.test(v)||/^url\(/i.test(v))return null;if(/^currentcolor$/i.test(v))v='#000';
+  _cx.fillStyle='#000';_cx.fillStyle=v;let c=_cx.fillStyle,a=1;
+  if(c.startsWith('rgba')){const m=c.match(/[\d.]+/g);a=+m[3];c='#'+m.slice(0,3).map(x=>(+x).toString(16).padStart(2,'0')).join('')}
+  a*=op;return a>=1?c.toUpperCase():'#'+Math.round(a*255).toString(16).padStart(2,'0').toUpperCase()+c.slice(1).toUpperCase()}
+const esc=v=>String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+function toVD(t){
+  const host=document.createElement('div');host.style.cssText='position:absolute;left:-9999px;top:0';host.innerHTML=t;document.body.append(host);
+  const root=host.querySelector('svg');let vb=(root.getAttribute('viewBox')||'').split(/[\s,]+/).map(Number);
+  if(vb.length!==4)vb=[0,0,parseFloat(root.getAttribute('width'))||24,parseFloat(root.getAttribute('height'))||24];
+  const N=n=>+(+n).toFixed(3);
+  const num=(e,a)=>parseFloat(e.getAttribute(a))||0;
+  function shape(e){const tg=e.tagName.toLowerCase();
+    if(tg==='path')return e.getAttribute('d');
+    if(tg==='rect'){const x=num(e,'x'),y=num(e,'y'),w=num(e,'width'),h=num(e,'height');let rx=num(e,'rx')||num(e,'ry'),ry=num(e,'ry')||rx;rx=Math.min(rx,w/2);ry=Math.min(ry,h/2);
+      if(!rx)return `M${x},${y}h${w}v${h}h${-w}z`;
+      return `M${x+rx},${y}h${w-2*rx}a${rx},${ry} 0 0 1 ${rx},${ry}v${h-2*ry}a${rx},${ry} 0 0 1 ${-rx},${ry}h${-(w-2*rx)}a${rx},${ry} 0 0 1 ${-rx},${-ry}v${-(h-2*ry)}a${rx},${ry} 0 0 1 ${rx},${-ry}z`}
+    if(tg==='circle'||tg==='ellipse'){const cx=num(e,'cx'),cy=num(e,'cy'),rx=tg==='circle'?num(e,'r'):num(e,'rx'),ry=tg==='circle'?rx:num(e,'ry');
+      return `M${cx-rx},${cy}a${rx},${ry} 0 1 0 ${2*rx},0a${rx},${ry} 0 1 0 ${-2*rx},0z`}
+    if(tg==='line')return `M${num(e,'x1')},${num(e,'y1')}L${num(e,'x2')},${num(e,'y2')}`;
+    if(tg==='polygon'||tg==='polyline'){const p=(e.getAttribute('points')||'').trim().split(/[\s,]+/);if(p.length<4)return null;
+      let d='M'+p[0]+','+p[1];for(let i=2;i+1<p.length;i+=2)d+='L'+p[i]+','+p[i+1];return tg==='polygon'?d+'z':d}
+    return null}
+  function tf(e,ind){const t=e.getAttribute&&e.getAttribute('transform');if(!t)return null;let a='';
+    const re=/(\w+)\s*\(([^)]*)\)/g;let m;const g=[];
+    while(m=re.exec(t)){const v=m[2].split(/[\s,]+/).filter(Boolean).map(Number);
+      if(m[1]==='translate')g.push(`android:translateX="${N(v[0])}" android:translateY="${N(v[1]||0)}"`);
+      else if(m[1]==='scale')g.push(`android:scaleX="${N(v[0])}" android:scaleY="${N(v[1]??v[0])}"`);
+      else if(m[1]==='rotate')g.push(`android:rotation="${N(v[0])}" android:pivotX="${N(v[1]||0)}" android:pivotY="${N(v[2]||0)}"`);
+      else if(m[1]==='matrix'){const[A,B,C,D,E,F]=v;g.push(`android:translateX="${N(E)}" android:translateY="${N(F)}" android:rotation="${N(Math.atan2(B,A)*180/Math.PI)}" android:scaleX="${N(Math.hypot(A,B))}" android:scaleY="${N((A*D-B*C)/Math.hypot(A,B))}"`)}}
+    return g}
+  function walk(e,ind){let out='';
+    for(const c of e.children){const tg=c.tagName.toLowerCase();if(['defs','style','title','desc','clippath','mask','lineargradient','radialgradient','symbol'].includes(tg))continue;
+      const cs=getComputedStyle(c);if(cs.display==='none')continue;
+      const gs=tf(c);let inner='';
+      if(tg==='g'||tg==='svg'||tg==='a')inner=walk(c,ind+(gs?2:0));
+      else{const d=shape(c);if(!d)continue;const op=+cs.opacity||1;
+        const fill=acol(cs.fill,(+cs.fillOpacity||1)*op),st=acol(cs.stroke,(+cs.strokeOpacity||1)*op),sp=' '.repeat(ind+(gs?2:0));
+        let p=`${sp}<path\n${sp}    android:pathData="${esc(d.replace(/\s+/g,' ').trim())}"`;
+        if(fill&&tg!=='line'&&tg!=='polyline'||fill&&tg==='polyline')p+=`\n${sp}    android:fillColor="${fill}"`;
+        if(cs.fillRule==='evenodd')p+=`\n${sp}    android:fillType="evenOdd"`;
+        if(st){p+=`\n${sp}    android:strokeColor="${st}"\n${sp}    android:strokeWidth="${N(parseFloat(cs.strokeWidth)||1)}"`;
+          if(cs.strokeLinecap!=='butt')p+=`\n${sp}    android:strokeLineCap="${cs.strokeLinecap}"`;
+          if(cs.strokeLinejoin!=='miter')p+=`\n${sp}    android:strokeLineJoin="${cs.strokeLinejoin==='bevel'?'bevel':'round'}"`}
+        inner=p+'/>\n'}
+      if(gs&&inner){const sp=' '.repeat(ind);let g=inner;for(const a of gs.reverse())g=`${sp}<group ${a}>\n${g}${sp}</group>\n`;out+=g}else out+=inner}
+    return out}
+  let body=walk(root,4);host.remove();
+  if(vb[0]||vb[1])body=`    <group android:translateX="${N(-vb[0])}" android:translateY="${N(-vb[1])}">\n${body}    </group>\n`;
+  const r=vb[2]/vb[3],w=r>=1?24:N(24*r),h=r>=1?N(24/r):24;
+  return `<?xml version="1.0" encoding="utf-8"?>\n<vector xmlns:android="http://schemas.android.com/apk/res/android"\n    android:width="${w}dp"\n    android:height="${h}dp"\n    android:viewportWidth="${N(vb[2])}"\n    android:viewportHeight="${N(vb[3])}">\n${body}</vector>\n`}
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
 const crc=d=>{let c=~0;for(const b of d)c=CRC[(c^b)&255]^(c>>>8);return ~c>>>0};
 function zip(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
@@ -193,6 +244,7 @@ $('zip').onclick=async()=>{const btn=$('zip');btn.disabled=true;btn.textContent=
         if(f==='ico'){const ss=sel().filter(s=>s<=256);if(!ss.length)ss.push(256);
           if($('icomulti').checked)files.push({name:dir+'favicon.ico',data:await ico(it.img,ss)});
           else for(const s of ss)files.push({name:`${dir}ico/icon-${s}.ico`,data:await ico(it.img,[s])});continue}
+        if(f==='xml'){if(it.svg)files.push({name:`${dir}${it.name.replace(/[^a-z0-9_]/gi,'_').toLowerCase()}.xml`,data:enc.encode(toVD(svgText(it)))});continue}
         if(f==='svg'){
           if(it.svg){files.push({name:`${dir}${it.name}.svg`,data:enc.encode(svgText(it))});continue}
           for(const s of sel())files.push({name:`${dir}svg/icon-${s}.svg`,data:enc.encode(imgToSvg(it,s))});continue}
